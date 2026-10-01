@@ -10,6 +10,47 @@ defined( 'ABSPATH' ) || exit;
 require_once __DIR__ . '/constants.php';
 require_once __DIR__ . '/autoload.php';
 
+/**
+ * Aviso de instalación incompleta.
+ *
+ * El tema tolera que falte la capa del sistema visual (sigue funcionando con
+ * los componentes base), pero conviene avisar en el admin en lugar de dejar
+ * que el usuario descubra que faltan componentes.
+ */
+add_action(
+	'admin_notices',
+	static function () {
+		if ( ! current_user_can( 'switch_themes' ) ) {
+			return;
+		}
+		$required = [
+			'core/components/BrandCatalog.php',
+			'core/render/BrandRenders.php',
+			'core/content/ReferenceSeeder.php',
+			'assets/css/modules.css',
+			'assets/js/modules.js',
+			'presets/honeycomb.json',
+		];
+		$missing = [];
+		foreach ( $required as $rel ) {
+			if ( ! is_readable( MERIDIAN_PATH . '/' . $rel ) ) {
+				$missing[] = $rel;
+			}
+		}
+		if ( ! $missing ) {
+			return;
+		}
+		echo '<div class="notice notice-error"><p><strong>'
+			. esc_html__( 'KRG CMS: instalación incompleta.', 'meridian' ) . '</strong> '
+			. esc_html__( 'Faltan archivos del sistema visual, así que esos componentes no estarán disponibles. Vuelve a copiar el tema completo:', 'meridian' )
+			. '</p><ul style="list-style:disc;margin-left:22px">';
+		foreach ( $missing as $rel ) {
+			echo '<li><code>' . esc_html( $rel ) . '</code></li>';
+		}
+		echo '</ul></div>';
+	}
+);
+
 add_action( 'after_setup_theme', [ \Meridian\CoreHooks::class, 'setup' ] );
 add_action( 'init', [ \Meridian\CoreHooks::class, 'init' ] );
 add_action( 'rest_api_init', [ \Meridian\Api\Routes::class, 'register' ] );

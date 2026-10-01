@@ -18,11 +18,22 @@ class Catalog {
 			self::media(),
 			self::buttons(),
 			self::content(),
-			BrandCatalog::all(),
+			self::brand(),
 			self::blog(),
 			self::forms(),
 			self::other()
 		);
+	}
+
+	/**
+	 * Componentes del sistema visual de referencia.
+	 *
+	 * Es una capa opcional: si el archivo no está presente (despliegue
+	 * parcial, copia incompleta del tema), el CMS sigue funcionando con los
+	 * componentes base en lugar de provocar un error fatal.
+	 */
+	private static function brand(): array {
+		return class_exists( BrandCatalog::class ) ? BrandCatalog::all() : [];
 	}
 
 	private static function f( string $key, string $type, string $group, string $label, array $extra = [] ): array {

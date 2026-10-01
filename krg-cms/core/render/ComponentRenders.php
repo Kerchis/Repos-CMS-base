@@ -16,7 +16,7 @@ class ComponentRenders {
 		if ( method_exists( self::class, $method ) ) {
 			return self::$method( $node, $props, $children, $ctx );
 		}
-		if ( method_exists( BrandRenders::class, $method ) ) {
+		if ( class_exists( BrandRenders::class ) && method_exists( BrandRenders::class, $method ) ) {
 			return BrandRenders::$method( $node, $props, $children, $ctx );
 		}
 		return self::generic( $node, $props, $children, $ctx );

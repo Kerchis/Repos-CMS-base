@@ -15,6 +15,10 @@ class Seeder {
 		if ( get_option( 'meridian_seeded' ) ) {
 			return;
 		}
+		// El contenido de arranque vive en una capa opcional.
+		if ( ! class_exists( ReferenceSeeder::class ) ) {
+			return;
+		}
 
 		$pages = self::reference_pages();
 		$ids   = [];
@@ -199,7 +203,7 @@ class Seeder {
 		if ( get_option( 'meridian_templates_seeded' ) ) {
 			return;
 		}
-		if ( ! post_type_exists( 'meridian_template' ) ) {
+		if ( ! post_type_exists( 'meridian_template' ) || ! class_exists( ReferenceSeeder::class ) ) {
 			return;
 		}
 		foreach ( ReferenceSeeder::library_items() as $item ) {
