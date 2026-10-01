@@ -358,7 +358,7 @@ class Menus {
 			self::default_footer(),
 			[
 				'logoId'        => absint( $data['logoId'] ?? 0 ),
-				'reveal'        => in_array( sanitize_key( (string) ( $data['reveal'] ?? 'stagger' ) ), [ 'none', 'rise', 'stagger' ], true )
+				'reveal'        => in_array( sanitize_key( (string) ( $data['reveal'] ?? 'stagger' ) ), [ 'none', 'rise', 'stagger', 'curtain' ], true )
 					? sanitize_key( (string) ( $data['reveal'] ?? 'stagger' ) )
 					: 'stagger',
 				'text'          => sanitize_textarea_field( $data['text'] ?? '' ),

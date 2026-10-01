@@ -1454,3 +1454,47 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
   .m-site-header.is-adaptive .m-logo-text,
   .m-site-header.is-adaptive .m-nav-toggle { transition: none; }
 }
+
+/* ------------------------------------------------------------------ */
+/* Pie cortina: el pie se queda quieto al fondo de la ventana y el      */
+/* contenido de la pagina se desliza por encima, descubriendolo al      */
+/* llegar al final. Solo se activa cuando modules.js confirma que el    */
+/* pie cabe en la pantalla; sin JS el pie se queda en flujo normal.     */
+/* ------------------------------------------------------------------ */
+body.m-curtain-on .m-site-footer.is-reveal-curtain {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  z-index: 0;
+}
+
+body.m-curtain-on .m-page {
+  position: relative;
+  z-index: 1;
+  background-color: var(--m-curtain-bg, var(--color-background, #fff));
+}
+
+/* El encabezado siempre por delante de la pagina, sin tocar como esta */
+/* posicionado (fijo, pegajoso o en flujo). */
+body.m-curtain-on .m-site-header {
+  z-index: 50;
+}
+
+body.m-curtain-on .m-site-header:not(.is-sticky):not(.is-transparent):not(.is-fixed) {
+  position: relative;
+}
+
+/* Reserva el alto del pie para que la pagina pueda deslizarse del todo. */
+.m-curtain-spacer {
+  height: var(--m-footer-h, 0px);
+  pointer-events: none;
+}
+
+/* El borde superior del contenido marca el corte de la cortina. */
+body.m-curtain-on .m-page::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px 0;
+  height: 1px;
+  background-color: inherit;
+}

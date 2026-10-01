@@ -14,14 +14,22 @@ if ( $show_footer ) {
 	$identity = \Meridian\Navigation\Menus::identity();
 	$name     = $identity['siteName'] ?: get_bloginfo( 'name' );
 	$chrome = \Meridian\Render\Preview::is_preview() ? ' data-krg-chrome="footer"' : '';
+	// Revelado del pie. 'curtain' lo descubre el contenido al deslizarse por encima.
+	$f_reveal  = sanitize_key( (string) ( $f['reveal'] ?? 'stagger' ) );
+	$f_curtain = 'curtain' === $f_reveal;
+	$f_classes = 'm-site-footer';
+	if ( $f_curtain ) {
+		$f_classes .= ' is-reveal-curtain';
+	}
 	?>
 	</div><!-- .m-page -->
-	<footer class="m-site-footer<?php echo ! empty( $f['htmlClass'] ) ? ' ' . esc_attr( $f['htmlClass'] ) : ''; ?>"<?php echo ! empty( $f['htmlId'] ) ? ' id="' . esc_attr( $f['htmlId'] ) . '"' : ''; ?><?php echo $chrome; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+	<footer class="<?php echo esc_attr( $f_classes ); ?><?php echo ! empty( $f['htmlClass'] ) ? ' ' . esc_attr( $f['htmlClass'] ) : ''; ?>"<?php echo ! empty( $f['htmlId'] ) ? ' id="' . esc_attr( $f['htmlId'] ) . '"' : ''; ?><?php echo $chrome; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
 		<?php
 		$has_sections = ! empty( $f['sections'] ) && is_array( $f['sections'] );
-		// Revelado al hacer scroll (como en la referencia). Lo observa public.js.
-		$f_reveal = sanitize_key( (string) ( $f['reveal'] ?? 'stagger' ) );
-		$f_anim   = in_array( $f_reveal, [ 'rise', 'stagger' ], true ) ? ' m-anim-' . $f_reveal : '';
+		// Las animaciones de entrada las observa public.js. 'curtain' no las usa.
+		$f_anim  = in_array( $f_reveal, [ 'rise', 'stagger' ], true ) ? ' m-anim-' . $f_reveal : '';
+		// Sin rejilla clásica el pie se compone de secciones: anima el propio pie.
+		$f_outer = ( $f_anim && $has_sections ) ? trim( $f_anim ) : '';
 		if ( ! $has_sections && ( ! array_key_exists( 'showClassic', $f ) || ! empty( $f['showClassic'] ) ) ) :
 			?>
 		<div class="m-container m-footer-grid<?php echo esc_attr( $f_anim ); ?>">
@@ -58,7 +66,15 @@ if ( $show_footer ) {
 			<?php endif; ?>
 		</div>
 		<?php endif; ?>
-		<?php echo \Meridian\Navigation\Menus::render_footer_sections( $f ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+		<?php
+		if ( $f_outer ) {
+			echo '<div class="' . esc_attr( $f_outer ) . '">';
+		}
+		echo \Meridian\Navigation\Menus::render_footer_sections( $f ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		if ( $f_outer ) {
+			echo '</div>';
+		}
+		?>
 		<?php
 		$copy = (string) ( $f['copyright'] ?? '' );
 		if ( $copy !== '' ) :

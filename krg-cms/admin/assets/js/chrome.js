@@ -882,11 +882,12 @@
         ${footerChromeAlign()}
         <div class="acc"><h5>Animación de entrada</h5>
           ${field("Revelado al hacer scroll", `<select data-f="reveal">${[
+            ["curtain", "Cortina (el contenido lo descubre)"],
             ["stagger", "Escalonada (por bloques)"],
             ["rise", "Aparecer entero"],
             ["none", "Sin animación"],
           ].map(([v, l]) => `<option value="${v}" ${(f.reveal || "stagger") === v ? "selected" : ""}>${l}</option>`).join("")}</select>`)}
-          <p class="m-muted">El contenido del pie sube y aparece al entrar en pantalla.</p>
+          <p class="m-muted">Cortina: el pie se queda quieto al fondo y el contenido de la página se desliza por encima, descubriéndolo poco a poco al llegar al final. Es el efecto de la referencia. Se desactiva solo si el pie no cabe en la pantalla.</p>
         </div>
         <div class="acc"><h5>Colores</h5>
           ${window.KrgUi.colorField("Fondo", f.background || "", 'data-f="background"')}

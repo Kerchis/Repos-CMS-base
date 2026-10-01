@@ -514,6 +514,96 @@
   }
 
   /* ---------------------------------------------------------------- */
+  /* Pie cortina                                                        */
+  /* El pie queda fijo al fondo de la ventana y la pagina se desliza    */
+  /* por encima. Al llegar al final del documento el pie queda          */
+  /* descubierto entero, de abajo hacia arriba.                         */
+  /* ---------------------------------------------------------------- */
+
+  function initCurtainFooter(root) {
+    var footer = (root || document).querySelector(".m-site-footer.is-reveal-curtain");
+    if (!footer || !once(footer, "krgCurtain")) return;
+
+    var page = document.querySelector(".m-page");
+    if (!page || !footer.parentNode) return;
+
+    var body = document.body;
+    var spacer = document.querySelector(".m-curtain-spacer");
+    if (!spacer) {
+      spacer = document.createElement("div");
+      spacer.className = "m-curtain-spacer";
+      spacer.setAttribute("aria-hidden", "true");
+      footer.parentNode.insertBefore(spacer, footer);
+    }
+
+    function opaque(v) {
+      return !!v && v !== "transparent" && v.replace(/\s/g, "") !== "rgba(0,0,0,0)";
+    }
+
+    // La pagina necesita un fondo opaco: si no, el pie fijo se veria por
+    // los huecos entre secciones durante todo el scroll.
+    function paintPage() {
+      if (opaque(getComputedStyle(page).backgroundColor)) return;
+      var src = getComputedStyle(body).backgroundColor;
+      if (!opaque(src)) src = getComputedStyle(document.documentElement).backgroundColor;
+      if (opaque(src)) body.style.setProperty("--m-curtain-bg", src);
+    }
+
+    var active = false;
+
+    function measure() {
+      // Se mide en flujo normal para no leer el alto del pie ya fijado.
+      body.classList.remove("m-curtain-on");
+      spacer.style.height = "0px";
+
+      var h = Math.round(footer.getBoundingClientRect().height);
+      var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+
+      // Un pie mas alto que la ventana nunca llegaria a descubrirse entero,
+      // asi que en ese caso se queda como un pie normal.
+      active = h > 0 && vh > 0 && h <= vh * 0.92;
+
+      if (active) {
+        paintPage();
+        body.style.setProperty("--m-footer-h", h + "px");
+        spacer.style.height = "";
+        body.classList.add("m-curtain-on");
+      } else {
+        body.style.removeProperty("--m-footer-h");
+        spacer.style.height = "0px";
+      }
+    }
+
+    // Si alguien llega tabulando a un enlace del pie todavia tapado,
+    // llevamos el scroll al final para que lo vea de verdad.
+    footer.addEventListener("focusin", function () {
+      if (!active) return;
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max - (window.scrollY || window.pageYOffset) > 4) {
+        window.scrollTo({ top: max, behavior: "smooth" });
+      }
+    });
+
+    measure();
+    window.addEventListener("load", measure);
+
+    var rt;
+    function later() {
+      clearTimeout(rt);
+      rt = setTimeout(measure, 200);
+    }
+    window.addEventListener("resize", later, { passive: true });
+
+    if ("ResizeObserver" in window) {
+      var first = true;
+      new ResizeObserver(function () {
+        if (first) { first = false; return; }
+        later();
+      }).observe(footer);
+    }
+  }
+
+  /* ---------------------------------------------------------------- */
   /* Utilidades                                                         */
   /* ---------------------------------------------------------------- */
 
@@ -558,6 +648,7 @@
     initSplitPanel(root);
     initStickyHeader();
     initAdaptiveHeader();
+    initCurtainFooter(root);
   }
 
   if (document.readyState === "loading") {

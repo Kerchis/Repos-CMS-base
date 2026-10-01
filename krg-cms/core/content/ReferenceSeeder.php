@@ -1066,6 +1066,7 @@ class ReferenceSeeder {
 				'text'           => 'Miel honesta, trazable de la flor al bote.',
 				'copyright'      => '© ' . gmdate( 'Y' ) . ' ' . get_bloginfo( 'name' ),
 				'copyrightAlign' => 'center',
+				'reveal'         => 'curtain',
 				'columns'        => 3,
 				'paddingY'       => 84,
 				'background'     => 'var(--color-primary)',

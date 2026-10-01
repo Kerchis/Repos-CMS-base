@@ -196,6 +196,30 @@ pasa, sin que el editor tenga que calcular nada:
 
 ---
 
+## 5.2 Pie cortina
+
+El pie de la referencia no entra animándose: se queda quieto al fondo de la
+ventana y es el contenido de la página el que se desliza por encima y lo va
+descubriendo de abajo hacia arriba al llegar al final del scroll.
+
+- Se elige en Chrome → Pie → Diseño → Revelado al hacer scroll → **Cortina**.
+- `footer.php` marca el pie con `is-reveal-curtain`; nada más cambia en el HTML.
+- `initCurtainFooter()` mide el alto real del pie, inserta un espaciador
+  equivalente (`.m-curtain-spacer`) para que el documento tenga recorrido de
+  sobra, y activa `body.m-curtain-on`.
+- Mientras está activo el pie es `position: fixed` al fondo con `z-index: 0`,
+  y `.m-page` va por encima con fondo opaco. El fondo se copia del `body` solo
+  si la página no tiene uno propio, así que no pisa diseños personalizados.
+- **Si el pie no cabe en la ventana** (más del 92% del alto) el efecto se
+  desactiva solo y el pie vuelve al flujo normal: si no, nunca podría
+  descubrirse entero. Se vuelve a medir al redimensionar y cuando cambia el
+  alto del pie.
+- Sin JavaScript el pie se queda en flujo normal; el efecto es progresivo.
+- Al tabular hacia un enlace del pie todavía tapado, el scroll salta al final
+  para que sea visible de verdad.
+
+---
+
 ## 6. Cómo apuntar el sistema a otra referencia
 
 1. **Paleta y tipografía** → duplicar `presets/honeycomb.json`, cambiar valores
