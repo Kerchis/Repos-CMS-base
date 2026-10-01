@@ -1,0 +1,15 @@
+/*
+Theme Name: KRG CMS
+Theme URI: https://example.com/krg-cms
+Author: KRG CMS
+Description: CMS + constructor visual + design system. Identidad 100% administrable mediante tokens. Sin Elementor ni Gutenberg como motor de páginas.
+Version: 1.13.49
+Requires at least: 6.4
+Tested up to: 6.8
+Requires PHP: 8.1
+Text Domain: krg-cms
+License: GNU General Public License v2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+*/
+
+/* La identidad visual se inyecta como CSS variables. No hay colores de marca hardcodeados aquí. */

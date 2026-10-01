@@ -1,0 +1,767 @@
+<?php
+/**
+ * HTML for every built-in component. Content comes from props only.
+ *
+ * @package Meridian
+ */
+
+namespace Meridian\Render;
+
+defined( 'ABSPATH' ) || exit;
+
+class ComponentRenders {
+
+	public static function render( string $type, array $node, array $props, string $children, RenderContext $ctx ): string {
+		$method = str_replace( '-', '_', $type );
+		if ( method_exists( self::class, $method ) ) {
+			return self::$method( $node, $props, $children, $ctx );
+		}
+		return self::generic( $node, $props, $children, $ctx );
+	}
+
+	private static function wrap( array $node, RenderContext $ctx, string $tag, string $inner, array $attrs = [] ): string {
+		$class = $ctx->node_class( $node );
+		if ( ! empty( $attrs['class'] ) ) {
+			$class .= ' ' . $attrs['class'];
+			unset( $attrs['class'] );
+		}
+		$props = is_array( $node['props'] ?? null ) ? $node['props'] : [];
+		$type  = $node['type'] ?? '';
+		$h     = sanitize_html_class( (string) ( $props['alignH'] ?? 'start' ) );
+		$v     = sanitize_html_class( (string) ( $props['alignV'] ?? 'start' ) );
+		if ( 'column' === $type ) {
+			$h = sanitize_html_class( (string) ( $props['contentHAlign'] ?? $h ) );
+			$v = sanitize_html_class( (string) ( $props['contentVAlign'] ?? $v ) );
+		}
+		if ( in_array( $h, [ 'center', 'end', 'stretch' ], true ) ) {
+			$class .= ' m-align-h-' . $h;
+		}
+		if ( 'row' !== $type && in_array( $v, [ 'center', 'end', 'stretch' ], true ) ) {
+			$class .= ' m-align-v-' . $v;
+		}
+		$dist = sanitize_html_class( (string) ( $props['distribute'] ?? 'none' ) );
+		if ( in_array( $dist, [ 'x', 'y' ], true ) ) {
+			$class .= ' is-dist-' . $dist;
+		}
+		if ( ! empty( $node['htmlClass'] ) ) {
+			$class .= ' ' . $node['htmlClass'];
+		}
+		$anim = sanitize_html_class( (string) ( $node['animation'] ?? '' ) );
+		if ( $anim && 'none' !== $anim ) {
+			$class .= ' m-anim-' . $anim;
+			$attrs['data-anim-in'] = $anim;
+		}
+		if ( empty( $attrs['id'] ) && ! empty( $node['htmlId'] ) ) {
+			$attrs['id'] = $node['htmlId'];
+		} elseif ( empty( $attrs['id'] ) && ! empty( $node['props']['htmlId'] ) ) {
+			$attrs['id'] = sanitize_html_class( (string) $node['props']['htmlId'] );
+		}
+		$extra = '';
+		foreach ( $attrs as $k => $v ) {
+			if ( $v === '' || $v === null ) {
+				continue;
+			}
+			$extra .= ' ' . $k . '="' . esc_attr( (string) $v ) . '"';
+		}
+		return '<' . $tag . ' class="' . esc_attr( $class ) . '"' . $ctx->preview_attrs( $node['id'] ?? '' ) . $extra . '>' . $inner . '</' . $tag . '>';
+	}
+
+	private static function btn( array $b ): string {
+		$variant = sanitize_html_class( $b['variant'] ?? 'primary' );
+		$url     = $b['url'] ?? '#';
+		$target  = ( $b['target'] ?? '_self' ) === '_blank' ? ' target="_blank" rel="noopener noreferrer"' : '';
+		$text    = esc_html( $b['text'] ?? '' );
+		$rel     = ( $b['target'] ?? '' ) === '_blank' ? '' : '';
+		return '<a class="m-btn m-btn-' . $variant . '" href="' . esc_url( $url ) . '"' . $target . $rel . '>' . $text . '</a>';
+	}
+
+	private static function img( RenderContext $ctx, int $id, string $alt = '', string $class = '', string $size = 'large', bool $eager = false ): string {
+		if ( ! $id ) {
+			return '<div class="m-img-placeholder" aria-hidden="true"></div>';
+		}
+		$attrs = [
+			'class'    => $class,
+			'alt'      => $alt,
+			'loading'  => $eager ? 'eager' : 'lazy',
+			'decoding' => 'async',
+			'sizes'    => '(max-width: 767px) 100vw, (max-width: 1023px) 90vw, 1200px',
+		];
+		if ( $eager ) {
+			$attrs['fetchpriority'] = 'high';
+		}
+		$html = wp_get_attachment_image( $id, $size, false, $attrs );
+		return $html ?: '<div class="m-img-placeholder" aria-hidden="true"></div>';
+	}
+
+	public static function section( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$inner = '<div class="m-container">' . $children . '</div>';
+		$fw    = $props['fullWidth'] ?? true;
+		$full  = ! ( false === $fw || 0 === $fw || '0' === $fw || '' === $fw );
+		$attrs = [ 'class' => $full ? 'is-full' : 'is-boxed' ];
+		if ( ! empty( $props['htmlId'] ) ) {
+			$attrs['id'] = sanitize_html_class( $props['htmlId'] );
+		}
+		$bg = $props['background'] ?? null;
+		if ( is_array( $bg ) ) {
+			if ( ( $bg['mode'] ?? '' ) === 'token' && ! empty( $bg['token'] ) ) {
+				$attrs['style'] = 'background:' . \Meridian\Design\TokenCompiler::token_var( $bg['token'] );
+			} elseif ( ! empty( $bg['value'] ) ) {
+				$hex = sanitize_hex_color( $bg['value'] );
+				if ( $hex ) {
+					$attrs['style'] = 'background:' . $hex;
+				}
+			}
+		}
+		return self::wrap( $node, $ctx, 'section', $inner, $attrs );
+	}
+
+	public static function container( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$class = ! empty( $props['narrow'] ) ? 'm-container m-container-narrow' : 'm-container';
+		return self::wrap( $node, $ctx, 'div', $children, [ 'class' => $class ] );
+	}
+
+	public static function columns( array $node, array $props, string $children, RenderContext $ctx ): string {
+		return self::wrap( $node, $ctx, 'div', $children, [ 'class' => 'm-columns' ] );
+	}
+
+	public static function row( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$va = sanitize_html_class( (string) ( $props['vAlign'] ?? 'start' ) );
+		if ( ! in_array( $va, [ 'start', 'center', 'end', 'stretch' ], true ) ) {
+			$va = 'start';
+		}
+		return self::wrap( $node, $ctx, 'div', $children, [ 'class' => 'm-row m-valign-' . $va ] );
+	}
+
+	public static function column( array $node, array $props, string $children, RenderContext $ctx ): string {
+		if ( $ctx->isPreview && trim( $children ) === '' ) {
+			$children = '<div class="m-col-empty">' . esc_html__( 'Grupo vacío — selecciona esta columna y añade un módulo.', 'meridian' ) . '</div>';
+		}
+		$cv    = sanitize_html_class( (string) ( $props['contentVAlign'] ?? 'start' ) );
+		$ch    = sanitize_html_class( (string) ( $props['contentHAlign'] ?? 'start' ) );
+		$class = 'm-col';
+		if ( in_array( $cv, [ 'center', 'end' ], true ) ) {
+			$class .= ' m-content-v-' . $cv;
+		}
+		if ( in_array( $ch, [ 'center', 'end' ], true ) ) {
+			$class .= ' m-content-h-' . $ch;
+		}
+		return self::wrap( $node, $ctx, 'div', $children, [ 'class' => $class ] );
+	}
+
+	public static function spacer( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$h = absint( $props['height'] ?? 48 );
+		return self::wrap( $node, $ctx, 'div', '', [ 'style' => 'height:' . $h . 'px', 'aria-hidden' => 'true' ] );
+	}
+
+	public static function divider( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$style = ( $props['style'] ?? 'solid' ) === 'dashed' ? 'dashed' : 'solid';
+		return self::wrap( $node, $ctx, 'hr', '', [ 'class' => 'm-divider is-' . $style ] );
+	}
+
+	public static function heading( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$tag  = in_array( $props['tag'] ?? '', [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p' ], true ) ? $props['tag'] : 'h2';
+		$text = esc_html( $props['text'] ?? '' );
+		$link = $props['link'] ?? '';
+		if ( $link ) {
+			$text = '<a href="' . esc_url( $link ) . '">' . $text . '</a>';
+		}
+		$align = sanitize_html_class( $props['align'] ?? 'left' );
+		return self::wrap( $node, $ctx, $tag, $text, [ 'class' => 'm-heading m-align-' . $align . ' m-role-' . $tag ] );
+	}
+
+	public static function paragraph( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$align = sanitize_html_class( $props['align'] ?? 'left' );
+		$text  = nl2br( esc_html( $props['text'] ?? '' ) );
+		return self::wrap( $node, $ctx, 'p', $text, [ 'class' => 'm-p m-align-' . $align ] );
+	}
+
+	public static function rich_text( array $node, array $props, string $children, RenderContext $ctx ): string {
+		return self::wrap( $node, $ctx, 'div', \Meridian\Security\Sanitizer::richtext( (string) ( $props['html'] ?? '' ) ), [ 'class' => 'm-rich' ] );
+	}
+
+	public static function eyebrow( array $node, array $props, string $children, RenderContext $ctx ): string {
+		return self::wrap( $node, $ctx, 'p', esc_html( $props['text'] ?? '' ), [ 'class' => 'm-eyebrow' ] );
+	}
+
+	public static function quote( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$inner = '<p>' . esc_html( $props['text'] ?? '' ) . '</p>';
+		if ( ! empty( $props['cite'] ) ) {
+			$inner .= '<cite>' . esc_html( $props['cite'] ) . '</cite>';
+		}
+		return self::wrap( $node, $ctx, 'blockquote', $inner, [ 'class' => 'm-quote' ] );
+	}
+
+	public static function hero( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$align = sanitize_html_class( $props['align'] ?? 'left' );
+		$copy  = '<div class="m-hero-copy">';
+		if ( ! empty( $props['eyebrow'] ) ) {
+			$copy .= '<p class="m-eyebrow">' . esc_html( $props['eyebrow'] ) . '</p>';
+		}
+		$copy .= '<h1 class="m-hero-title m-role-h1">' . nl2br( esc_html( $props['title'] ?? '' ) ) . '</h1>';
+		if ( ! empty( $props['subtitle'] ) ) {
+			$copy .= '<p class="m-hero-sub">' . nl2br( esc_html( $props['subtitle'] ) ) . '</p>';
+		}
+		$btns = $props['buttons'] ?? [];
+		if ( $btns ) {
+			$copy .= '<div class="m-btn-row">';
+			foreach ( $btns as $b ) {
+				$copy .= self::btn( is_array( $b ) ? $b : [] );
+			}
+			$copy .= '</div>';
+		}
+		$copy .= '</div>';
+		$media = '';
+		if ( ! empty( $props['imageId'] ) ) {
+			$eager = empty( $ctx->needed['hero_img'] );
+			$ctx->needed['hero_img'] = true;
+			$media = '<div class="m-hero-media">' . self::img( $ctx, (int) $props['imageId'], '', 'm-hero-img', 'krg-hero', $eager ) . '</div>';
+		}
+		return self::wrap( $node, $ctx, 'div', $copy . $media, [ 'class' => 'm-hero m-align-' . $align ] );
+	}
+
+	public static function image( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$alt   = $props['alt'] ?? '';
+		$fit   = sanitize_html_class( $props['objectFit'] ?? 'cover' );
+		$eager = ! empty( $props['parallax'] );
+		$img   = self::img( $ctx, (int) ( $props['imageId'] ?? 0 ), $alt, 'm-img is-fit-' . $fit, 'large', $eager );
+		$r     = sanitize_html_class( $props['radius'] ?? 'none' );
+		if ( ! in_array( $r, [ 'none', 'sm', 'md', 'lg', 'full' ], true ) ) {
+			$r = 'none';
+		}
+		$class = 'm-figure is-radius-' . $r;
+		$img_scale = max( 10, min( 200, absint( $props['scale'] ?? 100 ) ) );
+		$style     = '';
+		if ( $img_scale !== 100 ) {
+			$class .= ' is-scale';
+			$style  = '--m-img-scale:' . $img_scale . '%';
+		}
+		if ( ( $props['fillMode'] ?? '' ) === 'fill' ) {
+			$class .= ' is-fill';
+		}
+		$attrs = [ 'class' => $class ];
+		if ( $style ) {
+			$attrs['style'] = $style;
+		}
+		if ( ! empty( $props['parallax'] ) ) {
+			$class .= ' is-parallax';
+			$zoom   = max( 0, min( 40, (int) ( $props['parallaxZoom'] ?? 8 ) ) );
+			$amount = max( 0, min( 40, (int) ( $props['parallaxAmount'] ?? 10 ) ) );
+			$attrs['class']                = $class;
+			$attrs['data-parallax-zoom']   = (string) $zoom;
+			$attrs['data-parallax-amount'] = (string) $amount;
+			$attrs['data-parallax-dir']    = ! empty( $props['parallaxInvert'] ) ? '-1' : '1';
+			$px                            = '--m-px-zoom:' . ( 1 + ( $zoom / 100 ) );
+			$attrs['style']                = $style ? ( $style . ';' . $px ) : $px;
+		}
+		if ( ! empty( $props['centerOnMobile'] ) ) {
+			$class .= ' m-img-center-m';
+		}
+		$align = sanitize_html_class( $node['styles']['desktop']['text-align'] ?? '' );
+		if ( $align ) {
+			$class .= ' m-align-' . $align;
+		}
+		$inner = $img;
+		$full  = $props['imageUrl'] ?? '';
+		if ( ! $full && ! empty( $props['imageId'] ) ) {
+			$full = wp_get_attachment_image_url( (int) $props['imageId'], 'full' ) ?: '';
+		}
+		$href = $props['link'] ?? '';
+		if ( ! empty( $props['lightbox'] ) && $full ) {
+			$inner = '<a class="js-krg-lightbox" href="' . esc_url( $full ) . '">' . $inner . '</a>';
+		} elseif ( $href ) {
+			$tgt   = ( $props['linkTarget'] ?? '_self' ) === '_blank' ? ' target="_blank" rel="noopener noreferrer"' : '';
+			$inner = '<a href="' . esc_url( $href ) . '"' . $tgt . '>' . $inner . '</a>';
+		}
+		$attrs['class'] = $class;
+		return self::wrap( $node, $ctx, 'figure', $inner, $attrs );
+	}
+
+	public static function gallery( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$slides = [];
+		if ( ! empty( $props['items'] ) && is_array( $props['items'] ) ) {
+			foreach ( $props['items'] as $it ) {
+				$id = absint( $it['imageId'] ?? 0 );
+				if ( $id ) {
+					$slides[] = [ 'id' => $id, 'alt' => (string) ( $it['alt'] ?? '' ) ];
+				}
+			}
+		}
+		if ( ! $slides && ! empty( $props['ids'] ) ) {
+			foreach ( array_filter( array_map( 'absint', explode( ',', (string) $props['ids'] ) ) ) as $id ) {
+				$slides[] = [ 'id' => $id, 'alt' => '' ];
+			}
+		}
+		$layout = ( $props['layout'] ?? 'carousel' ) === 'grid' ? 'grid' : 'carousel';
+		$fit    = sanitize_html_class( $props['objectFit'] ?? 'cover' );
+		if ( 'carousel' === $layout ) {
+			$fit = 'cover';
+		}
+		$h      = max( 120, min( 900, absint( $props['height'] ?? 420 ) ) );
+		$ht     = max( 120, min( $h, 360 ) );
+		$hm     = max( 120, min( $h, 240 ) );
+		$class  = 'm-gallery is-' . $layout . ' is-fit-' . $fit;
+		if ( ! empty( $props['fullWidth'] ) ) {
+			$class .= ' is-full';
+			$adapt  = ! array_key_exists( 'adaptSmall', $props ) || false !== $props['adaptSmall'];
+			$class .= $adapt ? ' is-adapt' : ' is-full-sm';
+		}
+		$style = '--m-gal-h:' . $h . 'px;--m-gal-h-t:' . $ht . 'px;--m-gal-h-m:' . $hm . 'px';
+		$attrs = [
+			'class'    => $class,
+			'style'    => $style,
+			'tabindex' => '0',
+		];
+		if ( ! empty( $props['parallax'] ) ) {
+			$zoom   = max( 0, min( 40, (int) ( $props['parallaxZoom'] ?? 8 ) ) );
+			$amount = max( 0, min( 40, (int) ( $props['parallaxAmount'] ?? 10 ) ) );
+			$attrs['class']                .= ' is-parallax';
+			$attrs['data-parallax-zoom']    = (string) $zoom;
+			$attrs['data-parallax-amount']  = (string) $amount;
+			$attrs['data-parallax-dir']     = ! empty( $props['parallaxInvert'] ) ? '-1' : '1';
+			$attrs['style']                .= ';--m-px-zoom:' . ( 1 + ( $zoom / 100 ) );
+		}
+		if ( 'carousel' === $layout ) {
+			$attrs['data-gallery'] = '1';
+			$attrs['data-keys']    = ( ! isset( $props['keyboard'] ) || ! empty( $props['keyboard'] ) ) ? '1' : '0';
+			if ( ! empty( $props['autoplay'] ) ) {
+				$attrs['data-autoplay'] = (string) max( 1500, absint( $props['interval'] ?? 5000 ) );
+			}
+		}
+		if ( ! $slides ) {
+			$empty = '<p class="m-muted">' . esc_html__( 'Añade imágenes a la galería.', 'meridian' ) . '</p>';
+			return self::wrap( $node, $ctx, 'div', $empty, $attrs );
+		}
+		if ( 'grid' === $layout ) {
+			$inner = '<div class="m-grid">';
+			foreach ( $slides as $s ) {
+				$inner .= '<figure class="m-figure">' . self::img( $ctx, $s['id'], $s['alt'], 'm-img' ) . '</figure>';
+			}
+			$inner .= '</div>';
+			return self::wrap( $node, $ctx, 'div', $inner, $attrs );
+		}
+		$inner = '<div class="m-gallery-viewport"><div class="m-gallery-track">';
+		foreach ( $slides as $i => $s ) {
+			$on     = 0 === $i ? ' is-on' : '';
+			$inner .= '<figure class="m-gallery-slide' . $on . '">' . self::img( $ctx, $s['id'], $s['alt'], 'm-img', 'large', 0 === $i ) . '</figure>';
+		}
+		$inner .= '</div></div>';
+		$arrows = ! isset( $props['arrows'] ) || ! empty( $props['arrows'] );
+		if ( $arrows && count( $slides ) > 1 ) {
+			$chev_l = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+			$chev_r = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9.5 5.5L16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+			$inner .= '<button type="button" class="m-gallery-nav m-gallery-prev" aria-label="' . esc_attr__( 'Anterior', 'meridian' ) . '">' . $chev_l . '</button>';
+			$inner .= '<button type="button" class="m-gallery-nav m-gallery-next" aria-label="' . esc_attr__( 'Siguiente', 'meridian' ) . '">' . $chev_r . '</button>';
+		}
+		if ( count( $slides ) > 1 ) {
+			$inner .= '<div class="m-gallery-dots" role="tablist">';
+			foreach ( $slides as $i => $s ) {
+				$on     = 0 === $i ? ' is-on' : '';
+				$inner .= '<button type="button" class="m-gallery-dot' . $on . '" data-i="' . $i . '" aria-label="' . esc_attr( sprintf( __( 'Imagen %d', 'meridian' ), $i + 1 ) ) . '"></button>';
+			}
+			$inner .= '</div>';
+		}
+		return self::wrap( $node, $ctx, 'div', $inner, $attrs );
+	}
+
+	public static function video( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$src_mode = ( $props['source'] ?? 'link' ) === 'upload' ? 'upload' : 'link';
+		$file     = '';
+		if ( 'upload' === $src_mode ) {
+			$file = (string) ( $props['videoUrl'] ?? '' );
+			if ( ! $file && ! empty( $props['videoId'] ) ) {
+				$file = wp_get_attachment_url( (int) $props['videoId'] ) ?: '';
+			}
+		}
+		$link = (string) ( $props['url'] ?? '' );
+		$url  = 'upload' === $src_mode ? $file : $link;
+		if ( ! $url && $file ) {
+			$url = $file;
+		}
+		$size = sanitize_html_class( (string) ( $props['sizeMode'] ?? 'auto' ) );
+		if ( ! in_array( $size, [ 'auto', 'full', 'fullWidth', 'fullHeight', 'custom' ], true ) ) {
+			$size = 'auto';
+		}
+		$fit = ( $props['fit'] ?? 'cover' ) === 'contain' ? 'contain' : 'cover';
+		$w   = max( 0, (int) ( $props['width'] ?? 100 ) );
+		$h   = max( 80, min( 1200, (int) ( $props['height'] ?? 420 ) ) );
+		$vol = max( 0, min( 100, (int) ( $props['volume'] ?? 0 ) ) );
+		$auto = ! empty( $props['autoplay'] ) || ! isset( $props['autoplay'] );
+		$loop = ! empty( $props['loop'] ) || ! isset( $props['loop'] );
+		$class = 'm-video is-' . $size . ' is-fit-' . $fit;
+		$style = '--m-vid-h:' . $h . 'px;--m-vid-w:' . $w . ( 'custom' === $size ? 'px' : '%' );
+		$attrs = [
+			'class'       => $class,
+			'style'       => $style,
+			'data-video'  => '1',
+			'data-volume' => (string) $vol,
+		];
+		if ( ! $url ) {
+			return self::wrap( $node, $ctx, 'div', '<p class="m-muted">' . esc_html__( 'Añade un enlace o sube un video.', 'meridian' ) . '</p>', $attrs );
+		}
+		$yt = '';
+		if ( preg_match( '#(?:youtube(?:-nocookie)?\.com/(?:embed/|shorts/|watch\?(?:.*&)?v=)|youtu\.be/)([A-Za-z0-9_-]{6,})#i', $url, $m ) ) {
+			$yt = $m[1];
+		}
+		$vm = '';
+		if ( ! $yt && preg_match( '#vimeo\.com/(?:video/)?(\d+)#i', $url, $m ) ) {
+			$vm = $m[1];
+		}
+		$mute = true;
+		$ui   = self::video_ui( $vol );
+		$attrs['data-autoplay'] = $auto ? '1' : '0';
+		$attrs['class']        .= ' is-muted';
+		if ( $yt ) {
+			$q = [
+				'controls'       => '0',
+				'modestbranding' => '1',
+				'rel'            => '0',
+				'disablekb'      => '1',
+				'fs'             => '0',
+				'iv_load_policy' => '3',
+				'playsinline'    => '1',
+				'autoplay'       => $auto ? '1' : '0',
+				'mute'           => '1',
+				'loop'           => $loop ? '1' : '0',
+			];
+			if ( $loop ) {
+				$q['playlist'] = $yt;
+			}
+			$src   = 'https://www.youtube-nocookie.com/embed/' . rawurlencode( $yt ) . '?' . http_build_query( $q );
+			$inner = '<div class="m-video-frame"><iframe src="' . esc_url( $src ) . '" title="" allow="autoplay; encrypted-media" tabindex="-1"></iframe></div>' . $ui;
+			return self::wrap( $node, $ctx, 'div', $inner, $attrs );
+		}
+		if ( $vm ) {
+			$src   = 'https://player.vimeo.com/video/' . rawurlencode( $vm ) . '?background=1&autoplay=' . ( $auto ? '1' : '0' ) . '&muted=1&loop=' . ( $loop ? '1' : '0' ) . '&controls=0';
+			$inner = '<div class="m-video-frame"><iframe src="' . esc_url( $src ) . '" title="" allow="autoplay" tabindex="-1"></iframe></div>' . $ui;
+			return self::wrap( $node, $ctx, 'div', $inner, $attrs );
+		}
+		$file_url = esc_url( $url );
+		$vattr    = ' playsinline webkit-playsinline disablepictureinpicture controlslist="nodownload nofullscreen noremoteplayback" preload="auto" muted';
+		if ( $auto ) {
+			$vattr .= ' autoplay';
+		}
+		if ( $loop ) {
+			$vattr .= ' loop';
+		}
+		$inner = '<video src="' . $file_url . '"' . $vattr . '></video>' . $ui;
+		return self::wrap( $node, $ctx, 'div', $inner, $attrs );
+	}
+
+	private static function video_ui( int $vol ): string {
+		$vol = max( 0, min( 100, $vol ) );
+		$shown = $vol > 0 ? $vol : 70;
+		return '<div class="m-video-ui" data-video-ui>'
+			. '<button type="button" class="m-video-mute" data-video-mute aria-pressed="true" aria-label="' . esc_attr__( 'Activar sonido', 'meridian' ) . '">'
+			. '<svg class="m-video-ic-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M23 9l-6 6M17 9l6 6"/></svg>'
+			. '<svg class="m-video-ic-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 6a9 9 0 0 1 0 12"/></svg>'
+			. '</button>'
+			. '<label class="m-video-vol"><span class="screen-reader-text">' . esc_html__( 'Volumen', 'meridian' ) . '</span>'
+			. '<input type="range" min="0" max="100" value="' . esc_attr( (string) $shown ) . '" data-video-vol></label>'
+			. '</div>';
+	}
+
+	public static function button( array $node, array $props, string $children, RenderContext $ctx ): string {
+		return self::wrap( $node, $ctx, 'div', self::btn( $props ), [ 'class' => 'm-btn-wrap' ] );
+	}
+
+	public static function button_group( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$align = sanitize_html_class( $props['align'] ?? 'left' );
+		return self::wrap( $node, $ctx, 'div', $children, [ 'class' => 'm-btn-row m-align-' . $align ] );
+	}
+
+	public static function card( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$inner  = '';
+		if ( ! empty( $props['imageId'] ) ) {
+			$inner .= self::img( $ctx, (int) $props['imageId'], '', 'm-card-img', 'krg-card' );
+		}
+		$inner .= '<div class="m-card-body">';
+		$inner .= '<h3 class="m-role-h3">' . esc_html( $props['title'] ?? '' ) . '</h3>';
+		$inner .= '<p>' . esc_html( $props['text'] ?? '' ) . '</p>';
+		$inner .= '</div>';
+		if ( ! empty( $props['url'] ) ) {
+			$inner = '<a class="m-card-link" href="' . esc_url( $props['url'] ) . '">' . $inner . '</a>';
+		}
+		return self::wrap( $node, $ctx, 'article', $inner, [ 'class' => 'm-card' ] );
+	}
+
+	public static function cards_grid( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$inner = '<div class="m-grid">';
+		foreach ( $props['items'] ?? [] as $item ) {
+			$fake = [ 'id' => ( $node['id'] ?? 'c' ) . '_i' . wp_generate_uuid4(), 'type' => 'card' ];
+			$inner .= self::card( $fake, is_array( $item ) ? $item : [], '', $ctx );
+		}
+		$inner .= '</div>';
+		return self::wrap( $node, $ctx, 'div', $inner );
+	}
+
+	public static function feature( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$inner  = '<div class="m-feature-icon" aria-hidden="true">' . esc_html( $props['icon'] ?? '' ) . '</div>';
+		$inner .= '<h3 class="m-role-h3">' . esc_html( $props['title'] ?? '' ) . '</h3>';
+		$inner .= '<p>' . esc_html( $props['text'] ?? '' ) . '</p>';
+		return self::wrap( $node, $ctx, 'article', $inner, [ 'class' => 'm-feature' ] );
+	}
+
+	public static function feature_grid( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$inner = '<div class="m-grid">';
+		foreach ( $props['items'] ?? [] as $item ) {
+			$inner .= '<article class="m-feature"><div class="m-feature-icon" aria-hidden="true">' . esc_html( $item['icon'] ?? '' ) . '</div>';
+			$inner .= '<h3 class="m-role-h3">' . esc_html( $item['title'] ?? '' ) . '</h3>';
+			$inner .= '<p>' . esc_html( $item['text'] ?? '' ) . '</p></article>';
+		}
+		$inner .= '</div>';
+		return self::wrap( $node, $ctx, 'div', $inner );
+	}
+
+	public static function testimonials( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$inner = '<div class="m-grid">';
+		foreach ( $props['items'] ?? [] as $item ) {
+			$inner .= '<blockquote class="m-quote m-card"><p>' . esc_html( $item['text'] ?? '' ) . '</p>';
+			if ( ! empty( $item['cite'] ) ) {
+				$inner .= '<cite>' . esc_html( $item['cite'] ) . '</cite>';
+			}
+			$inner .= '</blockquote>';
+		}
+		$inner .= '</div>';
+		return self::wrap( $node, $ctx, 'div', $inner );
+	}
+
+	public static function faq( array $node, array $props, string $children, RenderContext $ctx ): string {
+		return self::accordion( $node, $props, $children, $ctx );
+	}
+
+	public static function accordion( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$inner = '';
+		$i     = 0;
+		foreach ( $props['items'] ?? [] as $item ) {
+			++$i;
+			$id = sanitize_html_class( ( $node['id'] ?? 'acc' ) . '-' . $i );
+			$inner .= '<details class="m-acc"><summary>' . esc_html( $item['q'] ?? '' ) . '</summary>';
+			$inner .= '<div class="m-acc-body">' . nl2br( esc_html( $item['a'] ?? '' ) ) . '</div></details>';
+		}
+		return self::wrap( $node, $ctx, 'div', $inner, [ 'class' => 'm-accordion' ] );
+	}
+
+	public static function tabs( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$tabs = '';
+		$pans = '';
+		$i    = 0;
+		foreach ( $props['items'] ?? [] as $item ) {
+			++$i;
+			$id      = sanitize_html_class( ( $node['id'] ?? 'tab' ) . '-' . $i );
+			$selected = 1 === $i ? 'true' : 'false';
+			$hidden   = 1 === $i ? '' : ' hidden';
+			$tabs    .= '<button type="button" class="m-tab" role="tab" aria-selected="' . $selected . '" aria-controls="' . $id . '" id="' . $id . '-tab">' . esc_html( $item['q'] ?? '' ) . '</button>';
+			$pans    .= '<div class="m-tab-panel" role="tabpanel" id="' . $id . '"' . $hidden . '>' . nl2br( esc_html( $item['a'] ?? '' ) ) . '</div>';
+		}
+		$inner = '<div class="m-tablist" role="tablist">' . $tabs . '</div>' . $pans;
+		return self::wrap( $node, $ctx, 'div', $inner, [ 'class' => 'm-tabs' ] );
+	}
+
+	public static function statistics( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$inner = '<div class="m-grid m-stats">';
+		foreach ( $props['items'] ?? [] as $item ) {
+			$inner .= '<div class="m-stat"><div class="m-stat-value">' . esc_html( $item['q'] ?? '' ) . '</div>';
+			$inner .= '<div class="m-stat-label">' . esc_html( $item['a'] ?? '' ) . '</div></div>';
+		}
+		$inner .= '</div>';
+		return self::wrap( $node, $ctx, 'div', $inner );
+	}
+
+	public static function timeline( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$inner = '<ol class="m-timeline">';
+		foreach ( $props['items'] ?? [] as $item ) {
+			$inner .= '<li><strong>' . esc_html( $item['q'] ?? '' ) . '</strong><p>' . esc_html( $item['a'] ?? '' ) . '</p></li>';
+		}
+		$inner .= '</ol>';
+		return self::wrap( $node, $ctx, 'div', $inner );
+	}
+
+	public static function cta( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$inner  = '<h2 class="m-role-h2">' . esc_html( $props['title'] ?? '' ) . '</h2>';
+		$inner .= '<p>' . esc_html( $props['subtitle'] ?? '' ) . '</p>';
+		$inner .= self::btn(
+			[
+				'text'    => $props['text'] ?? __( 'Contactar', 'meridian' ),
+				'url'     => $props['url'] ?? '#',
+				'variant' => 'primary',
+			]
+		);
+		return self::wrap( $node, $ctx, 'div', $inner, [ 'class' => 'm-cta' ] );
+	}
+
+	public static function blog_grid( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$q = new \WP_Query(
+			[
+				'post_type'      => 'post',
+				'posts_per_page' => max( 1, (int) ( $props['count'] ?? 6 ) ),
+				'post_status'    => 'publish',
+			]
+		);
+		$inner = '<div class="m-grid">';
+		foreach ( $q->posts as $p ) {
+			$inner .= self::post_card( $p );
+		}
+		$inner .= '</div>';
+		wp_reset_postdata();
+		return self::wrap( $node, $ctx, 'div', $inner );
+	}
+
+	public static function recent_posts( array $node, array $props, string $children, RenderContext $ctx ): string {
+		return self::blog_grid( $node, $props, $children, $ctx );
+	}
+
+	public static function related_posts( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$post_id = get_the_ID();
+		$cats    = $post_id ? wp_get_post_categories( $post_id ) : [];
+		$q       = new \WP_Query(
+			[
+				'post_type'      => 'post',
+				'posts_per_page' => max( 1, (int) ( $props['count'] ?? 3 ) ),
+				'post__not_in'   => $post_id ? [ $post_id ] : [],
+				'category__in'   => $cats,
+			]
+		);
+		if ( ! $q->have_posts() ) {
+			return self::blog_grid( $node, $props, $children, $ctx );
+		}
+		$inner = '<div class="m-grid">';
+		foreach ( $q->posts as $p ) {
+			$inner .= self::post_card( $p );
+		}
+		$inner .= '</div>';
+		return self::wrap( $node, $ctx, 'div', $inner );
+	}
+
+	public static function categories( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$cats  = get_categories( [ 'hide_empty' => true ] );
+		$inner = '<ul class="m-cat-list">';
+		foreach ( $cats as $c ) {
+			$inner .= '<li><a href="' . esc_url( get_category_link( $c ) ) . '">' . esc_html( $c->name ) . '</a></li>';
+		}
+		$inner .= '</ul>';
+		return self::wrap( $node, $ctx, 'nav', $inner );
+	}
+
+	public static function blog_post( array $node, array $props, string $children, RenderContext $ctx ): string {
+		if ( ! is_singular( 'post' ) ) {
+			return '';
+		}
+		ob_start();
+		the_content();
+		$content = ob_get_clean();
+		return self::wrap( $node, $ctx, 'div', $content, [ 'class' => 'm-rich m-article-body' ] );
+	}
+
+	private static function post_card( \WP_Post $p ): string {
+		$thumb = get_the_post_thumbnail( $p, 'krg-card', [ 'class' => 'm-card-img', 'loading' => 'lazy' ] );
+		$html  = '<article class="m-card"><a class="m-card-link" href="' . esc_url( get_permalink( $p ) ) . '">';
+		$html .= $thumb;
+		$html .= '<div class="m-card-body"><p class="m-eyebrow">' . esc_html( get_the_date( '', $p ) ) . '</p>';
+		$html .= '<h3 class="m-role-h3">' . esc_html( get_the_title( $p ) ) . '</h3>';
+		$html .= '<p>' . esc_html( wp_trim_words( get_the_excerpt( $p ), 22 ) ) . '</p></div></a></article>';
+		return $html;
+	}
+
+	public static function contact_form( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$ctx->needed['form'] = true;
+		$phone   = ! empty( $props['showPhone'] );
+		$subject = ! empty( $props['showSubject'] );
+		$html    = '<form class="m-form js-krg-form" method="post" novalidate>';
+		$html   .= wp_nonce_field( 'krg_contact', 'krg_nonce', true, false );
+		$html   .= '<div class="m-hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>';
+		$html   .= '<label class="m-field"><span>' . esc_html__( 'Nombre', 'meridian' ) . '</span><input type="text" name="name" required></label>';
+		$html   .= '<label class="m-field"><span>' . esc_html__( 'Email', 'meridian' ) . '</span><input type="email" name="email" required></label>';
+		if ( $phone ) {
+			$html .= '<label class="m-field"><span>' . esc_html__( 'Teléfono', 'meridian' ) . '</span><input type="tel" name="phone"></label>';
+		}
+		if ( $subject ) {
+			$html .= '<label class="m-field"><span>' . esc_html__( 'Asunto', 'meridian' ) . '</span><input type="text" name="subject"></label>';
+		}
+		$html .= '<label class="m-field"><span>' . esc_html__( 'Mensaje', 'meridian' ) . '</span><textarea name="message" rows="5" required></textarea></label>';
+		$html .= '<button class="m-btn m-btn-primary" type="submit">' . esc_html( $props['submit'] ?? __( 'Enviar', 'meridian' ) ) . '</button>';
+		$html .= '<p class="m-form-msg" hidden data-success="' . esc_attr( $props['success'] ?? '' ) . '"></p>';
+		$html .= '</form>';
+		return self::wrap( $node, $ctx, 'div', $html );
+	}
+
+	public static function everest_form( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$id = absint( $props['formId'] ?? 0 );
+		if ( ! $id ) {
+			return self::wrap( $node, $ctx, 'div', '<p class="m-muted">' . esc_html__( 'Elige un formulario de Everest Forms.', 'meridian' ) . '</p>', [ 'class' => 'm-everest-form' ] );
+		}
+		$tag = shortcode_exists( 'everest_form' ) ? 'everest_form' : ( shortcode_exists( 'everest_forms' ) ? 'everest_forms' : '' );
+		if ( ! $tag ) {
+			return self::wrap( $node, $ctx, 'div', '<p class="m-form-error">' . esc_html__( 'El plugin Everest Forms no está activo.', 'meridian' ) . '</p>', [ 'class' => 'm-everest-form' ] );
+		}
+		$html = do_shortcode( '[' . $tag . ' id="' . $id . '"]' );
+		if ( ! is_string( $html ) || '' === trim( wp_strip_all_tags( $html ) ) || false !== strpos( $html, '[' . $tag ) ) {
+			$html = '<p class="m-muted">' . esc_html__( 'No se encontró ese formulario.', 'meridian' ) . '</p>';
+		}
+		return self::wrap( $node, $ctx, 'div', $html, [ 'class' => 'm-everest-form' ] );
+	}
+
+	public static function map( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$ctx->needed['map'] = true;
+		$url    = (string) ( $props['url'] ?? '' );
+		$embed  = \Meridian\Security\UrlValidator::maps_embed( $url );
+		$height = max( 180, absint( $props['height'] ?? 360 ) );
+		if ( ! $embed ) {
+			$msg = $url ? __( 'La URL introducida no es válida.', 'meridian' ) : __( 'Añade una URL de Google Maps.', 'meridian' );
+			return self::wrap( $node, $ctx, 'div', '<p class="m-form-error">' . esc_html( $msg ) . '</p>' );
+		}
+		$iframe = '<iframe title="' . esc_attr__( 'Mapa', 'meridian' ) . '" src="' . esc_url( $embed ) . '" width="100%" height="' . $height . '" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>';
+		return self::wrap( $node, $ctx, 'div', $iframe, [ 'class' => 'm-map' ] );
+	}
+
+	public static function social_links( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$inner = '<ul class="m-social">';
+		foreach ( $props['items'] ?? [] as $item ) {
+			$inner .= '<li><a href="' . esc_url( $item['a'] ?? '#' ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $item['q'] ?? '' ) . '</a></li>';
+		}
+		$inner .= '</ul>';
+		return self::wrap( $node, $ctx, 'nav', $inner, [ 'aria-label' => __( 'Redes sociales', 'meridian' ) ] );
+	}
+
+	public static function logo_grid( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$ids   = array_filter( array_map( 'absint', explode( ',', (string) ( $props['ids'] ?? '' ) ) ) );
+		$inner = '<div class="m-grid m-logos">';
+		foreach ( $ids as $id ) {
+			$inner .= self::img( $ctx, $id, '', 'm-logo-img', 'medium' );
+		}
+		$inner .= '</div>';
+		return self::wrap( $node, $ctx, 'div', $inner );
+	}
+
+	public static function menu( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$slug = sanitize_key( $props['slug'] ?? 'header' );
+		$html = \Meridian\Navigation\Menus::render( $slug );
+		$d    = \Meridian\Navigation\Menus::nav_mode( $props['navModeDesktop'] ?? 'bar', 'bar' );
+		$t    = \Meridian\Navigation\Menus::nav_mode( $props['navModeTablet'] ?? 'bar', 'bar' );
+		$m    = \Meridian\Navigation\Menus::nav_mode( $props['navModeMobile'] ?? 'drawer', 'drawer' );
+		$btn  = '<button class="m-nav-toggle" type="button" aria-expanded="false">' . esc_html__( 'Menú', 'meridian' ) . '</button>';
+		return self::wrap(
+			$node,
+			$ctx,
+			'nav',
+			$btn . $html,
+			[
+				'class'      => 'm-menu',
+				'aria-label' => $slug,
+				'data-nav-d' => $d,
+				'data-nav-t' => $t,
+				'data-nav-m' => $m,
+			]
+		);
+	}
+
+	public static function search_form( array $node, array $props, string $children, RenderContext $ctx ): string {
+		ob_start();
+		get_search_form();
+		$html = (string) ob_get_clean();
+		return self::wrap( $node, $ctx, 'div', $html, [ 'class' => 'm-footer-search' ] );
+	}
+
+	private static function generic( array $node, array $props, string $children, RenderContext $ctx ): string {
+		return self::wrap( $node, $ctx, 'div', $children );
+	}
+}
