@@ -1,18 +1,26 @@
 :root {
-  --m-ink: #1d1d1b;
-  --m-brown: #512517;
-  --m-orange: #d94e27;
-  --m-paper: #f5f5f3;
+  /* Paleta del sistema visual (honeycomb): verde profundo, crema y negro. */
+  --m-ink: #0c0f0e;
+  --m-brown: #3f5e58;        /* superficie de marca (sidebar, barras) */
+  --m-brown-deep: #2b413d;
+  --m-orange: #3f5e58;       /* color de acción */
+  --m-orange-deep: #2b413d;
+  --m-accent-soft: #e7eeec;  /* tinte del color de acción */
+  --m-paper: #fef6e7;
+  --m-surface: #f7ead1;
+  --m-surface-soft: #fbf2e1;
   --m-white: #fff;
-  --m-line: #e2ded8;
-  --m-muted: #5c5854;
+  --m-line: #e1d3b6;
+  --m-line-strong: #cbb894;
+  --m-muted: #78736a;
   --m-sidebar: 240px;
 }
+
 #krg-admin, #krg-builder { font-family: Inter, "Segoe UI", system-ui, sans-serif; color: var(--m-ink); }
 .m-shell { display: grid; grid-template-columns: var(--m-sidebar) 1fr; min-height: 100vh; background: var(--m-paper); }
 .m-aside {
   background: var(--m-brown);
-  color: #f7f1ea;
+  color: var(--m-surface-soft);
   padding: 20px 0 40px;
   display: flex;
   flex-direction: column;
@@ -30,7 +38,7 @@
   display: grid;
   place-items: center;
   border-radius: 8px;
-  color: #f7f1ea;
+  color: var(--m-surface-soft);
   text-decoration: none;
   font-size: 20px;
   line-height: 1;

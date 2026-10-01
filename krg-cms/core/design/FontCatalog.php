@@ -123,6 +123,10 @@ class FontCatalog {
 	private static function web(): array {
 		$rows = [
 			[ 'Inter', 'Inter', 'sans-serif' ],
+			[ 'Archivo', 'Archivo', 'sans-serif' ],
+			[ 'Archivo Black', 'Archivo Black', 'sans-serif' ],
+			[ 'Anton', 'Anton', 'sans-serif' ],
+			[ 'Figtree', 'Figtree', 'sans-serif' ],
 			[ 'Roboto', 'Roboto', 'sans-serif' ],
 			[ 'Open Sans', 'Open Sans', 'sans-serif' ],
 			[ 'Lato', 'Lato', 'sans-serif' ],

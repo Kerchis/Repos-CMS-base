@@ -18,6 +18,7 @@ class Catalog {
 			self::media(),
 			self::buttons(),
 			self::content(),
+			BrandCatalog::all(),
 			self::blog(),
 			self::forms(),
 			self::other()
@@ -752,16 +753,35 @@ class Catalog {
 				'category' => 'forms',
 				'icon'     => 'form',
 				'defaults' => [
-					'submit'      => 'Enviar',
-					'success'     => 'Mensaje enviado. Gracias.',
-					'showPhone'   => true,
-					'showSubject' => true,
+					'submit'        => 'Enviar',
+					'success'       => 'Mensaje enviado. Gracias.',
+					'showPhone'     => true,
+					'showSubject'   => true,
+					'showMessage'   => true,
+					'style'         => 'boxed',
+					'optIns'        => [],
+					'consent'       => '',
 				],
 				'fields'   => [
 					self::f( 'submit', 'text', 'content', __( 'Texto del botón', 'meridian' ) ),
 					self::f( 'success', 'text', 'content', __( 'Mensaje de éxito', 'meridian' ) ),
 					self::f( 'showPhone', 'toggle', 'content', __( 'Campo teléfono', 'meridian' ) ),
 					self::f( 'showSubject', 'toggle', 'content', __( 'Campo asunto', 'meridian' ) ),
+					self::f( 'showMessage', 'toggle', 'content', __( 'Campo mensaje', 'meridian' ) ),
+					self::f( 'style', 'select', 'design', __( 'Estilo de campos', 'meridian' ), [ 'options' => [ 'boxed', 'underline' ] ] ),
+					self::f(
+						'optIns',
+						'repeater',
+						'content',
+						__( 'Casillas de suscripción', 'meridian' ),
+						[
+							'itemFields' => [
+								self::f( 'label', 'text', 'content', __( 'Etiqueta', 'meridian' ) ),
+								self::f( 'required', 'toggle', 'content', __( 'Obligatoria', 'meridian' ) ),
+							],
+						]
+					),
+					self::f( 'consent', 'textarea', 'content', __( 'Texto legal bajo el formulario', 'meridian' ) ),
 				],
 			],
 			[

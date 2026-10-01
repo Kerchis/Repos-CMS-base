@@ -16,10 +16,13 @@ class ComponentRenders {
 		if ( method_exists( self::class, $method ) ) {
 			return self::$method( $node, $props, $children, $ctx );
 		}
+		if ( method_exists( BrandRenders::class, $method ) ) {
+			return BrandRenders::$method( $node, $props, $children, $ctx );
+		}
 		return self::generic( $node, $props, $children, $ctx );
 	}
 
-	private static function wrap( array $node, RenderContext $ctx, string $tag, string $inner, array $attrs = [] ): string {
+	public static function wrap( array $node, RenderContext $ctx, string $tag, string $inner, array $attrs = [] ): string {
 		$class = $ctx->node_class( $node );
 		if ( ! empty( $attrs['class'] ) ) {
 			$class .= ' ' . $attrs['class'];
@@ -66,7 +69,7 @@ class ComponentRenders {
 		return '<' . $tag . ' class="' . esc_attr( $class ) . '"' . $ctx->preview_attrs( $node['id'] ?? '' ) . $extra . '>' . $inner . '</' . $tag . '>';
 	}
 
-	private static function btn( array $b ): string {
+	public static function btn( array $b ): string {
 		$variant = sanitize_html_class( $b['variant'] ?? 'primary' );
 		$url     = $b['url'] ?? '#';
 		$target  = ( $b['target'] ?? '_self' ) === '_blank' ? ' target="_blank" rel="noopener noreferrer"' : '';
@@ -75,7 +78,7 @@ class ComponentRenders {
 		return '<a class="m-btn m-btn-' . $variant . '" href="' . esc_url( $url ) . '"' . $target . $rel . '>' . $text . '</a>';
 	}
 
-	private static function img( RenderContext $ctx, int $id, string $alt = '', string $class = '', string $size = 'large', bool $eager = false ): string {
+	public static function img( RenderContext $ctx, int $id, string $alt = '', string $class = '', string $size = 'large', bool $eager = false ): string {
 		if ( ! $id ) {
 			return '<div class="m-img-placeholder" aria-hidden="true"></div>';
 		}
@@ -666,20 +669,41 @@ class ComponentRenders {
 		$ctx->needed['form'] = true;
 		$phone   = ! empty( $props['showPhone'] );
 		$subject = ! empty( $props['showSubject'] );
-		$html    = '<form class="m-form js-krg-form" method="post" novalidate>';
+		$message = ! array_key_exists( 'showMessage', $props ) || ! empty( $props['showMessage'] );
+		$style   = ( ( $props['style'] ?? 'boxed' ) === 'underline' ) ? ' is-underline' : ' is-boxed';
+		$html    = '<form class="m-form js-krg-form' . $style . '" method="post" novalidate>';
 		$html   .= wp_nonce_field( 'krg_contact', 'krg_nonce', true, false );
 		$html   .= '<div class="m-hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>';
-		$html   .= '<label class="m-field"><span>' . esc_html__( 'Nombre', 'meridian' ) . '</span><input type="text" name="name" required></label>';
-		$html   .= '<label class="m-field"><span>' . esc_html__( 'Email', 'meridian' ) . '</span><input type="email" name="email" required></label>';
+		$html   .= '<label class="m-field"><span>' . esc_html__( 'Nombre', 'meridian' ) . '</span><input type="text" name="name" autocomplete="name" required></label>';
+		$html   .= '<label class="m-field"><span>' . esc_html__( 'Email', 'meridian' ) . '</span><input type="email" name="email" autocomplete="email" required></label>';
 		if ( $phone ) {
-			$html .= '<label class="m-field"><span>' . esc_html__( 'Teléfono', 'meridian' ) . '</span><input type="tel" name="phone"></label>';
+			$html .= '<label class="m-field"><span>' . esc_html__( 'Teléfono', 'meridian' ) . '</span><input type="tel" name="phone" autocomplete="tel"></label>';
 		}
 		if ( $subject ) {
 			$html .= '<label class="m-field"><span>' . esc_html__( 'Asunto', 'meridian' ) . '</span><input type="text" name="subject"></label>';
 		}
-		$html .= '<label class="m-field"><span>' . esc_html__( 'Mensaje', 'meridian' ) . '</span><textarea name="message" rows="5" required></textarea></label>';
+		if ( $message ) {
+			$html .= '<label class="m-field"><span>' . esc_html__( 'Mensaje', 'meridian' ) . '</span><textarea name="message" rows="5" required></textarea></label>';
+		}
+		$opt_ins = is_array( $props['optIns'] ?? null ) ? $props['optIns'] : [];
+		if ( $opt_ins ) {
+			$html .= '<fieldset class="m-optins"><legend class="screen-reader-text">' . esc_html__( 'Suscripciones', 'meridian' ) . '</legend>';
+			foreach ( $opt_ins as $i => $opt ) {
+				$label = trim( (string) ( $opt['label'] ?? '' ) );
+				if ( '' === $label ) {
+					continue;
+				}
+				$req   = ! empty( $opt['required'] ) ? ' required' : '';
+				$html .= '<label class="m-optin"><input type="checkbox" name="optin[]" value="' . esc_attr( $label ) . '"' . $req . '><span>' . esc_html( $label ) . '</span></label>';
+			}
+			$html .= '</fieldset>';
+		}
 		$html .= '<button class="m-btn m-btn-primary" type="submit">' . esc_html( $props['submit'] ?? __( 'Enviar', 'meridian' ) ) . '</button>';
 		$html .= '<p class="m-form-msg" hidden data-success="' . esc_attr( $props['success'] ?? '' ) . '"></p>';
+		$consent = trim( (string) ( $props['consent'] ?? '' ) );
+		if ( '' !== $consent ) {
+			$html .= '<p class="m-form-consent">' . esc_html( $consent ) . '</p>';
+		}
 		$html .= '</form>';
 		return self::wrap( $node, $ctx, 'div', $html );
 	}

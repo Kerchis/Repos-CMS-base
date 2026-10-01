@@ -16,9 +16,14 @@ class TokenRepository {
 		if ( is_array( $current ) && ! empty( $current['tokens'] ) ) {
 			return;
 		}
-		$preset = self::load_preset_file( 'marca' );
+		$slug   = (string) apply_filters( 'meridian_default_preset', MERIDIAN_DEFAULT_PRESET );
+		$preset = self::load_preset_file( $slug );
+		if ( ! $preset ) {
+			$slug   = 'marca';
+			$preset = self::load_preset_file( $slug );
+		}
 		if ( $preset ) {
-			$preset['activePreset'] = 'marca';
+			$preset['activePreset'] = $slug;
 			$preset['customColors'] = [];
 			$preset['version']       = 1;
 			update_option( MERIDIAN_OPTION_TOKENS, $preset, false );

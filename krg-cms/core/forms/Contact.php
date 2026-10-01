@@ -25,13 +25,27 @@ class Contact {
 		$subject = sanitize_text_field( wp_unslash( $_POST['subject'] ?? '' ) );
 		$message = sanitize_textarea_field( wp_unslash( $_POST['message'] ?? '' ) );
 
-		if ( ! $name || ! is_email( $email ) || ! $message ) {
+		$raw_optins = $_POST['optin'] ?? []; // phpcs:ignore WordPress.Security.NonceVerification
+		$optins     = [];
+		if ( is_array( $raw_optins ) ) {
+			foreach ( array_slice( $raw_optins, 0, 10 ) as $opt ) {
+				$opt = sanitize_text_field( wp_unslash( (string) $opt ) );
+				if ( '' !== $opt ) {
+					$optins[] = $opt;
+				}
+			}
+		}
+
+		if ( ! $name || ! is_email( $email ) || ( ! $message && ! $optins ) ) {
 			wp_send_json_error( [ 'message' => __( 'Revisa los campos obligatorios.', 'meridian' ) ], 400 );
 		}
 
 		$to      = get_option( 'admin_email' );
 		$subj    = $subject ? $subject : sprintf( __( 'Contacto de %s', 'meridian' ), $name );
 		$body    = "Nombre: {$name}\nEmail: {$email}\nTeléfono: {$phone}\n\n{$message}";
+		if ( $optins ) {
+			$body .= "\n\n" . __( 'Suscripciones:', 'meridian' ) . ' ' . implode( ', ', $optins );
+		}
 		$headers = [ 'Reply-To: ' . $name . ' <' . $email . '>' ];
 		$sent    = wp_mail( $to, $subj, $body, $headers );
 		if ( ! $sent ) {

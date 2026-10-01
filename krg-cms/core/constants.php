@@ -11,6 +11,12 @@ define( 'MERIDIAN_VERSION', '1.13.49' );
 define( 'MERIDIAN_PATH', get_template_directory() );
 define( 'MERIDIAN_URI', get_template_directory_uri() );
 define( 'MERIDIAN_REST', 'krg/v1' );
+/**
+ * Preset de design system que se instala por defecto.
+ * Cambiarlo (o filtrar `meridian_default_preset`) es lo único necesario para
+ * que KRG CMS adopte otro lenguaje visual de referencia.
+ */
+define( 'MERIDIAN_DEFAULT_PRESET', 'honeycomb' );
 define( 'MERIDIAN_META_DRAFT', '_meridian_draft' );
 define( 'MERIDIAN_META_PUBLISHED', '_meridian_published' );
 define( 'MERIDIAN_META_ENABLED', '_meridian_enabled' );

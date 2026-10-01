@@ -1991,6 +1991,20 @@
         if (sf.type === "textarea") {
           return `<label>${esc(sf.label)} <textarea data-rep="${f.key}" data-i="${i}" data-k="${sf.key}">${esc(it[sf.key] ?? "")}</textarea></label>`;
         }
+        if (sf.type === "toggle") {
+          return `<label class="rep-toggle">${esc(sf.label)} <input type="checkbox" data-rep-bool="${f.key}" data-i="${i}" data-k="${sf.key}" ${it[sf.key] ? "checked" : ""}></label>`;
+        }
+        if (sf.type === "number") {
+          return `<label>${esc(sf.label)} <input type="number" data-rep="${f.key}" data-i="${i}" data-k="${sf.key}" value="${esc(it[sf.key] ?? "")}" min="${sf.min ?? ""}" max="${sf.max ?? ""}"></label>`;
+        }
+        if (sf.type === "select") {
+          const opts = sf.options || [];
+          return `<label>${esc(sf.label)} <select data-rep="${f.key}" data-i="${i}" data-k="${sf.key}">${opts.map((o) => {
+            const v = typeof o === "object" ? (o.value ?? o.id ?? "") : o;
+            const l = typeof o === "object" ? (o.label ?? o.name ?? v) : o;
+            return `<option value="${esc(v)}" ${String(it[sf.key] ?? "") === String(v) ? "selected" : ""}>${esc(l)}</option>`;
+          }).join("")}</select></label>`;
+        }
         return `<label>${esc(sf.label)} <input data-rep="${f.key}" data-i="${i}" data-k="${sf.key}" value="${esc(it[sf.key] ?? "")}"></label>`;
       };
       return `<div><strong>${esc(f.label)}</strong>
@@ -2327,12 +2341,26 @@
       inp.addEventListener("input", apply);
     });
     box.querySelectorAll("[data-rep]").forEach((inp) => {
-      inp.addEventListener("input", () => {
+      const applyRep = () => {
         const h = hit();
         if (!h) return;
         const arr = h.node.props[inp.dataset.rep] || [];
-        arr[Number(inp.dataset.i)][inp.dataset.k] = inp.value;
+        if (!arr[Number(inp.dataset.i)]) return;
+        arr[Number(inp.dataset.i)][inp.dataset.k] = inp.type === "number" ? Number(inp.value) : inp.value;
         h.node.props[inp.dataset.rep] = arr;
+        markDirty();
+      };
+      inp.addEventListener("input", applyRep);
+      inp.addEventListener("change", applyRep);
+    });
+    box.querySelectorAll("[data-rep-bool]").forEach((inp) => {
+      inp.addEventListener("change", () => {
+        const h = hit();
+        if (!h) return;
+        const arr = h.node.props[inp.dataset.repBool] || [];
+        if (!arr[Number(inp.dataset.i)]) return;
+        arr[Number(inp.dataset.i)][inp.dataset.k] = inp.checked;
+        h.node.props[inp.dataset.repBool] = arr;
         markDirty();
       });
     });
@@ -2342,7 +2370,14 @@
         const def = defOf(h.node.type);
         const field = (def.fields || []).find((f) => f.key === b.dataset.repAdd);
         const blank = {};
-        (field?.itemFields || []).forEach((sf) => { blank[sf.key] = ""; });
+        (field?.itemFields || []).forEach((sf) => {
+          if (sf.type === "toggle") blank[sf.key] = false;
+          else if (sf.type === "number" || sf.type === "image") blank[sf.key] = 0;
+          else if (sf.type === "select") {
+            const first = (sf.options || [])[0];
+            blank[sf.key] = typeof first === "object" ? (first?.value ?? "") : (first ?? "");
+          } else blank[sf.key] = "";
+        });
         snapshot();
         h.node.props[b.dataset.repAdd] = h.node.props[b.dataset.repAdd] || [];
         h.node.props[b.dataset.repAdd].push(blank);

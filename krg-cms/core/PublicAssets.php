@@ -14,6 +14,8 @@ class PublicAssets {
 	public static function enqueue(): void {
 		wp_enqueue_style( 'krg-base', MERIDIAN_URI . '/assets/css/base.css', [], MERIDIAN_VERSION );
 		wp_enqueue_style( 'krg-components', MERIDIAN_URI . '/assets/css/components.css', [ 'krg-base' ], MERIDIAN_VERSION );
+		// Capa del sistema visual de referencia: siempre después de components.css.
+		wp_enqueue_style( 'krg-modules', MERIDIAN_URI . '/assets/css/modules.css', [ 'krg-components' ], MERIDIAN_VERSION );
 		\Meridian\Design\FontCatalog::enqueue_used();
 
 		wp_add_inline_style( 'krg-base', \Meridian\Design\TokenCompiler::css() );
@@ -32,6 +34,7 @@ class PublicAssets {
 
 		$types = is_array( $doc ) ? \Meridian\Media\Prefetch::types( $doc['sections'] ?? [] ) : [];
 		wp_enqueue_script( 'krg-public', MERIDIAN_URI . '/assets/js/public.js', [], MERIDIAN_VERSION, true );
+		wp_enqueue_script( 'krg-modules', MERIDIAN_URI . '/assets/js/modules.js', [ 'krg-public' ], MERIDIAN_VERSION, true );
 		wp_localize_script(
 			'krg-public',
 			'KrgPublic',

@@ -16,36 +16,90 @@ class Seeder {
 			return;
 		}
 
-		$home = self::page(
-			__( 'Inicio', 'meridian' ),
-			'inicio',
-			self::home_doc()
-		);
-		$serv = self::page(
-			__( 'Servicios', 'meridian' ),
-			'servicios',
-			self::services_doc()
-		);
-		$blog = self::page(
-			__( 'Blog', 'meridian' ),
-			'blog',
-			self::blog_doc()
-		);
-		$contact = self::page(
-			__( 'Contacto', 'meridian' ),
-			'contacto',
-			self::contact_doc()
-		);
+		$pages = self::reference_pages();
+		$ids   = [];
+		foreach ( $pages as $slug => $page ) {
+			$ids[ $slug ] = self::page( $page['title'], $slug, $page['sections'] );
+		}
+
+		$blog = self::page( __( 'Blog', 'meridian' ), 'blog', self::blog_doc() );
 
 		update_option( 'show_on_front', 'page' );
-		update_option( 'page_on_front', $home );
+		update_option( 'page_on_front', $ids['inicio'] );
 		update_option( 'page_for_posts', $blog );
 
 		self::sample_posts();
 
 		update_option( 'meridian_seeded', 1 );
 		delete_option( MERIDIAN_OPTION_MENUS );
-		\Meridian\Navigation\Menus::all();
+		self::build_menus( $ids, $blog );
+		ReferenceSeeder::apply_chrome();
+	}
+
+	/**
+	 * Páginas iniciales construidas con la librería de componentes derivada de
+	 * las referencias. Son contenido editable, no plantillas cerradas.
+	 *
+	 * @return array<string, array{title:string, sections:array}>
+	 */
+	private static function reference_pages(): array {
+		return [
+			'inicio'    => [ 'title' => __( 'Inicio', 'meridian' ), 'sections' => ReferenceSeeder::home() ],
+			'productos' => [ 'title' => __( 'Productos', 'meridian' ), 'sections' => ReferenceSeeder::products() ],
+			'nosotros'  => [ 'title' => __( 'Nosotros', 'meridian' ), 'sections' => ReferenceSeeder::about() ],
+			'cocina'    => [ 'title' => __( 'Cocina', 'meridian' ), 'sections' => ReferenceSeeder::kitchen() ],
+			'faq'       => [ 'title' => __( 'Preguntas frecuentes', 'meridian' ), 'sections' => ReferenceSeeder::faq() ],
+			'contacto'  => [ 'title' => __( 'Contacto', 'meridian' ), 'sections' => ReferenceSeeder::contact() ],
+		];
+	}
+
+	/**
+	 * Menús de header y footer con el orden de navegación de la referencia.
+	 *
+	 * @param array<string, int> $ids  Slug => post ID.
+	 * @param int                $blog Página de blog.
+	 */
+	private static function build_menus( array $ids, int $blog ): void {
+		$item = static function ( string $label, int $page_id ): array {
+			return [
+				'id'       => 'itm_' . $page_id,
+				'label'    => $label,
+				'type'     => 'internal',
+				'pageId'   => $page_id,
+				'url'      => '',
+				'target'   => '_self',
+				'visible'  => true,
+				'children' => [],
+			];
+		};
+
+		$primary = [];
+		foreach (
+			[
+				'productos' => __( 'Productos', 'meridian' ),
+				'nosotros'  => __( 'Nosotros', 'meridian' ),
+				'cocina'    => __( 'Cocina', 'meridian' ),
+				'faq'       => __( 'FAQ', 'meridian' ),
+				'contacto'  => __( 'Contacto', 'meridian' ),
+			] as $slug => $label
+		) {
+			if ( ! empty( $ids[ $slug ] ) ) {
+				$primary[] = $item( $label, (int) $ids[ $slug ] );
+			}
+		}
+
+		$secondary = $primary;
+		if ( $blog ) {
+			$secondary[] = $item( __( 'Blog', 'meridian' ), $blog );
+		}
+
+		\Meridian\Navigation\Menus::save(
+			[
+				[ 'slug' => 'header', 'name' => __( 'Header', 'meridian' ), 'items' => $primary ],
+				[ 'slug' => 'footer', 'name' => __( 'Footer', 'meridian' ), 'items' => $secondary ],
+				[ 'slug' => 'secondary', 'name' => __( 'Secundario', 'meridian' ), 'items' => [] ],
+			]
+		);
 	}
 
 	private static function page( string $title, string $slug, array $sections ): int {
@@ -97,136 +151,6 @@ class Seeder {
 		return self::node( 'section', array_merge( [ 'name' => $name ], $props ), $children, [ 'name' => $name ] );
 	}
 
-	private static function home_doc(): array {
-		return [
-			self::section(
-				'Hero',
-				[
-					self::node(
-						'hero',
-						[
-							'eyebrow'  => 'CMS · Constructor · Design system',
-							'title'    => 'Administra todo el sitio sin tocar código',
-							'subtitle' => 'Páginas, secciones, componentes, identidad visual, blog y SEO en un solo panel. Los colores y tipografías viven en tokens, no en archivos.',
-							'align'    => 'left',
-							'buttons'  => [
-								[ 'text' => 'Ver servicios', 'url' => '/servicios/', 'variant' => 'primary' ],
-								[ 'text' => 'Ir al blog', 'url' => '/blog/', 'variant' => 'secondary' ],
-							],
-						]
-					),
-				]
-			),
-			self::section(
-				'Números',
-				[
-					self::node( 'eyebrow', [ 'text' => 'Plataforma' ] ),
-					self::node( 'heading', [ 'text' => 'Hecho para construir de verdad', 'tag' => 'h2' ] ),
-					self::node(
-						'statistics',
-						[
-							'items' => [
-								[ 'q' => '40+', 'a' => 'Componentes' ],
-								[ 'q' => '3', 'a' => 'Breakpoints' ],
-								[ 'q' => '100%', 'a' => 'Tokens editables' ],
-							],
-						]
-					),
-				],
-				[ 'background' => [ 'mode' => 'token', 'token' => 'color.surface' ] ]
-			),
-			self::section(
-				'Features',
-				[
-					self::node( 'eyebrow', [ 'text' => 'Capacidades' ] ),
-					self::node( 'heading', [ 'text' => 'Un sistema, no una plantilla', 'tag' => 'h2' ] ),
-					self::node(
-						'feature-grid',
-						[
-							'desktop' => 3,
-							'items'   => [
-								[ 'icon' => '▣', 'title' => 'Constructor visual', 'text' => 'Secciones, componentes, inspector de propiedades y preview real.' ],
-								[ 'icon' => '◐', 'title' => 'Design tokens', 'text' => 'Cambia el primario y se actualizan botones, enlaces y estados.' ],
-								[ 'icon' => '✦', 'title' => 'Blog propio', 'text' => 'Editor semántico independiente del constructor de páginas.' ],
-								[ 'icon' => '☰', 'title' => 'Navegación', 'text' => 'Header, footer y menús administrables.' ],
-								[ 'icon' => '◎', 'title' => 'SEO', 'text' => 'Title, description, Open Graph, sitemap nativo y HTML semántico.' ],
-								[ 'icon' => '⬡', 'title' => 'Extensible', 'text' => 'Registra componentes nuevos sin reescribir el core.' ],
-							],
-						]
-					),
-				]
-			),
-			self::section(
-				'FAQ',
-				[
-					self::node( 'heading', [ 'text' => 'Preguntas frecuentes', 'tag' => 'h2' ] ),
-					self::node(
-						'faq',
-						[
-							'items' => [
-								[ 'q' => '¿Depende de Elementor o Gutenberg?', 'a' => 'No. KRG CMS tiene su propio modelo de páginas, secciones y componentes.' ],
-								[ 'q' => '¿Puedo cambiar toda la paleta?', 'a' => 'Sí. Apariencia → Colores, o activa el preset Editorial Mint y vuelve a Marca.' ],
-								[ 'q' => '¿Los cambios se publican de verdad?', 'a' => 'Guardar escribe el borrador. Publicar copia al documento published y el sitio público lo renderiza.' ],
-							],
-						]
-					),
-				]
-			),
-			self::section(
-				'CTA',
-				[
-					self::node(
-						'cta',
-						[
-							'title'    => 'Empieza por una página',
-							'subtitle' => 'Entra al administrador, abre Páginas y construye.',
-							'text'     => 'Contactar',
-							'url'      => '/contacto/',
-						]
-					),
-				],
-				[ 'background' => [ 'mode' => 'token', 'token' => 'color.secondary' ] ]
-			),
-		];
-	}
-
-	private static function services_doc(): array {
-		return [
-			self::section(
-				'Hero',
-				[
-					self::node(
-						'hero',
-						[
-							'eyebrow'  => 'Servicios',
-							'title'    => 'Diseño, contenido y plataforma',
-							'subtitle' => 'Tres líneas de trabajo. Un solo sistema de componentes.',
-							'buttons'  => [
-								[ 'text' => 'Hablar', 'url' => '/contacto/', 'variant' => 'primary' ],
-							],
-						]
-					),
-				]
-			),
-			self::section(
-				'Cards',
-				[
-					self::node(
-						'cards-grid',
-						[
-							'desktop' => 3,
-							'items'   => [
-								[ 'title' => 'Sitios corporativos', 'text' => 'Páginas, servicios, contacto y blog con identidad administrable.' ],
-								[ 'title' => 'Landings', 'text' => 'Hero, features, testimonios y CTA reutilizables.' ],
-								[ 'title' => 'Contenido', 'text' => 'Editorial con HTML limpio, categorías y SEO por artículo.' ],
-							],
-						]
-					),
-				]
-			),
-		];
-	}
-
 	private static function blog_doc(): array {
 		return [
 			self::section(
@@ -241,20 +165,6 @@ class Seeder {
 				'Grid',
 				[
 					self::node( 'blog-grid', [ 'count' => 6, 'desktop' => 3 ] ),
-				]
-			),
-		];
-	}
-
-	private static function contact_doc(): array {
-		return [
-			self::section(
-				'Contacto',
-				[
-					self::node( 'eyebrow', [ 'text' => 'Contacto' ] ),
-					self::node( 'heading', [ 'text' => 'Escribenos', 'tag' => 'h1' ] ),
-					self::node( 'paragraph', [ 'text' => 'El formulario envía un correo al administrador del sitio.' ] ),
-					self::node( 'contact-form', [ 'submit' => 'Enviar mensaje', 'showPhone' => true, 'showSubject' => true ] ),
 				]
 			),
 		];
@@ -292,64 +202,7 @@ class Seeder {
 		if ( ! post_type_exists( 'meridian_template' ) ) {
 			return;
 		}
-		$items = [
-			[
-				'name' => __( 'Hero corporativo', 'meridian' ),
-				'node' => self::section(
-					'Hero',
-					[
-						self::node(
-							'hero',
-							[
-								'eyebrow'  => 'Plantilla',
-								'title'    => 'Un titular que se puede reutilizar',
-								'subtitle' => 'Guárdala como plantilla e insértala en cualquier página.',
-								'buttons'  => [
-									[ 'text' => 'Acción', 'url' => '/contacto/', 'variant' => 'primary' ],
-								],
-							]
-						),
-					]
-				),
-			],
-			[
-				'name' => __( 'CTA contacto', 'meridian' ),
-				'node' => self::section(
-					'CTA',
-					[
-						self::node(
-							'cta',
-							[
-								'title'    => 'Hablemos',
-								'subtitle' => 'Una llamada a la acción reutilizable.',
-								'text'     => 'Contactar',
-								'url'      => '/contacto/',
-							]
-						),
-					],
-					[ 'background' => [ 'mode' => 'token', 'token' => 'color.secondary' ] ]
-				),
-			],
-			[
-				'name' => __( 'FAQ', 'meridian' ),
-				'node' => self::section(
-					'FAQ',
-					[
-						self::node( 'heading', [ 'text' => 'Preguntas frecuentes', 'tag' => 'h2' ] ),
-						self::node(
-							'faq',
-							[
-								'items' => [
-									[ 'q' => '¿Puedo insertar esta plantilla?', 'a' => 'Sí. Constructor → Biblioteca.' ],
-									[ 'q' => '¿Es un mock?', 'a' => 'No. Inserta nodos reales en el JSON de la página.' ],
-								],
-							]
-						),
-					]
-				),
-			],
-		];
-		foreach ( $items as $item ) {
+		foreach ( ReferenceSeeder::library_items() as $item ) {
 			GlobalsRepository::save( 'meridian_template', $item );
 		}
 		update_option( 'meridian_templates_seeded', 1 );
