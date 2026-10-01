@@ -312,3 +312,49 @@
   .m-aside { display: none; }
   .m-cards { grid-template-columns: 1fr; }
 }
+
+/* Presets propios: envoltorio con boton de borrado y bloque de creacion. */
+.m-preset-wrap { position: relative; display: inline-flex; }
+.m-preset-del,
+.m-color-del {
+  border: 1px solid var(--m-line-strong);
+  background: var(--m-white);
+  color: var(--m-muted);
+  border-radius: 999px;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  font-size: 15px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.m-preset-del {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 2;
+}
+.m-preset-del:hover,
+.m-color-del:hover { background: var(--m-ink); color: var(--m-white); border-color: var(--m-ink); }
+.m-preset-del:focus-visible,
+.m-color-del:focus-visible { outline: 2px solid var(--m-orange); outline-offset: 2px; }
+
+.m-preset-new {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--m-line);
+}
+.m-preset-new h4 { margin: 0 0 4px; font-size: 14px; }
+.m-preset-new .m-row { align-items: flex-end; gap: 10px; margin-top: 10px; }
+.m-field-grow { flex: 1 1 260px; }
+
+.m-add-color {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--m-line);
+}

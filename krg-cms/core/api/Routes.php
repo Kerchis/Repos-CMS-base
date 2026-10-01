@@ -126,6 +126,29 @@ class Routes {
 			'permission_callback' => $manage,
 			'callback' => [ Controller::class, 'tokens_preset' ],
 		] );
+		register_rest_route( $ns, '/tokens/presets', [
+			'methods' => 'POST',
+			'permission_callback' => $manage,
+			'callback' => [ Controller::class, 'tokens_preset_save' ],
+		] );
+		register_rest_route( $ns, '/tokens/presets/(?P<slug>[a-z0-9\-]+)', [
+			'methods' => 'DELETE',
+			'permission_callback' => $manage,
+			'callback' => [ Controller::class, 'tokens_preset_delete' ],
+		] );
+
+		register_rest_route( $ns, '/admin-skin', [
+			[
+				'methods' => 'GET',
+				'permission_callback' => $edit,
+				'callback' => [ Controller::class, 'admin_skin_get' ],
+			],
+			[
+				'methods' => 'PUT',
+				'permission_callback' => $manage,
+				'callback' => [ Controller::class, 'admin_skin_save' ],
+			],
+		] );
 
 		register_rest_route( $ns, '/menus', [
 			[

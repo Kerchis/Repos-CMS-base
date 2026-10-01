@@ -604,6 +604,58 @@
   }
 
   /* ---------------------------------------------------------------- */
+  /* Cortina por seccion                                                */
+  /* La seccion marcada se queda quieta mientras la siguiente se        */
+  /* desliza por encima y la tapa. Mismo gesto que el pie cortina.      */
+  /* ---------------------------------------------------------------- */
+
+  function initCurtainSections(root) {
+    var scope = root || document;
+    var list = scope.querySelectorAll(".is-curtain");
+    if (!list.length) return;
+
+    function opaque(v) {
+      return !!v && v !== "transparent" && v.replace(/\s/g, "") !== "rgba(0,0,0,0)";
+    }
+
+    var items = [];
+    Array.prototype.forEach.call(list, function (sec) {
+      if (!once(sec, "krgCurtainSec")) return;
+      items.push(sec);
+      // Todo lo que venga despues debe pasar por delante y ser opaco.
+      var next = sec.nextElementSibling;
+      while (next) {
+        next.classList.add("m-curtain-above");
+        if (!opaque(getComputedStyle(next).backgroundColor)) {
+          var src = getComputedStyle(document.body).backgroundColor;
+          if (opaque(src)) next.style.setProperty("--m-curtain-bg", src);
+        }
+        next = next.nextElementSibling;
+      }
+    });
+    if (!items.length) return;
+
+    function measure() {
+      var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+      items.forEach(function (sec) {
+        sec.classList.remove("is-curtain-on");
+        var h = sec.getBoundingClientRect().height;
+        // Una seccion mas alta que la ventana no se puede fijar entera.
+        if (h > 0 && vh > 0 && h <= vh + 1) sec.classList.add("is-curtain-on");
+      });
+    }
+
+    measure();
+    window.addEventListener("load", measure);
+
+    var rt;
+    window.addEventListener("resize", function () {
+      clearTimeout(rt);
+      rt = setTimeout(measure, 200);
+    }, { passive: true });
+  }
+
+  /* ---------------------------------------------------------------- */
   /* Utilidades                                                         */
   /* ---------------------------------------------------------------- */
 
@@ -649,6 +701,7 @@
     initStickyHeader();
     initAdaptiveHeader();
     initCurtainFooter(root);
+    initCurtainSections(root);
   }
 
   if (document.readyState === "loading") {

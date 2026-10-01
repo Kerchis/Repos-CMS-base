@@ -111,7 +111,7 @@ class TokenRepository {
 
 	public static function activate_preset( string $slug ) {
 		$slug   = sanitize_key( $slug );
-		$preset = self::load_preset_file( $slug );
+		$preset = self::load_preset( $slug );
 		if ( ! $preset || empty( $preset['tokens'] ) ) {
 			return new \WP_Error(
 				'krg_preset',
@@ -127,6 +127,18 @@ class TokenRepository {
 		$preset['customColors'] = [];
 		$preset['version']      = 1;
 		return self::save( $preset, true );
+	}
+
+	/**
+	 * Carga un preset por slug: primero los creados desde el CMS, luego los
+	 * que vienen en presets/*.json.
+	 */
+	public static function load_preset( string $slug ): ?array {
+		$user = \Meridian\Design\PresetStore::get( $slug );
+		if ( $user && ! empty( $user['tokens'] ) ) {
+			return $user;
+		}
+		return self::load_preset_file( $slug );
 	}
 
 	public static function load_preset_file( string $slug ): ?array {
@@ -161,8 +173,38 @@ class TokenRepository {
 				'slug'     => $json['slug'] ?? basename( $file, '.json' ),
 				'name'     => $json['name'] ?? basename( $file, '.json' ),
 				'swatches' => $swatches,
+				'custom'   => false,
 				'tokens'   => is_array( $json['tokens'] ?? null ) ? $json['tokens'] : [],
 			];
+		}
+
+		// Presets creados desde el CMS: van detrás y se pueden editar o borrar.
+		foreach ( \Meridian\Design\PresetStore::all() as $slug => $entry ) {
+			if ( ! is_array( $entry ) || empty( $entry['tokens'] ) ) {
+				continue;
+			}
+			$out[] = [
+				'slug'     => (string) ( $entry['slug'] ?? $slug ),
+				'name'     => (string) ( $entry['name'] ?? $slug ),
+				'swatches' => self::swatches( $entry['tokens'] ),
+				'custom'   => true,
+				'tokens'   => $entry['tokens'],
+			];
+		}
+		return $out;
+	}
+
+	/**
+	 * Muestras de color representativas de un árbol de tokens.
+	 */
+	public static function swatches( array $tokens ): array {
+		$color = is_array( $tokens['color'] ?? null ) ? $tokens['color'] : [];
+		$out   = [];
+		foreach ( [ 'primary', 'secondary', 'tertiary', 'background', 'text' ] as $key ) {
+			$hex = $color[ $key ]['value'] ?? '';
+			if ( is_string( $hex ) && '' !== $hex ) {
+				$out[] = $hex;
+			}
 		}
 		return $out;
 	}

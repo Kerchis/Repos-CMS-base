@@ -22,6 +22,8 @@ define( 'MERIDIAN_META_PUBLISHED', '_meridian_published' );
 define( 'MERIDIAN_META_ENABLED', '_meridian_enabled' );
 define( 'MERIDIAN_META_CHECKSUM', '_meridian_checksum' );
 define( 'MERIDIAN_OPTION_TOKENS', 'meridian_tokens' );
+define( 'MERIDIAN_OPTION_PRESETS', 'meridian_presets' );
+define( 'MERIDIAN_OPTION_ADMIN_SKIN', 'meridian_admin_skin' );
 define( 'MERIDIAN_OPTION_SETTINGS', 'meridian_settings' );
 define( 'MERIDIAN_OPTION_HEADER', 'meridian_header' );
 define( 'MERIDIAN_OPTION_FOOTER', 'meridian_footer' );

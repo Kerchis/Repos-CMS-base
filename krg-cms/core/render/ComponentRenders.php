@@ -112,6 +112,10 @@ class ComponentRenders {
 		if ( 'auto' !== $mh ) {
 			$class .= ' is-mh-' . $mh . ' is-va-' . $va;
 		}
+		// Cortina: la sección se queda quieta y la siguiente la tapa al subir.
+		if ( 'on' === sanitize_key( (string) ( $props['curtain'] ?? 'off' ) ) ) {
+			$class .= ' is-curtain';
+		}
 		$attrs = [ 'class' => $class ];
 
 		// Cabecera adaptativa: la sección declara qué color de texto necesita

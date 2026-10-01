@@ -783,21 +783,39 @@
 
   let identityCache = null;
 
+  // Colores de los que dependen los componentes: se pueden cambiar de valor
+  // pero no borrar, o el sistema se quedaría sin referencias.
+  const CORE_COLORS = [
+    "primary", "secondary", "tertiary", "background", "surface", "surface-alt",
+    "text", "text-secondary", "muted", "border", "border-strong", "error",
+    "highlight", "on-primary", "on-secondary", "on-surface",
+  ];
+
+  function colorRow(key, label, val, locked) {
+    const del = locked
+      ? ""
+      : `<button type="button" class="m-color-del" data-del-color="${uiEsc(key)}" title="Quitar el color ${uiEsc(label)}" aria-label="Quitar el color ${uiEsc(label)}">×</button>`;
+    const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(val || "").trim()) ? String(val).trim() : "#000000";
+    return `<div class="m-field-row" data-color-row="${uiEsc(key)}">
+      <span>${uiEsc(label)}</span>
+      <input data-color="${uiEsc(key)}" value="${uiEsc(val)}">
+      <input class="m-color" type="color" data-color-picker="${uiEsc(key)}" value="${uiEsc(hex)}">
+      ${del}
+    </div>`;
+  }
+
   async function design() {
     const packP = api.get("/tokens?_=" + Date.now());
+    const skinP = api.get("/admin-skin?_=" + Date.now()).catch(() => null);
     if (!identityCache) identityCache = api.get("/identity");
-    const [pack, identity] = await Promise.all([packP, identityCache]);
+    const [pack, identity, skinPack] = await Promise.all([packP, identityCache, skinP]);
     const data = pack.data || pack;
     const tokens = data.tokens || {};
     const fontCatalog = pack.fonts || [];
     const activePreset = String(data.activePreset || "");
     const colorRows = Object.entries(tokens.color || {}).map(([k, v]) => {
       const val = (v && typeof v === "object" && "value" in v) ? v.value : v;
-      return `<div class="m-field-row">
-        <span>${esc(v.label || k)}</span>
-        <input data-color="${k}" value="${esc(val)}">
-        <input class="m-color" type="color" data-color-picker="${k}" value="${esc(normalizeHex(val))}">
-      </div>`;
+      return colorRow(k, v.label || k, val, CORE_COLORS.includes(k));
     }).join("");
     const paletteBar = Object.entries(tokens.color || {}).map(([k, v]) => {
       const val = (v && typeof v === "object" && "value" in v) ? v.value : v;
@@ -810,14 +828,20 @@
     const presetCards = (pack.presets || []).map((p) => {
       const on = activePreset === p.slug;
       const chips = (p.swatches || []).map((c) => `<i style="background:${esc(c)}"></i>`).join("");
-      return `<label class="m-preset ${on ? "is-on" : ""}">
-        <span class="m-preset-copy">
-          <strong>${esc(p.name)}</strong>
-          <span class="m-preset-swatches">${chips}</span>
-        </span>
-        <input type="checkbox" data-preset="${esc(p.slug)}" ${on ? "checked" : ""} role="switch" aria-checked="${on ? "true" : "false"}" aria-label="Activar ${esc(p.name)}">
-        <span class="m-ios-switch" aria-hidden="true"></span>
-      </label>`;
+      const del = p.custom
+        ? `<button type="button" class="m-preset-del" data-del-preset="${esc(p.slug)}" title="Borrar el preset ${esc(p.name)}" aria-label="Borrar el preset ${esc(p.name)}">×</button>`
+        : "";
+      return `<div class="m-preset-wrap">
+        <label class="m-preset ${on ? "is-on" : ""}">
+          <span class="m-preset-copy">
+            <strong>${esc(p.name)}</strong>
+            <span class="m-preset-swatches">${chips}</span>
+          </span>
+          <input type="checkbox" data-preset="${esc(p.slug)}" ${on ? "checked" : ""} role="switch" aria-checked="${on ? "true" : "false"}" aria-label="Activar ${esc(p.name)}">
+          <span class="m-ios-switch" aria-hidden="true"></span>
+        </label>
+        ${del}
+      </div>`;
     }).join("");
     shell("design", `
       <div class="m-top"><h1>Apariencia</h1>
@@ -837,7 +861,18 @@
           <button class="m-btn" type="button" id="save-preset">Guardar paleta</button>
           <span class="m-muted" id="preset-dirty" hidden>Hay un cambio de preset sin guardar.</span>
         </div>
+        <div class="m-preset-new">
+          <h4>Crear un preset</h4>
+          <p class="m-muted">Guarda los colores y tipografías que tienes ahora mismo como un preset nuevo, para poder volver a ellos cuando quieras. Los presets que vienen con el tema no se tocan.</p>
+          <div class="m-row">
+            <label class="m-field m-field-grow">Nombre del preset
+              <input id="new-preset-name" placeholder="Por ejemplo: Verano 2026" maxlength="60">
+            </label>
+            <button class="m-btn" type="button" id="new-preset">Guardar como preset</button>
+          </div>
+        </div>
       </div>
+      ${adminSkinPanel()}
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Identidad</h3>
         <form class="m-form-grid" id="idform">
@@ -865,6 +900,13 @@
         <h3>Colores</h3>
         <p class="m-muted">Alimentan var(--color-*). Ningún componente usa hex de marca.</p>
         <div id="colors">${colorRows}</div>
+        <div class="m-add-color">
+          <label class="m-field m-field-grow">Añadir un color
+            <input id="new-color-name" placeholder="Por ejemplo: Acento cálido" maxlength="40">
+          </label>
+          <button type="button" class="m-btn ghost" id="add-color">Añadir</button>
+        </div>
+        <p class="m-muted">Cada color queda disponible como <code>var(--color-nombre)</code> y aparece en los selectores de color de los bloques. Los del núcleo no se pueden quitar porque los usan los componentes.</p>
         <div class="m-section-save"><button type="button" class="m-btn" data-save-section="colores">Guardar colores</button></div>
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
@@ -904,15 +946,66 @@
       inp.oninput = () => { if (p && /^#[0-9a-fA-F]{6}$/.test(inp.value)) p.value = inp.value; };
       if (p) p.oninput = () => { inp.value = p.value; };
     });
+    const skinData = (skinPack && skinPack.data) || {};
+    const skinDefaults = (skinPack && skinPack.defaults) || {};
+    const skinLabels = {
+      sidebar: "Barra lateral",
+      sidebarDeep: "Barra lateral (tono oscuro)",
+      action: "Color de acción (botones)",
+      actionDeep: "Acción al pasar el ratón",
+      accentSoft: "Tinte suave de acción",
+      paper: "Fondo del panel",
+      surface: "Superficie",
+      surfaceSoft: "Superficie suave",
+      line: "Líneas y bordes",
+      lineStrong: "Bordes marcados",
+      ink: "Texto",
+      muted: "Texto secundario",
+    };
+    const skinVars = {
+      sidebar: "--m-brown", sidebarDeep: "--m-brown-deep", action: "--m-orange",
+      actionDeep: "--m-orange-deep", accentSoft: "--m-accent-soft", paper: "--m-paper",
+      surface: "--m-surface", surfaceSoft: "--m-surface-soft", line: "--m-line",
+      lineStrong: "--m-line-strong", ink: "--m-ink", muted: "--m-muted",
+    };
+
+    function adminSkinPanel() {
+      if (!skinPack) return "";
+      const rows = Object.keys(skinLabels).map((k) => {
+        const v = skinData[k] || skinDefaults[k] || "#000000";
+        return `<div class="m-field-row">
+          <span>${esc(skinLabels[k])}</span>
+          <input data-skin="${k}" value="${esc(v)}">
+          <input class="m-color" type="color" data-skin-picker="${k}" value="${esc(normalizeHex(v))}">
+        </div>`;
+      }).join("");
+      return `<div class="m-panel" style="padding:20px;margin-bottom:16px">
+        <h3>Colores del CMS</h3>
+        <p class="m-muted">Cambian el aspecto de este panel, no el del sitio público. Se ven al instante mientras los tocas; pulsa Guardar para dejarlos fijos.</p>
+        <div id="skin-colors">${rows}</div>
+        <div class="m-section-save m-row">
+          <button type="button" class="m-btn" id="save-skin">Guardar colores del CMS</button>
+          <button type="button" class="m-btn ghost" id="skin-from-palette">Usar la paleta del sitio</button>
+          <button type="button" class="m-btn ghost" id="skin-reset">Restablecer</button>
+        </div>
+      </div>`;
+    }
+
     const collect = () => {
       const next = structuredClone(data);
       next.tokens = next.tokens || {};
+      // Se reconstruye entero desde el DOM para que al borrar una fila el
+      // color desaparezca de verdad, no solo de la pantalla.
+      const prevColors = next.tokens.color || {};
+      const nextColors = {};
       el.querySelectorAll("[data-color]").forEach((inp) => {
-        next.tokens.color = next.tokens.color || {};
-        const cur = next.tokens.color[inp.dataset.color];
-        if (cur && typeof cur === "object") cur.value = inp.value;
-        else next.tokens.color[inp.dataset.color] = { value: inp.value, type: "color" };
+        const key = inp.dataset.color;
+        const cur = prevColors[key];
+        nextColors[key] = (cur && typeof cur === "object")
+          ? Object.assign({}, cur, { value: inp.value })
+          : { value: inp.value, type: "color" };
       });
+      if (Object.keys(nextColors).length) next.tokens.color = nextColors;
       el.querySelectorAll("[data-font]").forEach((inp) => {
         let v = inp.value;
         if (v === "__custom__") {
@@ -1121,6 +1214,161 @@
         toast(err.message);
       }
     };
+    /* ---- Añadir y quitar colores ------------------------------------ */
+    const addColorBtn = el.querySelector("#add-color");
+    if (addColorBtn) {
+      addColorBtn.onclick = () => {
+        const input = el.querySelector("#new-color-name");
+        const label = (input?.value || "").trim();
+        if (!label) { toast("Ponle un nombre al color."); input?.focus(); return; }
+        const key = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+        if (!key) { toast("Ese nombre no sirve como identificador. Usa letras o números."); return; }
+        if (el.querySelector(`[data-color="${CSS.escape(key)}"]`)) {
+          toast("Ya existe un color con ese nombre.");
+          return;
+        }
+        el.querySelector("#colors").insertAdjacentHTML("beforeend", colorRow(key, label, "#000000", false));
+        const row = el.querySelector(`[data-color-row="${CSS.escape(key)}"]`);
+        wireColorRow(row);
+        input.value = "";
+        row.querySelector("[data-color]").focus();
+        toast("Color añadido. Pulsa Guardar colores para publicarlo.");
+      };
+    }
+
+    function wireColorRow(row) {
+      if (!row) return;
+      const text = row.querySelector("[data-color]");
+      const pick = row.querySelector("[data-color-picker]");
+      // Asignacion, no addEventListener: asi no se duplica con el cableado
+      // general de mas arriba cuando la fila ya existia.
+      if (text && pick) {
+        pick.oninput = () => { text.value = pick.value; };
+        text.oninput = () => {
+          const v = normalizeHex(text.value);
+          if (v) pick.value = v;
+        };
+      }
+      const del = row.querySelector("[data-del-color]");
+      if (del) {
+        del.onclick = () => {
+          const name = row.querySelector("span")?.textContent || del.dataset.delColor;
+          if (!confirm(`¿Quitar el color «${name}»? Los bloques que lo usen volverán a su color por defecto.`)) return;
+          row.remove();
+          toast("Color quitado. Pulsa Guardar colores para confirmarlo.");
+        };
+      }
+    }
+    el.querySelectorAll("[data-color-row]").forEach(wireColorRow);
+
+    /* ---- Crear y borrar presets -------------------------------------- */
+    const newPresetBtn = el.querySelector("#new-preset");
+    if (newPresetBtn) {
+      newPresetBtn.onclick = async () => {
+        const input = el.querySelector("#new-preset-name");
+        const name = (input?.value || "").trim();
+        if (!name) { toast("Ponle un nombre al preset."); input?.focus(); return; }
+        newPresetBtn.disabled = true;
+        try {
+          const res = await api.post("/tokens/presets", { name, tokens: collect().tokens });
+          toast(`Preset «${res.preset?.name || name}» creado.`);
+          design();
+        } catch (err) {
+          toast(err.message);
+        } finally {
+          newPresetBtn.disabled = false;
+        }
+      };
+    }
+
+    el.querySelectorAll("[data-del-preset]").forEach((btn) => {
+      btn.onclick = async () => {
+        const slug = btn.dataset.delPreset;
+        const name = btn.closest(".m-preset-wrap")?.querySelector("strong")?.textContent || slug;
+        if (!confirm(`¿Borrar el preset «${name}»? Los colores que tiene el sitio ahora mismo no cambian.`)) return;
+        btn.disabled = true;
+        try {
+          await api.del("/tokens/presets/" + encodeURIComponent(slug));
+          toast(`Preset «${name}» borrado.`);
+          design();
+        } catch (err) {
+          toast(err.message);
+          btn.disabled = false;
+        }
+      };
+    });
+
+    /* ---- Colores del CMS --------------------------------------------- */
+    if (skinPack) {
+      const liveSkin = (key, value) => {
+        const v = normalizeHex(value);
+        if (v && skinVars[key]) document.documentElement.style.setProperty(skinVars[key], v);
+      };
+      const readSkin = () => {
+        const out = {};
+        el.querySelectorAll("[data-skin]").forEach((inp) => { out[inp.dataset.skin] = inp.value; });
+        return out;
+      };
+      const fillSkin = (map) => {
+        Object.entries(map || {}).forEach(([k, v]) => {
+          const t = el.querySelector(`[data-skin="${CSS.escape(k)}"]`);
+          const p = el.querySelector(`[data-skin-picker="${CSS.escape(k)}"]`);
+          if (t) t.value = v;
+          if (p && normalizeHex(v)) p.value = normalizeHex(v);
+          liveSkin(k, v);
+        });
+      };
+      el.querySelectorAll("[data-skin-picker]").forEach((pick) => {
+        pick.addEventListener("input", () => {
+          const t = el.querySelector(`[data-skin="${CSS.escape(pick.dataset.skinPicker)}"]`);
+          if (t) t.value = pick.value;
+          liveSkin(pick.dataset.skinPicker, pick.value);
+        });
+      });
+      el.querySelectorAll("[data-skin]").forEach((inp) => {
+        inp.addEventListener("input", () => {
+          const p = el.querySelector(`[data-skin-picker="${CSS.escape(inp.dataset.skin)}"]`);
+          if (p && normalizeHex(inp.value)) p.value = normalizeHex(inp.value);
+          liveSkin(inp.dataset.skin, inp.value);
+        });
+      });
+      const saveSkinBtn = el.querySelector("#save-skin");
+      if (saveSkinBtn) {
+        saveSkinBtn.onclick = async () => {
+          saveSkinBtn.disabled = true;
+          try {
+            await api.put("/admin-skin", { colors: readSkin() });
+            toast("Colores del CMS guardados.");
+          } catch (err) {
+            toast(err.message);
+          } finally {
+            saveSkinBtn.disabled = false;
+          }
+        };
+      }
+      const fromPalette = el.querySelector("#skin-from-palette");
+      if (fromPalette) {
+        fromPalette.onclick = () => {
+          fillSkin(skinPack.suggest || {});
+          toast("Propuesta a partir de la paleta del sitio. Pulsa Guardar si te convence.");
+        };
+      }
+      const resetSkin = el.querySelector("#skin-reset");
+      if (resetSkin) {
+        resetSkin.onclick = async () => {
+          if (!confirm("¿Devolver el panel a sus colores de fábrica?")) return;
+          try {
+            const res = await api.put("/admin-skin", { reset: true });
+            fillSkin(res.data || {});
+            toast("Colores del CMS restablecidos.");
+          } catch (err) {
+            toast(err.message);
+          }
+        };
+      }
+    }
+
     el.querySelectorAll("[data-preset]").forEach((inp) => {
       inp.addEventListener("change", () => {
         const slug = inp.dataset.preset;

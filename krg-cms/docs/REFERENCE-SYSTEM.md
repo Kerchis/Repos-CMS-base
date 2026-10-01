@@ -220,6 +220,39 @@ descubriendo de abajo hacia arriba al llegar al final del scroll.
 
 ---
 
+## 5.3 Cortina por sección
+
+El mismo gesto del pie cortina, disponible en cualquier sección:
+Sección → Diseño → **Efecto cortina**.
+
+- La sección marcada emite `is-curtain`. `initCurtainSections()` comprueba
+  que **cabe en la ventana** y solo entonces añade `is-curtain-on`, que la
+  vuelve `position: sticky`. Una sección más alta que la pantalla no podría
+  quedarse fija entera, así que se queda normal.
+- Las secciones posteriores reciben `.m-curtain-above` para pasar por
+  delante. Si alguna es transparente se le da un fondo opaco heredado del
+  `body`, porque si no la cortina se vería a través de ella.
+- Se puede encadenar: varias secciones con cortina se van apilando.
+
+---
+
+## 5.4 Presets, colores propios y colores del CMS
+
+- **Presets propios** (`core/design/PresetStore.php`): viven en la opción
+  `meridian_presets`, no en `presets/*.json`, así que actualizar el tema no
+  los borra. Tope de 40. Los de archivo no se pueden editar ni borrar;
+  `TokenRepository::load_preset()` mira primero los del usuario.
+- Al borrar el preset activo los tokens del sitio **no cambian**: solo deja
+  de haber un preset marcado.
+- **Colores a medida**: Apariencia → Colores → Añadir un color. El nombre se
+  convierte en slug y `TokenCompiler` lo publica como `--color-{slug}`. La
+  lista `CORE_COLORS` de `app.js` protege los que usan los componentes.
+- **Colores del CMS** (`core/admin/Skin.php`): doce variables de `admin.css`
+  guardadas en `meridian_admin_skin` e inyectadas con `wp_add_inline_style`.
+  Si no hay nada personalizado no se emite ni un byte. No tocan el frontend.
+
+---
+
 ## 6. Cómo apuntar el sistema a otra referencia
 
 1. **Paleta y tipografía** → duplicar `presets/honeycomb.json`, cambiar valores

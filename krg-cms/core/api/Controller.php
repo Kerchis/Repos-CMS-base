@@ -212,6 +212,82 @@ class Controller {
 		return $res;
 	}
 
+	/**
+	 * Guarda la paleta actual (o la que llegue en el cuerpo) como preset
+	 * propio, para poder volver a ella luego.
+	 */
+	public static function tokens_preset_save( WP_REST_Request $req ) {
+		$body   = self::json_body( $req );
+		$tokens = is_array( $body['tokens'] ?? null ) && $body['tokens']
+			? $body['tokens']
+			: ( TokenRepository::get()['tokens'] ?? [] );
+
+		$saved = \Meridian\Design\PresetStore::save(
+			(string) ( $body['name'] ?? '' ),
+			$tokens,
+			(string) ( $body['slug'] ?? '' )
+		);
+		if ( is_wp_error( $saved ) ) {
+			return $saved;
+		}
+		$res = rest_ensure_response(
+			[
+				'preset'  => $saved,
+				'data'    => TokenRepository::get(),
+				'presets' => TokenRepository::list_presets(),
+			]
+		);
+		$res->header( 'Cache-Control', 'no-store, no-cache, must-revalidate' );
+		return $res;
+	}
+
+	public static function tokens_preset_delete( WP_REST_Request $req ) {
+		$done = \Meridian\Design\PresetStore::delete( (string) $req['slug'] );
+		if ( is_wp_error( $done ) ) {
+			return $done;
+		}
+		$res = rest_ensure_response(
+			[
+				'deleted' => true,
+				'data'    => TokenRepository::get(),
+				'presets' => TokenRepository::list_presets(),
+			]
+		);
+		$res->header( 'Cache-Control', 'no-store, no-cache, must-revalidate' );
+		return $res;
+	}
+
+	/**
+	 * Colores del propio panel. No tocan el sitio público.
+	 */
+	public static function admin_skin_get(): WP_REST_Response {
+		$res = rest_ensure_response(
+			[
+				'data'     => \Meridian\Admin\Skin::get(),
+				'defaults' => \Meridian\Admin\Skin::defaults(),
+				'suggest'  => \Meridian\Admin\Skin::from_tokens(),
+			]
+		);
+		$res->header( 'Cache-Control', 'no-store, no-cache, must-revalidate' );
+		return $res;
+	}
+
+	public static function admin_skin_save( WP_REST_Request $req ) {
+		$body = self::json_body( $req );
+		$data = ! empty( $body['reset'] )
+			? \Meridian\Admin\Skin::reset()
+			: \Meridian\Admin\Skin::save( is_array( $body['colors'] ?? null ) ? $body['colors'] : [] );
+		$res = rest_ensure_response(
+			[
+				'data'     => $data,
+				'defaults' => \Meridian\Admin\Skin::defaults(),
+				'suggest'  => \Meridian\Admin\Skin::from_tokens(),
+			]
+		);
+		$res->header( 'Cache-Control', 'no-store, no-cache, must-revalidate' );
+		return $res;
+	}
+
 	public static function tokens_preset( WP_REST_Request $req ) {
 		$saved = TokenRepository::activate_preset( (string) $req['slug'] );
 		if ( is_wp_error( $saved ) ) {

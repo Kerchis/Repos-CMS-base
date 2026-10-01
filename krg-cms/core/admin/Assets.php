@@ -20,6 +20,10 @@ class Assets {
 		wp_enqueue_media();
 		wp_enqueue_style( 'krg-admin', MERIDIAN_URI . '/admin/assets/css/admin.css', [], MERIDIAN_VERSION );
 		wp_enqueue_script( 'krg-admin', MERIDIAN_URI . '/admin/assets/js/app.js', [], MERIDIAN_VERSION, true );
+		$skin_css = \Meridian\Admin\Skin::css();
+		if ( $skin_css ) {
+			wp_add_inline_style( 'krg-admin', $skin_css );
+		}
 		if ( 'krg-design' === $page || 'krg-builder' === $page ) {
 			\Meridian\Design\FontCatalog::enqueue_used( 'krg-admin' );
 		}

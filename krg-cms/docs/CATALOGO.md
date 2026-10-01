@@ -185,6 +185,10 @@ Texto monumental que ocupa todo el ancho, con sombra desplazada en color
 | **Secciones a pantalla completa** | Cualquier sección puede tener altura mínima de pantalla completa, pantalla menos cabecera, 78 % o 50 %, con alineación vertical arriba / centro / abajo. |
 | **Animaciones de scroll** | Dos nuevas en el panel Animación de cualquier nodo: «Aparecer al scroll» (el bloque sube y aparece) y «Escalonada» (los hijos entran uno detrás de otro, como el pie de la referencia). Duración, retardo y curva configurables. |
 | **Cabecera adaptativa** | La cabecera cambia de color según la sección que tiene debajo, al vuelo. Cada sección declara su piel (`auto` la deduce de la luminancia real del fondo) y la cabecera puede adaptar solo el texto o también el fondo. |
+| **Cortina por sección** | Cualquier sección puede quedarse quieta mientras la siguiente se desliza por encima y la tapa. Sección → Diseño → Efecto cortina. |
+| **Presets propios** | Apariencia → Presets → Crear un preset: guarda la paleta y tipografías actuales con nombre. Se pueden borrar; los que trae el tema no. |
+| **Colores del CMS** | Apariencia → Colores del CMS: reskin del propio panel (12 colores), con vista previa en vivo, propuesta a partir de la paleta del sitio y restablecer. |
+| **Colores a medida** | Apariencia → Colores → Añadir un color: crea tokens nuevos disponibles como `var(--color-nombre)`. Los del núcleo no se pueden quitar. |
 | **Pie cortina** | El pie se queda quieto al fondo y el contenido de la página se desliza por encima descubriéndolo al llegar al final. Chrome → Pie → Diseño → Cortina. |
 | **Revelado del pie** | El pie tiene su propio ajuste de revelado (escalonado / entero / ninguno) en Chrome → Pie → Diseño. |
 | **Aviso de instalación incompleta** | Si falta algún archivo del sistema, el admin lo dice y lista cuáles, en vez de romper el sitio. |

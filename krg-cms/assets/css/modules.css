@@ -1498,3 +1498,26 @@ body.m-curtain-on .m-page::after {
   height: 1px;
   background-color: inherit;
 }
+
+/* ------------------------------------------------------------------ */
+/* Cortina por seccion: la seccion marcada se queda quieta y las        */
+/* siguientes se deslizan por encima tapandola. Lo activa modules.js    */
+/* solo cuando la seccion cabe en la ventana.                           */
+/* ------------------------------------------------------------------ */
+.is-curtain.is-curtain-on {
+  position: sticky;
+  top: var(--m-curtain-top, 0px);
+  z-index: 0;
+}
+
+/* Las secciones posteriores pasan por delante. */
+.m-curtain-above {
+  position: relative;
+  z-index: 1;
+}
+
+/* Solo cuando modules.js detecta que la seccion es transparente le da */
+/* un fondo opaco: si no, la cortina se veria a traves de ella.        */
+.m-curtain-above[style*="--m-curtain-bg"] {
+  background-color: var(--m-curtain-bg);
+}
