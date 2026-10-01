@@ -54,6 +54,7 @@
   const defOf = (slug) => state.registry.find((c) => c.slug === slug);
   const groups = {
     content: "Contenido",
+    layout: "Disposición",
     design: "Diseño",
     typography: "Tipografía",
     colors: "Colores",
@@ -1886,7 +1887,7 @@
         <label>Order <input data-style="order" value="${esc(st.order || "")}"></label>
       </div>`;
     const contentFields = (byGroup.content || []).map((f) => fieldHtml(node, f)).join("");
-    const designFields = ["design", "colors", "spacing", "typography"].flatMap((g) => byGroup[g] || []).map((f) => fieldHtml(node, f)).join("");
+    const designFields = ["layout", "design", "colors", "spacing", "typography"].flatMap((g) => byGroup[g] || []).map((f) => fieldHtml(node, f)).join("");
     const tab = state.inspTab || "content";
     const menuModes = node.type === "menu" ? navModeFields(node.props || {}, "data-prop-set") : "";
     let body = "";
@@ -1954,6 +1955,11 @@
   }
 
   function fieldHtml(node, f) {
+    const html = fieldControl(node, f);
+    return f.help ? `${html}<p class="m-muted">${esc(f.help)}</p>` : html;
+  }
+
+  function fieldControl(node, f) {
     const val = node.props?.[f.key];
     if (f.type === "toggle") {
       return `<label>${esc(f.label)} <input type="checkbox" data-prop="${f.key}" ${val ? "checked" : ""}></label>`;

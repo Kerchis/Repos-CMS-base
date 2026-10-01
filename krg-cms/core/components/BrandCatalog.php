@@ -805,11 +805,66 @@ class BrandCatalog {
 					self::f( 'buttonUrl', 'url', 'content', __( 'URL del botón', 'meridian' ) ),
 					self::f( 'buttonStyle', 'select', 'design', __( 'Estilo del botón', 'meridian' ), [ 'options' => [ 'solid', 'outline', 'ghost' ] ] ),
 					self::f( 'buttonArrow', 'toggle', 'design', __( 'Flecha en el botón', 'meridian' ) ),
-					self::f( 'badgeId', 'image', 'content', __( 'Sello / insignia', 'meridian' ) ),
-					self::f( 'badgePos', 'select', 'design', __( 'Posición del sello', 'meridian' ), [ 'options' => [ 'title', 'top', 'corner' ] ] ),
-					self::f( 'mediaSide', 'select', 'layout', __( 'Lado de la imagen', 'meridian' ), [ 'options' => [ 'right', 'left' ] ] ),
-					self::f( 'ratio', 'select', 'layout', __( 'Proporción', 'meridian' ), [ 'options' => [ 'half', 'media-wide', 'copy-wide' ] ] ),
-					self::f( 'height', 'select', 'layout', __( 'Altura', 'meridian' ), [ 'options' => [ 'screen', 'tall', 'medium', 'auto' ] ] ),
+					self::f(
+						'badgeId',
+						'image',
+						'content',
+						__( 'Sello decorativo (opcional)', 'meridian' ),
+						[ 'help' => __( 'Una insignia pequeña que se superpone al título. La fotografía grande del panel NO va aquí: va en «Imágenes», más abajo.', 'meridian' ) ]
+					),
+					self::f(
+						'badgePos',
+						'select',
+						'design',
+						__( 'Posición del sello', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'title', 'label' => __( 'Encima del título', 'meridian' ) ],
+								[ 'value' => 'top', 'label' => __( 'Antes del título', 'meridian' ) ],
+								[ 'value' => 'corner', 'label' => __( 'En la esquina del panel', 'meridian' ) ],
+							],
+						]
+					),
+					self::f(
+						'mediaSide',
+						'select',
+						'layout',
+						__( 'Lado de la imagen', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'right', 'label' => __( 'Imagen a la derecha, texto a la izquierda', 'meridian' ) ],
+								[ 'value' => 'left', 'label' => __( 'Imagen a la izquierda, texto a la derecha', 'meridian' ) ],
+							],
+							'help'    => __( 'Invierte las dos mitades. En tablet y móvil el texto siempre va primero.', 'meridian' ),
+						]
+					),
+					self::f(
+						'ratio',
+						'select',
+						'layout',
+						__( 'Proporción', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'half', 'label' => __( 'Mitad y mitad', 'meridian' ) ],
+								[ 'value' => 'media-wide', 'label' => __( 'Imagen más ancha', 'meridian' ) ],
+								[ 'value' => 'copy-wide', 'label' => __( 'Texto más ancho', 'meridian' ) ],
+							],
+						]
+					),
+					self::f(
+						'height',
+						'select',
+						'layout',
+						__( 'Altura', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'screen', 'label' => __( 'Pantalla completa', 'meridian' ) ],
+								[ 'value' => 'tall', 'label' => __( 'Alta', 'meridian' ) ],
+								[ 'value' => 'medium', 'label' => __( 'Media', 'meridian' ) ],
+								[ 'value' => 'auto', 'label' => __( 'La del contenido', 'meridian' ) ],
+							],
+						]
+					),
 					self::f( 'mediaFit', 'select', 'design', __( 'Ajuste de la imagen', 'meridian' ), [ 'options' => [ 'cover', 'contain' ] ] ),
 					self::f( 'theme', 'select', 'colors', __( 'Tema del panel de texto', 'meridian' ), [ 'options' => [ 'cream', 'forest', 'dark', 'light', 'surface' ] ] ),
 					self::f( 'mediaTheme', 'select', 'colors', __( 'Fondo del panel de imagen', 'meridian' ), [ 'options' => [ 'surface', 'cream', 'light', 'forest', 'dark' ] ] ),
@@ -824,8 +879,9 @@ class BrandCatalog {
 						'items',
 						'repeater',
 						'content',
-						__( 'Imágenes', 'meridian' ),
+						__( 'Imágenes del panel', 'meridian' ),
 						[
+							'help'       => __( 'La fotografía grande de la mitad del panel. Si añades varias se convierte en un carrusel.', 'meridian' ),
 							'itemFields' => [
 								self::f( 'imageId', 'image', 'content', __( 'Imagen', 'meridian' ) ),
 								self::f( 'alt', 'text', 'content', __( 'Texto alternativo', 'meridian' ) ),
