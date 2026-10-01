@@ -872,6 +872,14 @@
     } else if (tab === "design") {
       body = `
         ${footerChromeAlign()}
+        <div class="acc"><h5>Animación de entrada</h5>
+          ${field("Revelado al hacer scroll", `<select data-f="reveal">${[
+            ["stagger", "Escalonada (por bloques)"],
+            ["rise", "Aparecer entero"],
+            ["none", "Sin animación"],
+          ].map(([v, l]) => `<option value="${v}" ${(f.reveal || "stagger") === v ? "selected" : ""}>${l}</option>`).join("")}</select>`)}
+          <p class="m-muted">El contenido del pie sube y aparece al entrar en pantalla.</p>
+        </div>
         <div class="acc"><h5>Colores</h5>
           ${window.KrgUi.colorField("Fondo", f.background || "", 'data-f="background"')}
           ${window.KrgUi.colorField("Color de texto", f.color || "", 'data-f="color"')}

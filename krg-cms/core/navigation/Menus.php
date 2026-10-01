@@ -355,6 +355,9 @@ class Menus {
 			self::default_footer(),
 			[
 				'logoId'        => absint( $data['logoId'] ?? 0 ),
+				'reveal'        => in_array( sanitize_key( (string) ( $data['reveal'] ?? 'stagger' ) ), [ 'none', 'rise', 'stagger' ], true )
+					? sanitize_key( (string) ( $data['reveal'] ?? 'stagger' ) )
+					: 'stagger',
 				'text'          => sanitize_textarea_field( $data['text'] ?? '' ),
 				'copyright'     => sanitize_text_field( $data['copyright'] ?? '' ),
 				'copyrightUrl'    => \Meridian\Security\UrlValidator::sanitize( (string) ( $data['copyrightUrl'] ?? '' ) ),
@@ -527,6 +530,7 @@ class Menus {
 			'htmlId'         => '',
 			'htmlClass'      => '',
 			'showClassic'    => true,
+			'reveal'         => 'stagger',
 			'sections'       => [],
 		];
 	}

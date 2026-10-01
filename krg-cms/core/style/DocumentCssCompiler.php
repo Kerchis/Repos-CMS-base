@@ -185,7 +185,9 @@ class DocumentCssCompiler {
 						if ( ! in_array( $ease, [ 'ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out' ], true ) ) {
 							$ease = 'ease';
 						}
-						$extra[] = $sel . '{animation-duration:' . $dur . 'ms;animation-delay:' . $del . 'ms;animation-timing-function:' . $ease . ';}';
+						// `--m-anim-dur` alimenta además las animaciones basadas en transition
+						// (rise / stagger), que no usan @keyframes.
+						$extra[] = $sel . '{--m-anim-dur:' . $dur . 'ms;animation-duration:' . $dur . 'ms;animation-delay:' . $del . 'ms;animation-timing-function:' . $ease . ';}';
 					}
 					$scoped = self::scoped_css( $sel, $n['customCss'] ?? [] );
 					if ( $scoped ) {

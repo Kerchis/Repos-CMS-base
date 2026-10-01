@@ -994,4 +994,196 @@ class BrandRenders {
 
 		return ComponentRenders::wrap( $node, $ctx, 'div', $inner, [ 'class' => 'm-it is-theme-' . $theme ] );
 	}
+
+	/* ------------------------------------------------------------------ */
+	/* split-panel                                                         */
+	/* ------------------------------------------------------------------ */
+
+	public static function split_panel( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$side   = ( ( $props['mediaSide'] ?? 'right' ) === 'left' ) ? 'left' : 'right';
+		$ratio  = self::opt( $props['ratio'] ?? 'half', [ 'half', 'media-wide', 'copy-wide' ], 'half' );
+		$height = self::opt( $props['height'] ?? 'screen', [ 'screen', 'tall', 'medium', 'auto' ], 'screen' );
+		$fit    = ( ( $props['mediaFit'] ?? 'cover' ) === 'contain' ) ? 'contain' : 'cover';
+		$theme  = self::theme( $props['theme'] ?? 'cream' );
+		$mtheme = self::theme( $props['mediaTheme'] ?? 'surface', 'surface' );
+		$align  = self::align( $props['align'] ?? 'center', 'center' );
+		$track  = self::tracking( $props['tracking'] ?? 'normal' );
+		$reveal = self::opt( $props['reveal'] ?? 'fade', [ 'fade', 'letters', 'none' ], 'fade' );
+		$bstyle = self::opt( $props['buttonStyle'] ?? 'solid', [ 'solid', 'outline', 'ghost' ], 'solid' );
+		$bpos   = self::opt( $props['badgePos'] ?? 'title', [ 'title', 'top', 'corner' ], 'title' );
+		$badge  = absint( $props['badgeId'] ?? 0 );
+		$uid    = sanitize_html_class( (string) ( $node['id'] ?? 'sp' ) );
+
+		$items = is_array( $props['items'] ?? null ) ? $props['items'] : [];
+		$items = array_values(
+			array_filter( $items, static fn( $i ) => is_array( $i ) && absint( $i['imageId'] ?? 0 ) )
+		);
+
+		// --- panel de contenido ---
+		$badge_html = $badge
+			? '<span class="m-sp-badge is-' . $bpos . '">' . self::media( $ctx, $badge, '', 'm-sp-badge-img', 'thumbnail' ) . '</span>'
+			: '';
+
+		$copy = '';
+		if ( 'top' === $bpos && '' !== $badge_html ) {
+			$copy .= $badge_html;
+		}
+		if ( ! empty( $props['eyebrow'] ) ) {
+			$copy .= '<p class="m-eyebrow">' . esc_html( (string) $props['eyebrow'] ) . '</p>';
+		}
+		$title_html = self::display_title(
+			(string) ( $props['title'] ?? '' ),
+			self::tag( $props['titleTag'] ?? 'h2' ),
+			'm-sp-title m-track-' . $track,
+			$reveal
+		);
+		if ( 'title' === $bpos && '' !== $badge_html && '' !== $title_html ) {
+			// El sello se superpone sobre el titular, como en la referencia.
+			$title_html = '<span class="m-sp-title-wrap">' . $badge_html . $title_html . '</span>';
+		}
+		$copy .= $title_html;
+		if ( ! empty( $props['subtitle'] ) ) {
+			$copy .= '<p class="m-sp-sub m-track-wide">' . nl2br( esc_html( (string) $props['subtitle'] ) ) . '</p>';
+		}
+		$rich = (string) ( $props['text'] ?? '' );
+		if ( '' !== trim( wp_strip_all_tags( $rich ) ) ) {
+			$copy .= '<div class="m-sp-text m-rich">' . \Meridian\Security\Sanitizer::richtext( $rich ) . '</div>';
+		}
+		if ( ! empty( $props['buttonText'] ) ) {
+			$arrow = ! empty( $props['buttonArrow'] )
+				? '<span class="m-btn-arrow" aria-hidden="true">&#8594;</span>'
+				: '';
+			$map   = [ 'solid' => 'm-btn-primary', 'outline' => 'm-btn-outline', 'ghost' => 'm-btn-ghost' ];
+			$copy .= '<div class="m-btn-row"><a class="m-btn ' . $map[ $bstyle ] . ' m-sp-btn" href="'
+				. esc_url( (string) ( $props['buttonUrl'] ?: '#' ) ) . '">'
+				. esc_html( (string) $props['buttonText'] ) . $arrow . '</a></div>';
+		}
+
+		$copy_panel = '<div class="m-sp-copy is-theme-' . $theme . ' is-align-' . $align . '">'
+			. '<div class="m-sp-copy-inner">' . $copy . '</div>'
+			. ( 'corner' === $bpos ? $badge_html : '' )
+			. '</div>';
+
+		// --- panel de imagen (carrusel si hay más de una) ---
+		$media_panel = '';
+		if ( $items ) {
+			$multi  = count( $items ) > 1;
+			$slides = '';
+			$dots   = '';
+			foreach ( $items as $i => $it ) {
+				$cap     = trim( (string) ( $it['caption'] ?? '' ) );
+				$slides .= '<li class="m-sp-slide">'
+					. self::media( $ctx, absint( $it['imageId'] ), (string) ( $it['alt'] ?? '' ), 'm-sp-img', 'large', 0 === $i )
+					. ( '' !== $cap ? '<span class="m-sp-cap">' . esc_html( $cap ) . '</span>' : '' )
+					. '</li>';
+				$dots   .= '<button type="button" class="m-sp-dot' . ( 0 === $i ? ' is-on' : '' ) . '" data-sp-dot="' . $i . '" aria-label="'
+					. esc_attr( sprintf( /* translators: %d index */ __( 'Imagen %d', 'meridian' ), $i + 1 ) ) . '"></button>';
+			}
+			$nav = '';
+			if ( $multi && ! empty( $props['arrows'] ) ) {
+				$nav .= '<button type="button" class="m-sp-arrow is-prev" data-sp-prev aria-label="' . esc_attr__( 'Anterior', 'meridian' ) . '">&#8592;</button>'
+					. '<button type="button" class="m-sp-arrow is-next" data-sp-next aria-label="' . esc_attr__( 'Siguiente', 'meridian' ) . '">&#8594;</button>';
+			}
+			$dots_html = ( $multi && ! empty( $props['dots'] ) ) ? '<div class="m-sp-dots">' . $dots . '</div>' : '';
+			$auto      = ( $multi && ! empty( $props['autoplay'] ) )
+				? max( 2000, min( 20000, absint( $props['interval'] ?? 6000 ) ) )
+				: 0;
+
+			$media_panel = '<div class="m-sp-media is-theme-' . $mtheme . ' is-fit-' . $fit . '"'
+				. ( $multi ? ' data-sp-carousel="1" data-autoplay="' . $auto . '"' : '' )
+				. ' id="' . esc_attr( 'sp-' . $uid ) . '">'
+				. '<ul class="m-sp-track" data-sp-track>' . $slides . '</ul>'
+				. $nav . $dots_html
+				. '</div>';
+		} elseif ( $ctx->isPreview ) {
+			$media_panel = '<div class="m-sp-media is-theme-' . $mtheme . ' is-empty"><p class="m-muted">'
+				. esc_html__( 'Añade una o varias imágenes.', 'meridian' ) . '</p></div>';
+		}
+
+		$inner = ( 'left' === $side )
+			? $media_panel . $copy_panel
+			: $copy_panel . $media_panel;
+
+		return ComponentRenders::wrap(
+			$node,
+			$ctx,
+			'div',
+			'<div class="m-sp-grid">' . $inner . '</div>',
+			[
+				'class' => 'm-sp is-media-' . $side . ' is-ratio-' . $ratio . ' is-h-' . $height
+					. ( $media_panel ? '' : ' is-single' ),
+				'style' => self::section_style( $props ),
+			]
+		);
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* wordmark                                                            */
+	/* ------------------------------------------------------------------ */
+
+	public static function wordmark( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$text = trim( (string) ( $props['text'] ?? '' ) );
+		if ( '' === $text ) {
+			return $ctx->isPreview
+				? ComponentRenders::wrap( $node, $ctx, 'div', '<p class="m-muted">' . esc_html__( 'Escribe el texto del logotipo.', 'meridian' ) . '</p>', [ 'class' => 'm-wm is-empty' ] )
+				: '';
+		}
+
+		$tag    = self::tag( $props['tag'] ?? 'p', 'p' );
+		$fit    = ( ( $props['fit'] ?? 'fill' ) === 'contain' ) ? 'contain' : 'fill';
+		$size   = self::opt( $props['size'] ?? 'display', [ 'display', 'xl', 'lg' ], 'display' );
+		$track  = self::tracking( $props['tracking'] ?? 'normal' );
+		$align  = self::align( $props['align'] ?? 'center', 'center' );
+		$shadow = self::opt( $props['shadow'] ?? 'offset', [ 'offset', 'outline', 'none' ], 'offset' );
+		$theme  = self::theme( $props['theme'] ?? 'cream' );
+		$reveal = self::opt( $props['reveal'] ?? 'fade', [ 'fade', 'letters', 'none' ], 'fade' );
+
+		$style = '--m-wm-x:' . (int) max( -24, min( 24, (int) ( $props['shadowX'] ?? 6 ) ) ) . 'px;'
+			. '--m-wm-y:' . (int) max( -24, min( 24, (int) ( $props['shadowY'] ?? 6 ) ) ) . 'px;';
+		$sc = self::color_value( $props['shadowColor'] ?? null );
+		if ( '' !== $sc ) {
+			$style .= '--m-wm-shadow:' . $sc . ';';
+		}
+		$tc = self::color_value( $props['textColor'] ?? null );
+		if ( '' !== $tc ) {
+			$style .= '--m-wm-color:' . $tc . ';';
+		}
+		// `fill` escala el texto al ancho disponible con una unidad relativa al viewport.
+		if ( 'fill' === $fit ) {
+			$len    = max( 1, function_exists( 'mb_strlen' ) ? mb_strlen( $text ) : strlen( $text ) );
+			$style .= '--m-wm-len:' . $len . ';';
+		}
+
+		$inner = self::display_title( $text, $tag, 'm-wm-text m-track-' . $track, $reveal );
+		if ( ! empty( $props['url'] ) ) {
+			$inner = '<a class="m-wm-link" href="' . esc_url( (string) $props['url'] ) . '">' . $inner . '</a>';
+		}
+
+		return ComponentRenders::wrap(
+			$node,
+			$ctx,
+			'div',
+			'<div class="m-container m-wm-inner">' . $inner . '</div>',
+			[
+				'class' => 'm-wm is-fit-' . $fit . ' is-size-' . $size . ' is-align-' . $align
+					. ' is-shadow-' . $shadow . ' is-theme-' . $theme,
+				'style' => $style . self::section_style( $props ),
+			]
+		);
+	}
+
+	/** Resuelve un campo `color` del esquema a un valor CSS usable. */
+	private static function color_value( $c ): string {
+		if ( ! is_array( $c ) ) {
+			return '';
+		}
+		if ( ( $c['mode'] ?? '' ) === 'token' && ! empty( $c['token'] ) ) {
+			return \Meridian\Design\TokenCompiler::token_var( (string) $c['token'] );
+		}
+		if ( ! empty( $c['value'] ) ) {
+			$hex = sanitize_hex_color( (string) $c['value'] );
+			return $hex ? $hex : '';
+		}
+		return '';
+	}
 }

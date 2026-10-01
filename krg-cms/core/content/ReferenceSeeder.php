@@ -179,6 +179,115 @@ class ReferenceSeeder {
 		);
 	}
 
+
+	/** Panel partido a pantalla completa (portada o ficha destacada). */
+	private static function split_hero(): array {
+		return self::bleed(
+			'Panel partido',
+			[
+				self::node(
+					'split-panel',
+					[
+						'eyebrow'     => '',
+						'title'       => "RASTREA EL VIAJE\nDE TU MIEL",
+						'titleTag'    => 'h2',
+						'subtitle'    => 'DE LA FLOR A LA COLMENA, DE LA COSECHA A TI.',
+						'text'        => '',
+						'buttonText'  => 'EMPEZAR',
+						'buttonUrl'   => '#rastrea-tu-miel',
+						'buttonStyle' => 'solid',
+						'buttonArrow' => true,
+						'badgeId'     => 0,
+						'badgePos'    => 'title',
+						'mediaSide'   => 'right',
+						'ratio'       => 'half',
+						'height'      => 'screen',
+						'mediaFit'    => 'cover',
+						'mediaTheme'  => 'surface',
+						'theme'       => 'cream',
+						'align'       => 'center',
+						'tracking'    => 'normal',
+						'reveal'      => 'fade',
+						'arrows'      => true,
+						'dots'        => true,
+						'autoplay'    => false,
+						'interval'    => 6000,
+						'items'       => [],
+					]
+				),
+			]
+		);
+	}
+
+	/** Panel partido de producto, con carrusel de imágenes. */
+	private static function product_panel(): array {
+		return self::bleed(
+			'Producto destacado',
+			[
+				self::node(
+					'split-panel',
+					[
+						'eyebrow'     => 'MIEL CRUDA TRAZABLE',
+						'title'       => 'FORMATO 340 G',
+						'titleTag'    => 'h2',
+						'subtitle'    => '',
+						'text'        => '',
+						'buttonText'  => 'COMPRAR',
+						'buttonUrl'   => '/productos/',
+						'buttonStyle' => 'outline',
+						'buttonArrow' => false,
+						'badgeId'     => 0,
+						'badgePos'    => 'top',
+						'mediaSide'   => 'right',
+						'ratio'       => 'half',
+						'height'      => 'tall',
+						'mediaFit'    => 'contain',
+						'mediaTheme'  => 'surface',
+						'theme'       => 'dark',
+						'align'       => 'center',
+						'tracking'    => 'normal',
+						'reveal'      => 'fade',
+						'arrows'      => true,
+						'dots'        => true,
+						'autoplay'    => false,
+						'interval'    => 6000,
+						'items'       => [],
+					]
+				),
+			]
+		);
+	}
+
+	/** Logotipo tipográfico monumental para cierre de página. */
+	private static function wordmark_block(): array {
+		return self::bleed(
+			'Logotipo tipográfico',
+			[
+				self::node(
+					'wordmark',
+					[
+						'text'        => strtoupper( (string) get_bloginfo( 'name' ) ),
+						'tag'         => 'p',
+						'url'         => '/',
+						'fit'         => 'fill',
+						'size'        => 'display',
+						'tracking'    => 'normal',
+						'align'       => 'center',
+						'shadow'      => 'offset',
+						'shadowColor' => [ 'mode' => 'token', 'token' => 'color.tertiary' ],
+						'shadowX'     => 6,
+						'shadowY'     => 6,
+						'textColor'   => [ 'mode' => 'token', 'token' => 'color.text' ],
+						'theme'       => 'cream',
+						'reveal'      => 'fade',
+					],
+					[],
+					[ 'animation' => 'rise', 'animDuration' => 900 ]
+				),
+			]
+		);
+	}
+
 	/* ------------------------------------------------------------------ */
 	/* Documentos de página                                                */
 	/* ------------------------------------------------------------------ */
@@ -225,6 +334,7 @@ class ReferenceSeeder {
 				]
 			),
 			self::strip( 'HECHO AQUÍ', 'solid', 'md' ),
+			self::split_hero(),
 			self::bleed(
 				'Trazabilidad',
 				[
@@ -301,6 +411,7 @@ class ReferenceSeeder {
 				]
 			),
 			self::store_cta(),
+			self::wordmark_block(),
 		];
 	}
 
@@ -394,8 +505,10 @@ class ReferenceSeeder {
 					),
 				]
 			),
+			self::product_panel(),
 			self::reviews(),
 			self::store_cta(),
+			self::wordmark_block(),
 		];
 	}
 
@@ -867,19 +980,56 @@ class ReferenceSeeder {
 	/* Plantillas para la biblioteca del constructor                       */
 	/* ------------------------------------------------------------------ */
 
+	/**
+	 * Busca la primera sección de un documento que contenga un componente del
+	 * tipo indicado. Evita depender de índices numéricos, que se rompen en
+	 * cuanto se reordena una página.
+	 *
+	 * @param array  $sections Secciones del documento.
+	 * @param string $type     Slug del componente buscado.
+	 */
+	private static function pick( array $sections, string $type ): ?array {
+		foreach ( $sections as $section ) {
+			foreach ( $section['children'] ?? [] as $child ) {
+				if ( ( $child['type'] ?? '' ) === $type ) {
+					return $section;
+				}
+			}
+		}
+		return null;
+	}
+
 	public static function library_items(): array {
-		return [
-			[ 'name' => __( 'Hero de marca', 'meridian' ), 'node' => self::home()[1] ],
-			[ 'name' => __( 'Marquesina', 'meridian' ), 'node' => self::strip( 'TEXTO EN BUCLE', 'solid', 'md' ) ],
-			[ 'name' => __( 'Módulo de trazabilidad', 'meridian' ), 'node' => self::home()[3] ],
-			[ 'name' => __( 'Carril de productos', 'meridian' ), 'node' => self::bestsellers() ],
-			[ 'name' => __( 'Bloque partido', 'meridian' ), 'node' => self::home()[5] ],
-			[ 'name' => __( 'Carrusel de reseñas', 'meridian' ), 'node' => self::reviews() ],
-			[ 'name' => __( 'CTA display', 'meridian' ), 'node' => self::store_cta() ],
-			[ 'name' => __( 'Lista numerada (acordeón)', 'meridian' ), 'node' => self::faq()[1] ],
-			[ 'name' => __( 'Lista de hitos', 'meridian' ), 'node' => self::about()[5] ],
-			[ 'name' => __( 'Colección filtrable', 'meridian' ), 'node' => self::kitchen()[5] ],
+		$home    = self::home();
+		$about   = self::about();
+		$kitchen = self::kitchen();
+		$faq     = self::faq();
+
+		$wanted = [
+			[ __( 'Hero de marca', 'meridian' ), self::pick( $home, 'brand-hero' ) ],
+			[ __( 'Marquesina', 'meridian' ), self::strip( 'TEXTO EN BUCLE', 'solid', 'md' ) ],
+			[ __( 'Panel partido a pantalla completa', 'meridian' ), self::split_hero() ],
+			[ __( 'Panel de producto con carrusel', 'meridian' ), self::product_panel() ],
+			[ __( 'Módulo de trazabilidad', 'meridian' ), self::pick( $home, 'trace-module' ) ],
+			[ __( 'Carril de productos', 'meridian' ), self::bestsellers() ],
+			[ __( 'Bloque partido', 'meridian' ), self::pick( $home, 'split-feature' ) ],
+			[ __( 'Carrusel de reseñas', 'meridian' ), self::reviews() ],
+			[ __( 'Banda de distribuidores', 'meridian' ), self::pick( $home, 'retail-strip' ) ],
+			[ __( 'CTA display', 'meridian' ), self::store_cta() ],
+			[ __( 'Lista numerada (acordeón)', 'meridian' ), self::pick( $faq, 'numbered-list' ) ],
+			[ __( 'Lista de hitos', 'meridian' ), self::pick( $about, 'statement-list' ) ],
+			[ __( 'Colección filtrable', 'meridian' ), self::pick( $kitchen, 'filter-collection' ) ],
+			[ __( 'Tabla de datos', 'meridian' ), self::pick( $kitchen, 'info-table' ) ],
+			[ __( 'Logotipo tipográfico', 'meridian' ), self::wordmark_block() ],
 		];
+
+		$out = [];
+		foreach ( $wanted as [ $name, $node ] ) {
+			if ( is_array( $node ) ) {
+				$out[] = [ 'name' => $name, 'node' => $node ];
+			}
+		}
+		return $out;
 	}
 
 	/* ------------------------------------------------------------------ */

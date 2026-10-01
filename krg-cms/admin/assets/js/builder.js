@@ -208,7 +208,7 @@
           if (cc.main) css += `${sel}{${cc.main}}`;
           if (cc.before) css += `${sel}::before{content:"";display:block;${cc.before}}`;
           if (cc.after) css += `${sel}::after{content:"";display:block;${cc.after}}`;
-          if (n.animDuration) css += `${sel}{animation-duration:${n.animDuration}ms;animation-delay:${n.animDelay || 0}ms;animation-timing-function:${n.animEasing || "ease"}}`;
+          if (n.animDuration) css += `${sel}{--m-anim-dur:${n.animDuration}ms;animation-duration:${n.animDuration}ms;animation-delay:${n.animDelay || 0}ms;animation-timing-function:${n.animEasing || "ease"}}`;
           if (n.type === "row") {
             const g = Number(n.props?.gap ?? 24);
             const va = ["start", "center", "end", "stretch"].includes(n.props?.vAlign) ? n.props.vAlign : "start";
@@ -1254,6 +1254,8 @@
   ];
   const ANIMS = [
     { v: "none", l: "Ninguna" },
+    { v: "rise", l: "Aparecer al scroll" },
+    { v: "stagger", l: "Escalonada" },
     { v: "fade", l: "Desvanecer" },
     { v: "slide", l: "Diapositiva" },
     { v: "zoom", l: "Zoom" },

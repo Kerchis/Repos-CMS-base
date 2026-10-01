@@ -100,7 +100,19 @@ class ComponentRenders {
 		$inner = '<div class="m-container">' . $children . '</div>';
 		$fw    = $props['fullWidth'] ?? true;
 		$full  = ! ( false === $fw || 0 === $fw || '0' === $fw || '' === $fw );
-		$attrs = [ 'class' => $full ? 'is-full' : 'is-boxed' ];
+		$mh    = sanitize_html_class( (string) ( $props['minHeight'] ?? 'auto' ) );
+		if ( ! in_array( $mh, [ 'auto', 'screen', 'screen-minus-header', 'tall', 'half' ], true ) ) {
+			$mh = 'auto';
+		}
+		$va = sanitize_html_class( (string) ( $props['vAlign'] ?? 'start' ) );
+		if ( ! in_array( $va, [ 'start', 'center', 'end' ], true ) ) {
+			$va = 'start';
+		}
+		$class = $full ? 'is-full' : 'is-boxed';
+		if ( 'auto' !== $mh ) {
+			$class .= ' is-mh-' . $mh . ' is-va-' . $va;
+		}
+		$attrs = [ 'class' => $class ];
 		if ( ! empty( $props['htmlId'] ) ) {
 			$attrs['id'] = sanitize_html_class( $props['htmlId'] );
 		}

@@ -79,7 +79,7 @@ class Sanitizer {
 				'tablet'  => ! empty( $node['hiddenOn']['tablet'] ),
 				'mobile'  => ! empty( $node['hiddenOn']['mobile'] ),
 			],
-			'animation'    => in_array( sanitize_key( (string) ( $node['animation'] ?? 'none' ) ), [ 'none', 'fade', 'slide', 'zoom', 'bounce', 'flip' ], true ) ? sanitize_key( (string) ( $node['animation'] ?? 'none' ) ) : 'none',
+			'animation'    => in_array( sanitize_key( (string) ( $node['animation'] ?? 'none' ) ), [ 'none', 'fade', 'slide', 'zoom', 'bounce', 'flip', 'rise', 'stagger' ], true ) ? sanitize_key( (string) ( $node['animation'] ?? 'none' ) ) : 'none',
 			'animDuration' => max( 0, min( 3000, absint( $node['animDuration'] ?? 600 ) ) ),
 			'animDelay'    => max( 0, min( 3000, absint( $node['animDelay'] ?? 0 ) ) ),
 			'animEasing'   => in_array( (string) ( $node['animEasing'] ?? 'ease' ), [ 'ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out' ], true ) ? (string) $node['animEasing'] : 'ease',

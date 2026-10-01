@@ -21,7 +21,8 @@ class BrandCatalog {
 			self::heroes(),
 			self::collections(),
 			self::editorial(),
-			self::modules()
+			self::modules(),
+			self::panels()
 		);
 	}
 
@@ -750,6 +751,129 @@ class BrandCatalog {
 							],
 						]
 					),
+				],
+			],
+		];
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Paneles partidos y tipografía monumental                            */
+	/* ------------------------------------------------------------------ */
+
+	private static function panels(): array {
+		return [
+			[
+				'slug'        => 'split-panel',
+				'name'        => __( 'Panel partido', 'meridian' ),
+				'description' => __( 'Dos mitades a sangre: un panel de contenido y otro de imagen (con carrusel si hay varias). Pensado para portadas y fichas de producto.', 'meridian' ),
+				'category'    => 'content',
+				'icon'        => 'split',
+				'defaults'    => [
+					'eyebrow'     => '',
+					'title'       => 'TITULAR A DOS MITADES',
+					'titleTag'    => 'h2',
+					'subtitle'    => '',
+					'text'        => '',
+					'buttonText'  => '',
+					'buttonUrl'   => '',
+					'buttonStyle' => 'solid',
+					'buttonArrow' => true,
+					'badgeId'     => 0,
+					'badgePos'    => 'title',
+					'mediaSide'   => 'right',
+					'ratio'       => 'half',
+					'height'      => 'screen',
+					'mediaFit'    => 'cover',
+					'mediaTheme'  => 'surface',
+					'theme'       => 'cream',
+					'align'       => 'center',
+					'tracking'    => 'normal',
+					'reveal'      => 'fade',
+					'arrows'      => true,
+					'dots'        => true,
+					'autoplay'    => false,
+					'interval'    => 6000,
+					'items'       => [],
+				],
+				'fields'      => [
+					self::f( 'eyebrow', 'text', 'content', __( 'Antetítulo', 'meridian' ) ),
+					self::f( 'title', 'textarea', 'content', __( 'Título', 'meridian' ) ),
+					self::f( 'titleTag', 'htmlTag', 'content', __( 'Etiqueta del título', 'meridian' ), [ 'options' => [ 'h1', 'h2', 'h3', 'p' ] ] ),
+					self::f( 'subtitle', 'textarea', 'content', __( 'Subtítulo', 'meridian' ) ),
+					self::f( 'text', 'richtext', 'content', __( 'Texto', 'meridian' ) ),
+					self::f( 'buttonText', 'text', 'content', __( 'Texto del botón', 'meridian' ) ),
+					self::f( 'buttonUrl', 'url', 'content', __( 'URL del botón', 'meridian' ) ),
+					self::f( 'buttonStyle', 'select', 'design', __( 'Estilo del botón', 'meridian' ), [ 'options' => [ 'solid', 'outline', 'ghost' ] ] ),
+					self::f( 'buttonArrow', 'toggle', 'design', __( 'Flecha en el botón', 'meridian' ) ),
+					self::f( 'badgeId', 'image', 'content', __( 'Sello / insignia', 'meridian' ) ),
+					self::f( 'badgePos', 'select', 'design', __( 'Posición del sello', 'meridian' ), [ 'options' => [ 'title', 'top', 'corner' ] ] ),
+					self::f( 'mediaSide', 'select', 'layout', __( 'Lado de la imagen', 'meridian' ), [ 'options' => [ 'right', 'left' ] ] ),
+					self::f( 'ratio', 'select', 'layout', __( 'Proporción', 'meridian' ), [ 'options' => [ 'half', 'media-wide', 'copy-wide' ] ] ),
+					self::f( 'height', 'select', 'layout', __( 'Altura', 'meridian' ), [ 'options' => [ 'screen', 'tall', 'medium', 'auto' ] ] ),
+					self::f( 'mediaFit', 'select', 'design', __( 'Ajuste de la imagen', 'meridian' ), [ 'options' => [ 'cover', 'contain' ] ] ),
+					self::f( 'theme', 'select', 'colors', __( 'Tema del panel de texto', 'meridian' ), [ 'options' => [ 'cream', 'forest', 'dark', 'light', 'surface' ] ] ),
+					self::f( 'mediaTheme', 'select', 'colors', __( 'Fondo del panel de imagen', 'meridian' ), [ 'options' => [ 'surface', 'cream', 'light', 'forest', 'dark' ] ] ),
+					self::f( 'align', 'alignment', 'design', __( 'Alineación del texto', 'meridian' ), [ 'options' => [ 'left', 'center', 'right' ] ] ),
+					self::f( 'tracking', 'select', 'design', __( 'Tracking del título', 'meridian' ), [ 'options' => [ 'normal', 'wide', 'wider', 'tight' ] ] ),
+					self::f( 'reveal', 'select', 'design', __( 'Revelado del título', 'meridian' ), [ 'options' => [ 'fade', 'letters', 'none' ] ] ),
+					self::f( 'arrows', 'toggle', 'design', __( 'Flechas del carrusel', 'meridian' ) ),
+					self::f( 'dots', 'toggle', 'design', __( 'Puntos del carrusel', 'meridian' ) ),
+					self::f( 'autoplay', 'toggle', 'design', __( 'Autoplay', 'meridian' ) ),
+					self::f( 'interval', 'number', 'design', __( 'Intervalo (ms)', 'meridian' ), [ 'min' => 2000, 'max' => 20000 ] ),
+					self::f(
+						'items',
+						'repeater',
+						'content',
+						__( 'Imágenes', 'meridian' ),
+						[
+							'itemFields' => [
+								self::f( 'imageId', 'image', 'content', __( 'Imagen', 'meridian' ) ),
+								self::f( 'alt', 'text', 'content', __( 'Texto alternativo', 'meridian' ) ),
+								self::f( 'caption', 'text', 'content', __( 'Pie', 'meridian' ) ),
+							],
+						]
+					),
+					...self::spacing_fields(),
+				],
+			],
+			[
+				'slug'        => 'wordmark',
+				'name'        => __( 'Logotipo tipográfico', 'meridian' ),
+				'description' => __( 'Texto monumental a todo el ancho con sombra desplazada en color. Pensado para cierres de página y pies.', 'meridian' ),
+				'category'    => 'text',
+				'icon'        => 'type',
+				'defaults'    => [
+					'text'         => 'NOMBRE DE MARCA',
+					'tag'          => 'p',
+					'url'          => '',
+					'fit'          => 'fill',
+					'size'         => 'display',
+					'tracking'     => 'normal',
+					'align'        => 'center',
+					'shadow'       => 'offset',
+					'shadowColor'  => [ 'mode' => 'token', 'token' => 'color.tertiary' ],
+					'shadowX'      => 6,
+					'shadowY'      => 6,
+					'textColor'    => [ 'mode' => 'token', 'token' => 'color.text' ],
+					'theme'        => 'cream',
+					'reveal'       => 'fade',
+				],
+				'fields'      => [
+					self::f( 'text', 'text', 'content', __( 'Texto', 'meridian' ) ),
+					self::f( 'tag', 'htmlTag', 'content', __( 'Etiqueta HTML', 'meridian' ), [ 'options' => [ 'p', 'h1', 'h2', 'h3' ] ] ),
+					self::f( 'url', 'url', 'content', __( 'Enlace (opcional)', 'meridian' ) ),
+					self::f( 'fit', 'select', 'layout', __( 'Ajuste', 'meridian' ), [ 'options' => [ 'fill', 'contain' ] ] ),
+					self::f( 'size', 'select', 'design', __( 'Tamaño (si no se ajusta)', 'meridian' ), [ 'options' => [ 'display', 'xl', 'lg' ] ] ),
+					self::f( 'tracking', 'select', 'design', __( 'Tracking', 'meridian' ), [ 'options' => [ 'tight', 'normal', 'wide' ] ] ),
+					self::f( 'align', 'alignment', 'design', __( 'Alineación', 'meridian' ), [ 'options' => [ 'left', 'center', 'right' ] ] ),
+					self::f( 'shadow', 'select', 'design', __( 'Sombra', 'meridian' ), [ 'options' => [ 'offset', 'outline', 'none' ] ] ),
+					self::f( 'shadowColor', 'color', 'colors', __( 'Color de la sombra', 'meridian' ) ),
+					self::f( 'shadowX', 'number', 'design', __( 'Desplazamiento X (px)', 'meridian' ), [ 'min' => -24, 'max' => 24 ] ),
+					self::f( 'shadowY', 'number', 'design', __( 'Desplazamiento Y (px)', 'meridian' ), [ 'min' => -24, 'max' => 24 ] ),
+					self::f( 'textColor', 'color', 'colors', __( 'Color del texto', 'meridian' ) ),
+					self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'light', 'surface', 'forest', 'dark' ] ] ),
+					self::f( 'reveal', 'select', 'design', __( 'Revelado', 'meridian' ), [ 'options' => [ 'fade', 'letters', 'none' ] ] ),
+					...self::spacing_fields(),
 				],
 			],
 		];

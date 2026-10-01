@@ -19,9 +19,12 @@ if ( $show_footer ) {
 	<footer class="m-site-footer<?php echo ! empty( $f['htmlClass'] ) ? ' ' . esc_attr( $f['htmlClass'] ) : ''; ?>"<?php echo ! empty( $f['htmlId'] ) ? ' id="' . esc_attr( $f['htmlId'] ) . '"' : ''; ?><?php echo $chrome; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
 		<?php
 		$has_sections = ! empty( $f['sections'] ) && is_array( $f['sections'] );
+		// Revelado al hacer scroll (como en la referencia). Lo observa public.js.
+		$f_reveal = sanitize_key( (string) ( $f['reveal'] ?? 'stagger' ) );
+		$f_anim   = in_array( $f_reveal, [ 'rise', 'stagger' ], true ) ? ' m-anim-' . $f_reveal : '';
 		if ( ! $has_sections && ( ! array_key_exists( 'showClassic', $f ) || ! empty( $f['showClassic'] ) ) ) :
 			?>
-		<div class="m-container m-footer-grid">
+		<div class="m-container m-footer-grid<?php echo esc_attr( $f_anim ); ?>">
 			<div>
 				<?php
 				if ( ! empty( $f['logoId'] ) ) {

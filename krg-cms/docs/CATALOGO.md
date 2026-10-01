@@ -32,6 +32,8 @@ campos: **ninguno trae texto fijo en el código**.
 | Módulo de trazabilidad | Otros | Consulta por código que revela un recorrido |
 | Banda de distribuidores | Otros | Franja de logotipos de puntos de venta |
 | Tabla de datos | Contenido | Tabla de dos columnas |
+| Panel partido | Contenido | Dos mitades a sangre: texto + imagen (con carrusel) |
+| Logotipo tipográfico | Texto | Texto monumental con sombra desplazada |
 
 ### Detalle
 
@@ -135,6 +137,26 @@ quita al pasar el ratón. Cada logo puede enlazar.
 Tabla de dos columnas con encabezados y pie de tabla, para equivalencias,
 medidas o información nutricional. Con desplazamiento horizontal en móvil.
 
+#### Panel partido
+Dos mitades a sangre, cada una con su propio fondo: un panel de contenido y
+otro de imagen. Si cargas varias imágenes, el panel se convierte en carrusel
+con flechas y puntos.
+- **Altura**: `screen` (pantalla completa) · `tall` · `medium` · `auto`
+- **Proporción**: 50/50 · imagen ancha · texto ancho. Imagen a izquierda o derecha.
+- **Ajuste de la imagen**: `cover` (sangra) o `contain` (producto recortado sobre fondo)
+- **Sello / insignia**: imagen que se superpone sobre el titular, encima del
+  texto o en la esquina.
+- Botón con **flecha animada** opcional, en 3 estilos.
+- Tema independiente para cada mitad.
+- En tablet y móvil pasa a una columna con la imagen siempre debajo del texto.
+
+#### Logotipo tipográfico
+Texto monumental que ocupa todo el ancho, con sombra desplazada en color
+(efecto de relieve) o contorno.
+- **Ajuste**: `fill` (se escala solo al ancho de la pantalla, sin JS) o `contain`
+- Color del texto y de la sombra por token o personalizado, desplazamiento
+  X/Y regulable, enlace opcional.
+
 ---
 
 ## 2. Componente ampliado
@@ -160,6 +182,9 @@ medidas o información nutricional. Con desplazamiento horizontal en móvil.
 | **Columnas por breakpoint** | Campos de escritorio / tablet / móvil en todos los componentes de rejilla. |
 | **Espaciado por bloque** | Campos de espacio superior e inferior en los módulos de sección. |
 | **Secciones a sangre** | Las secciones marcadas `m-bleed` dejan que el módulo ocupe todo el ancho. Se detecta solo al insertar un módulo a sangre. |
+| **Secciones a pantalla completa** | Cualquier sección puede tener altura mínima de pantalla completa, pantalla menos cabecera, 78 % o 50 %, con alineación vertical arriba / centro / abajo. |
+| **Animaciones de scroll** | Dos nuevas en el panel Animación de cualquier nodo: «Aparecer al scroll» (el bloque sube y aparece) y «Escalonada» (los hijos entran uno detrás de otro, como el pie de la referencia). Duración, retardo y curva configurables. |
+| **Revelado del pie** | El pie tiene su propio ajuste de revelado (escalonado / entero / ninguno) en Chrome → Pie → Diseño. |
 | **Aviso de instalación incompleta** | Si falta algún archivo del sistema, el admin lo dice y lista cuáles, en vez de romper el sitio. |
 
 ### Comportamientos (JS)

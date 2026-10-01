@@ -69,11 +69,21 @@ class Catalog {
 				'supports'    => [ 'responsive', 'visibility' ],
 				'defaults'    => [
 					'fullWidth'  => true,
+					'minHeight'  => 'auto',
+					'vAlign'     => 'start',
 					'background' => [ 'mode' => 'token', 'token' => 'color.background' ],
 				],
 				'fields'      => [
 					self::f( 'name', 'text', 'content', __( 'Nombre interno', 'meridian' ) ),
 					self::f( 'fullWidth', 'toggle', 'design', __( 'Ancho completo', 'meridian' ) ),
+					self::f(
+						'minHeight',
+						'select',
+						'design',
+						__( 'Altura mínima', 'meridian' ),
+						[ 'options' => [ 'auto', 'screen', 'screen-minus-header', 'tall', 'half' ] ]
+					),
+					self::f( 'vAlign', 'select', 'design', __( 'Alineación vertical', 'meridian' ), [ 'options' => [ 'start', 'center', 'end' ] ] ),
 					self::f( 'background', 'color', 'colors', __( 'Fondo', 'meridian' ) ),
 					self::f( 'htmlId', 'text', 'advanced', __( 'ID HTML', 'meridian' ) ),
 				],
