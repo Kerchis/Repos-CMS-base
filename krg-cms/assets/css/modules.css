@@ -1397,3 +1397,60 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
   .m-c-section.is-mh-screen-minus-header { min-height: 100svh; }
   .m-c-section.is-mh-tall { min-height: 62svh; }
 }
+
+/* ------------------------------------------------------------------ */
+/* Cabecera adaptativa                                                 */
+/* El color de la cabecera lo dicta la sección que tiene debajo, igual */
+/* que en la referencia. Las secciones declaran `data-header-skin` y   */
+/* modules.js aplica la piel correspondiente.                          */
+/* ------------------------------------------------------------------ */
+
+.m-site-header.is-adaptive {
+  transition:
+    background-color 420ms var(--m-ease, ease),
+    color 320ms var(--m-ease, ease),
+    border-color 320ms var(--m-ease, ease);
+}
+.m-site-header.is-adaptive[data-adaptive="full"] { background: var(--m-hd-bg, transparent); }
+
+.m-site-header.is-adaptive.is-skin-dark  { --m-hd-fg: var(--color-text); }
+.m-site-header.is-adaptive.is-skin-light { --m-hd-fg: var(--color-background); }
+
+.m-site-header.is-adaptive.is-skin-dark,
+.m-site-header.is-adaptive.is-skin-light { color: var(--m-hd-fg); }
+
+.m-site-header.is-adaptive.is-skin-dark .m-nav-list a,
+.m-site-header.is-adaptive.is-skin-dark .m-logo-text,
+.m-site-header.is-adaptive.is-skin-dark .m-nav-toggle,
+.m-site-header.is-adaptive.is-skin-light .m-nav-list a,
+.m-site-header.is-adaptive.is-skin-light .m-logo-text,
+.m-site-header.is-adaptive.is-skin-light .m-nav-toggle {
+  color: var(--m-hd-fg);
+  transition: color 320ms var(--m-ease, ease);
+}
+.m-site-header.is-adaptive .m-nav-toggle span,
+.m-site-header.is-adaptive .m-nav-toggle::before,
+.m-site-header.is-adaptive .m-nav-toggle::after { background: currentColor; }
+
+/* El CTA se invierte para seguir destacando sobre cualquier fondo. */
+.m-site-header.is-adaptive.is-skin-light .m-btn-primary {
+  background: var(--color-background);
+  color: var(--color-primary);
+  border-color: var(--color-background);
+}
+.m-site-header.is-adaptive.is-skin-dark .m-btn-primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary, #fff);
+  border-color: var(--color-primary);
+}
+.m-site-header.is-adaptive .m-btn-outline { border-color: currentColor; color: inherit; }
+
+/* El logotipo en imagen se adapta por inversión de luminosidad. */
+.m-site-header.is-adaptive.is-skin-light .m-logo img { filter: brightness(0) invert(1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .m-site-header.is-adaptive,
+  .m-site-header.is-adaptive .m-nav-list a,
+  .m-site-header.is-adaptive .m-logo-text,
+  .m-site-header.is-adaptive .m-nav-toggle { transition: none; }
+}

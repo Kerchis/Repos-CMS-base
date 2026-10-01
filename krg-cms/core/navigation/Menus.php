@@ -282,6 +282,9 @@ class Menus {
 				'logoWidth'         => max( 16, min( 480, absint( $data['logoWidth'] ?? 140 ) ) ),
 				'logoWidthTablet'   => max( 16, min( 480, absint( $data['logoWidthTablet'] ?? ( $data['logoWidth'] ?? 140 ) ) ) ),
 				'logoWidthMobile'   => max( 16, min( 480, absint( $data['logoWidthMobile'] ?? 120 ) ) ),
+				'adaptive'    => in_array( sanitize_key( (string) ( $data['adaptive'] ?? 'off' ) ), [ 'off', 'text', 'full' ], true )
+					? sanitize_key( (string) ( $data['adaptive'] ?? 'off' ) )
+					: 'off',
 				'sticky'      => ! empty( $data['sticky'] ),
 				'ctaText'     => sanitize_text_field( $data['ctaText'] ?? '' ),
 				'ctaUrl'      => \Meridian\Security\UrlValidator::sanitize( $data['ctaUrl'] ?? '' ),
@@ -490,6 +493,7 @@ class Menus {
 			'navModeDesktop' => 'bar',
 			'navModeTablet'  => 'bar',
 			'navModeMobile'  => 'drawer',
+			'adaptive'       => 'off',
 			'background'  => 'var(--color-background)',
 			'color'       => 'var(--color-text)',
 		];

@@ -24,6 +24,9 @@ if ( $show_header ) {
 	$h        = \Meridian\Navigation\Menus::header();
 	$identity = \Meridian\Navigation\Menus::identity();
 	$sticky   = ! empty( $h['sticky'] ) ? ' is-sticky' : '';
+	// Cabecera adaptativa: `text` cambia solo el color; `full` también el fondo.
+	$adaptive = sanitize_key( (string) ( $h['adaptive'] ?? 'off' ) );
+	$adaptive = in_array( $adaptive, [ 'text', 'full' ], true ) ? $adaptive : '';
 	$trans    = ! empty( $h['transparent'] ) ? ' is-transparent' : '';
 	$align_k  = $h['align'] ?? 'left';
 	$align    = 'center' === $align_k ? ' is-center' : ( 'right' === $align_k ? ' is-right' : '' );
@@ -64,7 +67,7 @@ if ( $show_header ) {
 	$nav_t  = \Meridian\Navigation\Menus::nav_mode( $h['navModeTablet'] ?? 'bar', 'bar' );
 	$nav_m  = \Meridian\Navigation\Menus::nav_mode( $h['navModeMobile'] ?? 'drawer', 'drawer' );
 	?>
-	<header class="m-site-header<?php echo esc_attr( $sticky . $trans . $align . $anim . $dist . ( $extra ? ' ' . $extra : '' ) ); ?>" data-nav-d="<?php echo esc_attr( $nav_d ); ?>" data-nav-t="<?php echo esc_attr( $nav_t ); ?>" data-nav-m="<?php echo esc_attr( $nav_m ); ?>"<?php echo ( $anim_k && 'none' !== $anim_k ) ? ' data-anim-in="' . esc_attr( $anim_k ) . '"' : ''; ?><?php echo ! empty( $h['htmlId'] ) ? ' id="' . esc_attr( $h['htmlId'] ) . '"' : ''; ?> style="<?php echo esc_attr( $hstyle ); ?>"<?php echo $chrome; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+	<header class="m-site-header<?php echo esc_attr( $sticky . $trans . $align . $anim . $dist . ( $adaptive ? ' is-adaptive' : '' ) . ( $extra ? ' ' . $extra : '' ) ); ?>"<?php echo $adaptive ? ' data-adaptive="' . esc_attr( $adaptive ) . '"' : ''; ?> data-nav-d="<?php echo esc_attr( $nav_d ); ?>" data-nav-t="<?php echo esc_attr( $nav_t ); ?>" data-nav-m="<?php echo esc_attr( $nav_m ); ?>"<?php echo ( $anim_k && 'none' !== $anim_k ) ? ' data-anim-in="' . esc_attr( $anim_k ) . '"' : ''; ?><?php echo ! empty( $h['htmlId'] ) ? ' id="' . esc_attr( $h['htmlId'] ) . '"' : ''; ?> style="<?php echo esc_attr( $hstyle ); ?>"<?php echo $chrome; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
 		<?php if ( $trans ) : ?>
 			<div class="m-header-glass" aria-hidden="true"></div>
 		<?php endif; ?>

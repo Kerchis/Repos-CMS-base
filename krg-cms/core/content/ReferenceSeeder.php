@@ -1053,6 +1053,9 @@ class ReferenceSeeder {
 				'navModeDesktop' => 'bar',
 				'navModeTablet'  => 'drawer',
 				'navModeMobile'  => 'drawer',
+				'transparent'    => true,
+				'transOpacity'   => 0,
+				'adaptive'       => 'full',
 			]
 		);
 		\Meridian\Navigation\Menus::save_header( $header );

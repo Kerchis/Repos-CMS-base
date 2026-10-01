@@ -136,6 +136,9 @@ datos, nunca por clases de estilo:
 | `data-trace` | trace-module | valida el código y revela los pasos (`.is-traced`) |
 | `data-preloader` | preloader | contador, barra y `sessionStorage` |
 | `data-scroll-text` | scroll-text | revelado palabra a palabra |
+| `data-sp-carousel` | split-panel | carrusel del panel de imagen |
+| `data-header-skin` | secciones y bloques | declara si la cabecera necesita texto claro u oscuro |
+| `data-adaptive` | cabecera | `text` o `full`: qué adapta la cabecera al pasar sobre cada sección |
 
 Todo respeta `prefers-reduced-motion` (los estados finales se aplican de golpe)
 y se salta en el preview del constructor cuando mostraría un overlay.
@@ -170,6 +173,26 @@ Tres saltos reales, no un encogimiento:
 
 Las columnas son editables por breakpoint desde el inspector (campos
 `desktop` / `tablet` / `mobile` del grupo «responsive»).
+
+---
+
+## 5.1 Cabecera adaptativa
+
+Reproduce el cambio de color de la cabecera según la sección sobre la que
+pasa, sin que el editor tenga que calcular nada:
+
+1. Cada sección emite `data-header-skin="light|dark"`. Con el valor `auto`
+   (por defecto) lo deduce `core/design/Contrast.php`, que resuelve el token
+   de fondo contra el preset activo y calcula su **luminancia relativa WCAG**.
+   Cambiar de paleta recalcula el contraste solo.
+2. Los bloques del sistema visual lo declaran desde su propio tema
+   (`forest` y `dark` piden texto claro; `cream`, `light` y `surface`, oscuro).
+   Un hero con imagen de fondo siempre pide texto claro, porque lleva velo.
+3. `modules.js` muestrea en cada scroll qué zona cruza el borde inferior de la
+   cabecera y aplica `.is-skin-light` / `.is-skin-dark`. En modo `full` copia
+   además el color de fondo calculado de esa zona.
+4. Se activa en Chrome → Cabecera → Color adaptativo. El editor puede forzar
+   claro u oscuro por sección, o desactivarlo con `none`.
 
 ---
 

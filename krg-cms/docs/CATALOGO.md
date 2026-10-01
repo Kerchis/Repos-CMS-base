@@ -184,6 +184,7 @@ Texto monumental que ocupa todo el ancho, con sombra desplazada en color
 | **Secciones a sangre** | Las secciones marcadas `m-bleed` dejan que el módulo ocupe todo el ancho. Se detecta solo al insertar un módulo a sangre. |
 | **Secciones a pantalla completa** | Cualquier sección puede tener altura mínima de pantalla completa, pantalla menos cabecera, 78 % o 50 %, con alineación vertical arriba / centro / abajo. |
 | **Animaciones de scroll** | Dos nuevas en el panel Animación de cualquier nodo: «Aparecer al scroll» (el bloque sube y aparece) y «Escalonada» (los hijos entran uno detrás de otro, como el pie de la referencia). Duración, retardo y curva configurables. |
+| **Cabecera adaptativa** | La cabecera cambia de color según la sección que tiene debajo, al vuelo. Cada sección declara su piel (`auto` la deduce de la luminancia real del fondo) y la cabecera puede adaptar solo el texto o también el fondo. |
 | **Revelado del pie** | El pie tiene su propio ajuste de revelado (escalonado / entero / ninguno) en Chrome → Pie → Diseño. |
 | **Aviso de instalación incompleta** | Si falta algún archivo del sistema, el admin lo dice y lista cuáles, en vez de romper el sitio. |
 

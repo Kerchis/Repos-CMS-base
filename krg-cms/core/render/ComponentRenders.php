@@ -113,6 +113,16 @@ class ComponentRenders {
 			$class .= ' is-mh-' . $mh . ' is-va-' . $va;
 		}
 		$attrs = [ 'class' => $class ];
+
+		// Cabecera adaptativa: la sección declara qué color de texto necesita
+		// la cabecera cuando pasa por encima. `auto` lo deduce del fondo.
+		$skin = sanitize_key( (string) ( $props['headerSkin'] ?? 'auto' ) );
+		if ( 'auto' === $skin ) {
+			$skin = \Meridian\Design\Contrast::for_color( $props['background'] ?? null );
+		}
+		if ( in_array( $skin, [ 'light', 'dark' ], true ) ) {
+			$attrs['data-header-skin'] = $skin;
+		}
 		if ( ! empty( $props['htmlId'] ) ) {
 			$attrs['id'] = sanitize_html_class( $props['htmlId'] );
 		}
@@ -254,6 +264,16 @@ class ComponentRenders {
 			$class .= ' is-fill';
 		}
 		$attrs = [ 'class' => $class ];
+
+		// Cabecera adaptativa: la sección declara qué color de texto necesita
+		// la cabecera cuando pasa por encima. `auto` lo deduce del fondo.
+		$skin = sanitize_key( (string) ( $props['headerSkin'] ?? 'auto' ) );
+		if ( 'auto' === $skin ) {
+			$skin = \Meridian\Design\Contrast::for_color( $props['background'] ?? null );
+		}
+		if ( in_array( $skin, [ 'light', 'dark' ], true ) ) {
+			$attrs['data-header-skin'] = $skin;
+		}
 		if ( $style ) {
 			$attrs['style'] = $style;
 		}

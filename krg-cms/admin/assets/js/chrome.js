@@ -524,7 +524,15 @@
         <label>Retardo (ms) <input type="number" data-h-num="animDelay" min="0" max="3000" value="${h.animDelay ?? 0}"></label>
       </div>`;
     } else {
-      body = `<div class="acc"><h5>Avanzado</h5>
+      body = `<div class="acc"><h5>Color adaptativo</h5>
+        ${field("Según la sección de debajo", `<select data-h="adaptive">${[
+          ["off", "Desactivado"],
+          ["text", "Solo el color del texto"],
+          ["full", "Texto y fondo"],
+        ].map(([v, l]) => `<option value="${v}" ${(h.adaptive || "off") === v ? "selected" : ""}>${l}</option>`).join("")}</select>`)}
+        <p class="m-muted">La cabecera toma el color que declara cada sección en Diseño → «Color de la cabecera sobre esta sección».</p>
+      </div>
+      <div class="acc"><h5>Avanzado</h5>
         <label>Sticky <input type="checkbox" data-h-bool="sticky" ${h.sticky !== false ? "checked" : ""}></label>
         ${field("Identificador CSS", `<input data-h="htmlId" value="${esc(h.htmlId || "")}" placeholder="cabecera">`)}
         ${field("Clase CSS", `<input data-h="htmlClass" value="${esc(h.htmlClass || "")}" placeholder="mi-header">`)}

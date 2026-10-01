@@ -71,6 +71,7 @@ class Catalog {
 					'fullWidth'  => true,
 					'minHeight'  => 'auto',
 					'vAlign'     => 'start',
+					'headerSkin' => 'auto',
 					'background' => [ 'mode' => 'token', 'token' => 'color.background' ],
 				],
 				'fields'      => [
@@ -84,6 +85,13 @@ class Catalog {
 						[ 'options' => [ 'auto', 'screen', 'screen-minus-header', 'tall', 'half' ] ]
 					),
 					self::f( 'vAlign', 'select', 'design', __( 'Alineación vertical', 'meridian' ), [ 'options' => [ 'start', 'center', 'end' ] ] ),
+					self::f(
+						'headerSkin',
+						'select',
+						'design',
+						__( 'Color de la cabecera sobre esta sección', 'meridian' ),
+						[ 'options' => [ 'auto', 'dark', 'light', 'none' ] ]
+					),
 					self::f( 'background', 'color', 'colors', __( 'Fondo', 'meridian' ) ),
 					self::f( 'htmlId', 'text', 'advanced', __( 'ID HTML', 'meridian' ) ),
 				],

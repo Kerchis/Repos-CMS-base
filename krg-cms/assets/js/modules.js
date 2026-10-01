@@ -450,6 +450,70 @@
   }
 
   /* ---------------------------------------------------------------- */
+  /* Cabecera adaptativa                                                */
+  /* La sección que queda bajo la cabecera dicta su color (y su fondo,  */
+  /* en modo "full"). Sin listeners por sección: una sola pasada por    */
+  /* scroll sobre los candidatos ya recogidos.                          */
+  /* ---------------------------------------------------------------- */
+
+  function initAdaptiveHeader() {
+    var header = document.querySelector(".m-site-header.is-adaptive");
+    if (!header || !once(header, "krgAdaptive")) return;
+
+    var mode = header.getAttribute("data-adaptive") || "text";
+    var zones = [];
+
+    function collect() {
+      zones = Array.prototype.slice.call(document.querySelectorAll("[data-header-skin]"));
+    }
+
+    function apply() {
+      if (!zones.length) return;
+      // Punto de muestreo: justo debajo del borde inferior de la cabecera.
+      var probe = header.getBoundingClientRect().bottom - 1;
+      var current = null;
+      for (var i = 0; i < zones.length; i++) {
+        var r = zones[i].getBoundingClientRect();
+        if (r.top <= probe && r.bottom > probe) current = zones[i];
+      }
+      if (!current) {
+        header.classList.remove("is-skin-light", "is-skin-dark");
+        header.style.removeProperty("--m-hd-bg");
+        return;
+      }
+      var skin = current.getAttribute("data-header-skin");
+      header.classList.toggle("is-skin-light", skin === "light");
+      header.classList.toggle("is-skin-dark", skin !== "light");
+
+      if (mode === "full") {
+        // Busca el primer ancestro/descendiente con fondo real y lo copia.
+        var bg = backgroundOf(current);
+        if (bg) header.style.setProperty("--m-hd-bg", bg);
+        else header.style.removeProperty("--m-hd-bg");
+      }
+    }
+
+    function backgroundOf(el) {
+      var node = el;
+      var guard = 0;
+      while (node && guard < 4) {
+        var c = getComputedStyle(node).backgroundColor;
+        if (c && c !== "transparent" && c.indexOf("rgba(0, 0, 0, 0)") === -1) return c;
+        node = node.parentElement;
+        guard++;
+      }
+      return "";
+    }
+
+    collect();
+    apply();
+    window.addEventListener("scroll", throttle(apply, 60), { passive: true });
+    window.addEventListener("resize", debounce(function () { collect(); apply(); }, 200), { passive: true });
+    // Tras cargar imágenes el layout cambia: recalcular una vez.
+    window.addEventListener("load", function () { collect(); apply(); });
+  }
+
+  /* ---------------------------------------------------------------- */
   /* Utilidades                                                         */
   /* ---------------------------------------------------------------- */
 
@@ -493,6 +557,7 @@
     initTrace(root);
     initSplitPanel(root);
     initStickyHeader();
+    initAdaptiveHeader();
   }
 
   if (document.readyState === "loading") {

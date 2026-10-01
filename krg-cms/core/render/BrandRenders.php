@@ -171,6 +171,14 @@ class BrandRenders {
 		return '<div class="' . $class . '">' . $inner . '</div>';
 	}
 
+	/**
+	 * Declara qué color necesita la cabecera cuando pasa sobre este bloque.
+	 * Lo consume la cabecera adaptativa (assets/js/modules.js).
+	 */
+	private static function skin( string $theme ): array {
+		return [ 'data-header-skin' => \Meridian\Design\Contrast::for_theme( $theme ) ];
+	}
+
 	private static function section_style( array $p ): string {
 		$style = '';
 		if ( isset( $p['padTop'] ) && '' !== $p['padTop'] ) {
@@ -408,9 +416,13 @@ class BrandRenders {
 			$ctx,
 			'div',
 			$inner,
-			[
-				'class' => 'm-bh is-' . $variant . ' is-h-' . $height . ' is-theme-' . $theme . ( ( $img || $img_m ) ? ' has-media' : '' ),
-			]
+			array_merge(
+				[
+					'class' => 'm-bh is-' . $variant . ' is-h-' . $height . ' is-theme-' . $theme . ( ( $img || $img_m ) ? ' has-media' : '' ),
+				],
+				// Con imagen de fondo el velo oscurece: la cabecera va en claro.
+				( $img || $img_m ) ? [ 'data-header-skin' => 'light' ] : self::skin( $theme )
+			)
 		);
 	}
 
@@ -448,7 +460,10 @@ class BrandRenders {
 			$ctx,
 			'div',
 			'<div class="m-container m-sf-grid">' . $media . $copy . '</div>',
-			[ 'class' => 'm-sf is-img-' . $side . ' is-ratio-' . $ratio . ' is-theme-' . $theme ]
+			array_merge(
+				[ 'class' => 'm-sf is-img-' . $side . ' is-ratio-' . $ratio . ' is-theme-' . $theme ],
+				self::skin( $theme )
+			)
 		);
 	}
 
@@ -495,7 +510,10 @@ class BrandRenders {
 			$ctx,
 			'div',
 			$inner . $body,
-			[ 'class' => 'm-sc is-theme-' . $theme . ( $bg ? ' has-media' : '' ) ]
+			array_merge(
+				[ 'class' => 'm-sc is-theme-' . $theme . ( $bg ? ' has-media' : '' ) ],
+				$bg ? [ 'data-header-skin' => 'light' ] : self::skin( $theme )
+			)
 		);
 	}
 
@@ -921,11 +939,14 @@ class BrandRenders {
 			$ctx,
 			'div',
 			$inner,
-			[
-				'class'       => 'm-tr is-theme-' . $theme . ( $bg ? ' has-media' : '' ),
-				'data-trace'  => '1',
-				'data-code'   => $code,
-			]
+			array_merge(
+				[
+					'class'      => 'm-tr is-theme-' . $theme . ( $bg ? ' has-media' : '' ),
+					'data-trace' => '1',
+					'data-code'  => $code,
+				],
+				$bg ? [ 'data-header-skin' => 'light' ] : self::skin( $theme )
+			)
 		);
 	}
 
@@ -1109,11 +1130,14 @@ class BrandRenders {
 			$ctx,
 			'div',
 			'<div class="m-sp-grid">' . $inner . '</div>',
-			[
-				'class' => 'm-sp is-media-' . $side . ' is-ratio-' . $ratio . ' is-h-' . $height
-					. ( $media_panel ? '' : ' is-single' ),
-				'style' => self::section_style( $props ),
-			]
+			array_merge(
+				[
+					'class' => 'm-sp is-media-' . $side . ' is-ratio-' . $ratio . ' is-h-' . $height
+						. ( $media_panel ? '' : ' is-single' ),
+					'style' => self::section_style( $props ),
+				],
+				self::skin( $theme )
+			)
 		);
 	}
 
@@ -1164,11 +1188,14 @@ class BrandRenders {
 			$ctx,
 			'div',
 			'<div class="m-container m-wm-inner">' . $inner . '</div>',
-			[
-				'class' => 'm-wm is-fit-' . $fit . ' is-size-' . $size . ' is-align-' . $align
-					. ' is-shadow-' . $shadow . ' is-theme-' . $theme,
-				'style' => $style . self::section_style( $props ),
-			]
+			array_merge(
+				[
+					'class' => 'm-wm is-fit-' . $fit . ' is-size-' . $size . ' is-align-' . $align
+						. ' is-shadow-' . $shadow . ' is-theme-' . $theme,
+					'style' => $style . self::section_style( $props ),
+				],
+				self::skin( $theme )
+			)
 		);
 	}
 
