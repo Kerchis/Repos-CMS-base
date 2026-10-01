@@ -233,6 +233,17 @@
               const full = n.props?.fullWidth !== false;
               els.classList.toggle("is-full", full);
               els.classList.toggle("is-boxed", !full);
+              // Alto, alineación y cortina también en el lienzo, para que
+              // lo que se ve aquí sea lo que sale publicado.
+              const mh = n.props?.minHeight || "auto";
+              const va = n.props?.vAlign || "start";
+              ["screen", "screen-minus-header", "tall", "half"].forEach((v) => {
+                els.classList.toggle("is-mh-" + v, mh === v);
+              });
+              ["start", "center", "end"].forEach((v) => {
+                els.classList.toggle("is-va-" + v, mh !== "auto" && va === v);
+              });
+              els.classList.toggle("is-curtain", n.props?.curtain === "on");
             }
           }
           if (n.type === "gallery") {
@@ -1323,6 +1334,53 @@
       </label>
     </div>`;
   }
+  // Opciones propias de la sección: alto, cortina y color de la cabecera.
+  // Hasta ahora existían en el renderizador pero no había dónde tocarlas.
+  function panelSection(node) {
+    const p = node.props || {};
+    const mh = p.minHeight || "auto";
+    const sel = (key, value, opts) => `<select data-prop="${key}">${opts.map(([v, l]) =>
+      `<option value="${v}" ${String(value) === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+    return `<div class="acc"><h5>Animación de entrada</h5>
+      <label>Revelado al hacer scroll
+        ${sel("curtain", p.curtain || "off", [
+          ["on", "Cortina (la siguiente sección la tapa)"],
+          ["off", "Sin cortina"],
+        ])}
+      </label>
+      <p class="m-muted">Cortina: la sección se queda quieta y la siguiente se desliza por encima, tapándola. Es el mismo efecto del pie. Se desactiva sola si la sección no cabe en la pantalla, así que va mejor con alto Pantalla completa.</p>
+    </div>
+    <div class="acc"><h5>Alto de la sección</h5>
+      <label>Alto mínimo
+        ${sel("minHeight", mh, [
+          ["auto", "El del contenido"],
+          ["screen", "Pantalla completa"],
+          ["screen-minus-header", "Pantalla menos la cabecera"],
+          ["tall", "Alta (78 %)"],
+          ["half", "Media (50 %)"],
+        ])}
+      </label>
+      ${mh !== "auto" ? `<label>Alineación vertical del contenido
+        ${sel("vAlign", p.vAlign || "start", [
+          ["start", "Arriba"],
+          ["center", "Centro"],
+          ["end", "Abajo"],
+        ])}
+      </label>` : `<p class="m-muted">Con un alto fijo podrás centrar el contenido verticalmente.</p>`}
+    </div>
+    <div class="acc"><h5>Cabecera sobre esta sección</h5>
+      <label>Color del texto de la cabecera
+        ${sel("headerSkin", p.headerSkin || "auto", [
+          ["auto", "Automático (según el fondo)"],
+          ["dark", "Forzar texto oscuro"],
+          ["light", "Forzar texto claro"],
+          ["none", "No cambiar nada"],
+        ])}
+      </label>
+      <p class="m-muted">Automático mira la luminosidad del fondo y elige el que se lee mejor. Requiere tener el color adaptativo activo en Chrome → Cabecera.</p>
+    </div>`;
+  }
+
   function panelBg(st) {
     return `<div class="acc"><h5>Fondo</h5>
       ${window.KrgUi.colorField("Color de fondo", st.background || "", 'data-style="background"')}
@@ -1730,7 +1788,8 @@
         <label>Ancho móvil (1–12) <input type="number" data-prop="spanMobile" min="1" max="12" value="${esc(p.spanMobile ?? 12)}"></label>
       </div>`;
     }
-    const design = `${panelAlign(node)}${panelSpacing(st)}${panelBorder(st)}${panelBg(st)}${panelAnim(node)}`;
+    const extra = node.type === "section" ? panelSection(node) : "";
+    const design = `${extra}${panelAlign(node)}${panelSpacing(st)}${panelBorder(st)}${panelBg(st)}${panelAnim(node)}`;
     const body = tab === "design" ? design : tab === "advanced" ? panelAdvanced(node) : content;
     return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
       <div class="acc"><h5>${esc(def.name || node.type)}</h5><p class="m-muted">${esc(node.name || node.type)}</p></div>
@@ -2041,7 +2100,10 @@
           });
         }
         markDirty();
-        if (inp.dataset.prop === "parallax" || inp.dataset.prop === "autoplay") render();
+        // Estos cambian la forma de la sección o qué campos tienen sentido,
+        // así que hay que repintar el lienzo y el inspector.
+        const REDRAW = ["parallax", "autoplay", "minHeight", "vAlign", "curtain", "headerSkin"];
+        if (REDRAW.includes(inp.dataset.prop)) render();
       };
       inp.addEventListener("change", apply);
       inp.addEventListener("input", apply);

@@ -843,6 +843,51 @@
         ${del}
       </div>`;
     }).join("");
+    const skinData = (skinPack && skinPack.data) || {};
+    const skinDefaults = (skinPack && skinPack.defaults) || {};
+    const skinLabels = {
+      sidebar: "Barra lateral",
+      sidebarDeep: "Barra lateral (tono oscuro)",
+      action: "Color de acción (botones)",
+      actionDeep: "Acción al pasar el ratón",
+      accentSoft: "Tinte suave de acción",
+      paper: "Fondo del panel",
+      surface: "Superficie",
+      surfaceSoft: "Superficie suave",
+      line: "Líneas y bordes",
+      lineStrong: "Bordes marcados",
+      ink: "Texto",
+      muted: "Texto secundario",
+    };
+    const skinVars = {
+      sidebar: "--m-brown", sidebarDeep: "--m-brown-deep", action: "--m-orange",
+      actionDeep: "--m-orange-deep", accentSoft: "--m-accent-soft", paper: "--m-paper",
+      surface: "--m-surface", surfaceSoft: "--m-surface-soft", line: "--m-line",
+      lineStrong: "--m-line-strong", ink: "--m-ink", muted: "--m-muted",
+    };
+
+    function adminSkinPanel() {
+      if (!skinPack) return "";
+      const rows = Object.keys(skinLabels).map((k) => {
+        const v = skinData[k] || skinDefaults[k] || "#000000";
+        return `<div class="m-field-row">
+          <span>${esc(skinLabels[k])}</span>
+          <input data-skin="${k}" value="${esc(v)}">
+          <input class="m-color" type="color" data-skin-picker="${k}" value="${esc(normalizeHex(v))}">
+        </div>`;
+      }).join("");
+      return `<div class="m-panel" style="padding:20px;margin-bottom:16px">
+        <h3>Colores del CMS</h3>
+        <p class="m-muted">Cambian el aspecto de este panel, no el del sitio público. Se ven al instante mientras los tocas; pulsa Guardar para dejarlos fijos.</p>
+        <div id="skin-colors">${rows}</div>
+        <div class="m-section-save m-row">
+          <button type="button" class="m-btn" id="save-skin">Guardar colores del CMS</button>
+          <button type="button" class="m-btn ghost" id="skin-from-palette">Usar la paleta del sitio</button>
+          <button type="button" class="m-btn ghost" id="skin-reset">Restablecer</button>
+        </div>
+      </div>`;
+    }
+
     shell("design", `
       <div class="m-top"><h1>Apariencia</h1>
         <div class="m-row">
@@ -946,51 +991,6 @@
       inp.oninput = () => { if (p && /^#[0-9a-fA-F]{6}$/.test(inp.value)) p.value = inp.value; };
       if (p) p.oninput = () => { inp.value = p.value; };
     });
-    const skinData = (skinPack && skinPack.data) || {};
-    const skinDefaults = (skinPack && skinPack.defaults) || {};
-    const skinLabels = {
-      sidebar: "Barra lateral",
-      sidebarDeep: "Barra lateral (tono oscuro)",
-      action: "Color de acción (botones)",
-      actionDeep: "Acción al pasar el ratón",
-      accentSoft: "Tinte suave de acción",
-      paper: "Fondo del panel",
-      surface: "Superficie",
-      surfaceSoft: "Superficie suave",
-      line: "Líneas y bordes",
-      lineStrong: "Bordes marcados",
-      ink: "Texto",
-      muted: "Texto secundario",
-    };
-    const skinVars = {
-      sidebar: "--m-brown", sidebarDeep: "--m-brown-deep", action: "--m-orange",
-      actionDeep: "--m-orange-deep", accentSoft: "--m-accent-soft", paper: "--m-paper",
-      surface: "--m-surface", surfaceSoft: "--m-surface-soft", line: "--m-line",
-      lineStrong: "--m-line-strong", ink: "--m-ink", muted: "--m-muted",
-    };
-
-    function adminSkinPanel() {
-      if (!skinPack) return "";
-      const rows = Object.keys(skinLabels).map((k) => {
-        const v = skinData[k] || skinDefaults[k] || "#000000";
-        return `<div class="m-field-row">
-          <span>${esc(skinLabels[k])}</span>
-          <input data-skin="${k}" value="${esc(v)}">
-          <input class="m-color" type="color" data-skin-picker="${k}" value="${esc(normalizeHex(v))}">
-        </div>`;
-      }).join("");
-      return `<div class="m-panel" style="padding:20px;margin-bottom:16px">
-        <h3>Colores del CMS</h3>
-        <p class="m-muted">Cambian el aspecto de este panel, no el del sitio público. Se ven al instante mientras los tocas; pulsa Guardar para dejarlos fijos.</p>
-        <div id="skin-colors">${rows}</div>
-        <div class="m-section-save m-row">
-          <button type="button" class="m-btn" id="save-skin">Guardar colores del CMS</button>
-          <button type="button" class="m-btn ghost" id="skin-from-palette">Usar la paleta del sitio</button>
-          <button type="button" class="m-btn ghost" id="skin-reset">Restablecer</button>
-        </div>
-      </div>`;
-    }
-
     const collect = () => {
       const next = structuredClone(data);
       next.tokens = next.tokens || {};
