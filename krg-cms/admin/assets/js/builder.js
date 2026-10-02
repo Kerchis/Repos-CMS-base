@@ -502,11 +502,18 @@
     requestAnimationFrame(go);
     setTimeout(go, 80);
   }
+  // El lienzo pide la pagina marcada como lienzo. Con esa marca el
+  // renderizador imprime las secciones todavia vacias para que se puedan
+  // seleccionar y soltarles contenido; sin ella —web publica y pestana
+  // «Preview»— no se imprimen y no ocupan nada.
+  function canvasUrl(url) {
+    return url + (url.includes("?") ? "&" : "?") + "krgcms_canvas=1";
+  }
   function reloadFrame(opts = {}) {
     const iframe = root.querySelector("iframe");
     if (!iframe || !state.doc.previewUrl) return;
     if (opts.keepView !== false) state.frameSnap = frameScrollSnap(iframe);
-    iframe.src = state.doc.previewUrl + "&t=" + Date.now();
+    iframe.src = canvasUrl(state.doc.previewUrl) + "&t=" + Date.now();
   }
 
   function addComponent(type) {
@@ -2944,7 +2951,7 @@
           <div class="b-canvas">
             <div class="b-frame-slot">
               <div class="b-frame-wrap">
-                <iframe src="${esc(state.doc.previewUrl || "about:blank")}"></iframe>
+                <iframe src="${esc(state.doc.previewUrl ? canvasUrl(state.doc.previewUrl) : "about:blank")}"></iframe>
                 <div class="b-rz b-rz-e" data-rz="e" title="Arrastra el ancho"></div>
                 <div class="b-rz b-rz-s" data-rz="s" title="Arrastra el alto"></div>
                 <div class="b-rz b-rz-se" data-rz="se" title="Arrastra el tamaño"></div>

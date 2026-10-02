@@ -106,8 +106,30 @@ class ComponentRenders {
 	 * seccion con una fila con tres columnas vacias sigue estando vacia: lo
 	 * que cuenta es que haya un bloque con contenido en alguna rama.
 	 */
-	private static function has_content( array $node ): bool {
-		return [] !== self::module_types( $node, 1 );
+	private static function has_content( array $node, bool $canvas = false ): bool {
+		return [] !== self::module_types( $node, 1, $canvas );
+	}
+
+	/**
+	 * ¿Este nodo pinta algo en la web pública?
+	 *
+	 * No basta con que exista. Un modulo apagado con el interruptor de
+	 * visibilidad, o escondido a la vez en escritorio, tableta y movil, no
+	 * llega a verse nunca: para el frontend es como si no estuviera. En el
+	 * lienzo del constructor si cuenta, porque ahi se esta editando.
+	 */
+	private static function node_counts( array $node, bool $canvas ): bool {
+		if ( $canvas ) {
+			return true;
+		}
+		if ( array_key_exists( 'visible', $node ) && ! $node['visible'] ) {
+			return false;
+		}
+		$hidden = $node['hiddenOn'] ?? [];
+		if ( ! is_array( $hidden ) ) {
+			return true;
+		}
+		return ! ( ! empty( $hidden['desktop'] ) && ! empty( $hidden['tablet'] ) && ! empty( $hidden['mobile'] ) );
 	}
 
 	/**
@@ -120,7 +142,7 @@ class ComponentRenders {
 	 * @param int $limit Cuantos tipos hacen falta antes de parar.
 	 * @return string[]
 	 */
-	private static function module_types( array $node, int $limit = 2 ): array {
+	private static function module_types( array $node, int $limit = 2, bool $canvas = false ): array {
 		$found    = [];
 		$children = $node['children'] ?? null;
 		if ( ! is_array( $children ) ) {
@@ -134,8 +156,11 @@ class ComponentRenders {
 			if ( '' === $type ) {
 				continue;
 			}
+			if ( ! self::node_counts( $child, $canvas ) ) {
+				continue;
+			}
 			if ( in_array( $type, self::LAYOUT_ONLY, true ) ) {
-				foreach ( self::module_types( $child, $limit ) as $t ) {
+				foreach ( self::module_types( $child, $limit, $canvas ) as $t ) {
 					$found[] = $t;
 					if ( count( $found ) >= $limit ) {
 						return $found;
@@ -162,6 +187,25 @@ class ComponentRenders {
 	private const FILL_MODULES = [ 'split-panel', 'brand-hero', 'map' ];
 
 	public static function section( array $node, array $props, string $children, RenderContext $ctx ): string {
+		// Una seccion sin contenido real no se imprime.
+		//
+		// Es la unica forma de que no reserve espacio pase lo que pase: sin
+		// etiqueta no hay alto, ni relleno, ni margen, ni contenedor que
+		// estirar, ni nada que el CSS o el JavaScript puedan devolverle.
+		// Antes se colapsaba con CSS y siempre quedaba un camino abierto —
+		// un alto exacto, un `height` en linea, una altura a medida.
+		//
+		// «Sin contenido real» se decide sobre el arbol del documento, no
+		// sobre el marcado: filas y columnas son andamiaje, no contenido,
+		// asi que una fila con tres columnas vacias sigue estando vacia. Lo
+		// apagado o escondido en los tres tamanos tampoco cuenta.
+		//
+		// En el lienzo del constructor si se imprime: alli hace falta poder
+		// seleccionarla y soltarle algo dentro.
+		$empty = ( '' === trim( $children ) ) || ! self::has_content( $node, $ctx->isCanvas );
+		if ( $empty && ! $ctx->isCanvas ) {
+			return '';
+		}
 		$inner = '<div class="m-container">' . $children . '</div>';
 		$fw    = $props['fullWidth'] ?? true;
 		$full  = ! ( false === $fw || 0 === $fw || '0' === $fw || '' === $fw );
@@ -202,11 +246,10 @@ class ComponentRenders {
 		if ( 'auto' !== $mh ) {
 			$class .= ' is-mh-' . $mh . $mh_mode . ' is-va-' . $va;
 		}
-		// Una seccion sin nada dentro no debe reservar media pantalla. Se
-		// marca aqui y es el CSS el que decide que ajustes de alto decaen:
-		// los preestablecidos si, el alto a medida no, porque ese lo pone el
-		// editor a proposito y sirve de separador.
-		if ( '' === trim( $children ) || ! self::has_content( $node ) ) {
+		// Llegar aqui vacio solo pasa en el lienzo del constructor: la
+		// marca sirve para colapsar el alto configurado y dejar en su sitio
+		// una banda baja que se pueda seleccionar y usar como destino.
+		if ( $empty ) {
 			$class .= ' is-no-content';
 		} elseif ( 'auto' !== $mh && ' is-h-exact' !== $mh_mode ) {
 			// Dos alturas independientes para la misma caja: la de la
@@ -218,7 +261,7 @@ class ComponentRenders {
 			// recorta: solo crece. Con «La seccion manda» (`is-h-exact`)
 			// ya existe una cadena propia que ademas recorta, y con el alto
 			// «Automatica» no hay nada que rellenar.
-			$types = self::module_types( $node, 2 );
+			$types = self::module_types( $node, 2, $ctx->isCanvas );
 			if ( 1 === count( $types ) && in_array( $types[0], self::FILL_MODULES, true ) ) {
 				$class .= ' is-fill-height';
 			}

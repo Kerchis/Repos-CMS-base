@@ -12,6 +12,12 @@ defined( 'ABSPATH' ) || exit;
 class RenderContext {
 
 	public bool $isPreview = false;
+	/**
+	 * Lienzo del constructor: hay que poder ver y seleccionar lo que
+	 * todavía está vacío. En cualquier otro contexto, lo vacío no se
+	 * imprime.
+	 */
+	public bool $isCanvas = false;
 	public array $globals = [];
 	public array $media = [];
 	public array $needed = [];

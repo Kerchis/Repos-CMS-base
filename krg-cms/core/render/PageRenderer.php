@@ -72,6 +72,7 @@ class PageRenderer {
 	public static function html_from_document( array $doc, bool $preview, ?int $post_id = null ): string {
 		$ctx            = new RenderContext();
 		$ctx->isPreview = $preview;
+		$ctx->isCanvas  = $preview && Preview::is_canvas();
 		$ctx->postId    = $post_id;
 		$ctx->document  = $doc;
 		$ids            = NodeRenderer::collect_global_ids( $doc['sections'] ?? [] );

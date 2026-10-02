@@ -151,6 +151,13 @@ use Meridian\Render\RenderContext;
 $ctx            = new RenderContext();
 $ctx->isPreview = false;
 
+// Con KRG_CANVAS=1 el banco de pruebas rinde como el lienzo del
+// constructor: las secciones vacias si se imprimen.
+if ( '1' === getenv( 'KRG_CANVAS' ) ) {
+	$ctx->isPreview = true;
+	$ctx->isCanvas  = true;
+}
+
 /** Monta un nodo con lo minimo que esperan los renderizadores. */
 function node( string $type, array $props = [], string $id = 'x1' ): array {
 	return [
@@ -288,7 +295,8 @@ $cases = [
 		$n['children'] = [ node( 'split-panel', [ 'title' => 'Hola' ], 'sp9' ) ];
 		return ComponentRenders::section( $n, $n['props'], $panel( 'auto' ), $ctx );
 	},
-	// Separador a medida sin contenido: el editor lo puso aposta, se respeta.
+	// Separador a medida sin contenido: ya tampoco se imprime. Para dejar
+	// un hueco a proposito esta el modulo Espaciador, que si es contenido.
 	'separador-a-medida'   => function () use ( $ctx ) {
 		$n = node(
 			'section',
@@ -437,6 +445,91 @@ $cases = [
 		);
 		$n['children'] = [ node( 'split-panel', [ 'title' => 'Estirado' ], 'sp8' ), node( 'text', [], 't9' ) ];
 		return ComponentRenders::section( $n, $n['props'], fila( $panel( 'medium' ), $ctx ), $ctx );
+	},
+
+	/* ---------------------------------------------------------------- */
+	/* Bateria de secciones vacias (pruebas 1 a 15)                      */
+	/*                                                                    */
+	/* Una sola pagina con todos los casos, cada seccion con su id, para  */
+	/* poder medirlas de una vez. Con KRG_CANVAS=1 se rinde como el       */
+	/* lienzo del constructor.                                            */
+	/* ---------------------------------------------------------------- */
+	'pruebas-vacias'       => function () use ( $ctx ) {
+		$sec = function ( string $id, array $props, array $hijos, string $markup ) use ( $ctx ) {
+			$n             = node( 'section', $props, $id );
+			$n['children'] = $hijos;
+			return ComponentRenders::section( $n, $n['props'], $markup, $ctx );
+		};
+
+		$titulo  = [ node( 'heading', [], 'h1' ) ];
+		$m_tit   = fila( '<h2 class="m-role-h2">Titular de prueba</h2>', $ctx );
+		$imagen  = [ node( 'image', [], 'i1' ) ];
+		$m_img   = fila( '<figure class="m-figure"><div class="qa-ph" style="aspect-ratio:3/2"></div></figure>', $ctx );
+		$mapa    = [ node( 'map', [], 'mp1' ) ];
+		$m_mapa  = fila( '<div class="m-map" style="--m-map-h:300px"><iframe title="Mapa"></iframe></div>', $ctx );
+		$mixto   = [ node( 'heading', [], 'h2' ), node( 'image', [], 'i2' ) ];
+		$m_mixto = fila( '<h2 class="m-role-h2">Texto</h2>', $ctx, 2 );
+
+		// Fila con dos columnas y ningun modulo: andamiaje, no contenido.
+		$c1              = node( 'column', [], 'cx1' );
+		$c2              = node( 'column', [], 'cx2' );
+		$r               = node( 'row', [], 'rx' );
+		$r['children']   = [ $c1, $c2 ];
+		$m_filavacia     = '<div class="m-c-row m-n-rx m-row"><div class="m-c-column m-n-cx1 m-col"></div><div class="m-c-column m-n-cx2 m-col"></div></div>';
+
+		// Un titular escondido a la vez en escritorio, tableta y movil:
+		// se imprime, pero no se ve nunca, asi que no es contenido.
+		$oculto          = node( 'heading', [ 'text' => 'No se ve' ], 'ho' );
+		$oculto['hiddenOn'] = [ 'desktop' => true, 'tablet' => true, 'mobile' => true ];
+		$m_oculto        = fila( '<h2 class="m-role-h2 m-hide-desktop m-hide-tablet m-hide-mobile">No se ve</h2>', $ctx );
+
+		$alto90 = [
+			'width'          => 'full',
+			'minHeight'      => 'custom',
+			'minHeightValue' => 90,
+			'minHeightUnit'  => 'vh',
+			'heightMode'     => 'exact',
+		];
+		$alto400 = [
+			'width'          => 'full',
+			'minHeight'      => 'custom',
+			'minHeightValue' => 400,
+			'minHeightUnit'  => 'px',
+			'heightMode'     => 'min',
+		];
+
+		return
+			// 4: con titular.
+			$sec( 't4-titulo', [ 'width' => 'full' ], $titulo, $m_tit )
+			// 1 + 11 + 12: vacia entre dos secciones con contenido.
+			. $sec( 't1-vacia', [ 'width' => 'full' ], [], '' )
+			// 7: con mapa.
+			. $sec( 't7-mapa', [ 'width' => 'full' ], $mapa, $m_mapa )
+			// 2: vacia con 90% de pantalla.
+			. $sec( 't2-vacia90', $alto90, [], '' )
+			// 8: con contenido y 90% de pantalla.
+			. $sec( 't8-contenido90', $alto90 + [ 'vAlign' => 'start' ], $titulo, $m_tit )
+			// 3: vacia con altura a medida en pixeles.
+			. $sec( 't3-vacia400', $alto400, [], '' )
+			// 5: con imagen.
+			. $sec( 't5-imagen', [ 'width' => 'full' ], $imagen, $m_img )
+			// 3b: vacia con una fila de columnas vacias y alto «alto».
+			. $sec( 't3b-filavacia', [ 'width' => 'full', 'minHeight' => 'tall' ], [ $r ], $m_filavacia )
+			// 6: texto + imagen.
+			. $sec( 't6-mixto', [ 'width' => 'full' ], $mixto, $m_mixto )
+			// 3c: solo contenido escondido en los tres tamanos.
+			. $sec( 't3c-oculta', [ 'width' => 'full', 'minHeight' => 'screen' ], [ $oculto ], $m_oculto );
+	},
+
+	// 9 y 10: la misma seccion, con y sin contenido.
+	'dinamica-sin'         => function () use ( $ctx ) {
+		$n = node( 'section', [ 'width' => 'full', 'minHeight' => 'screen' ], 'din' );
+		return ComponentRenders::section( $n, $n['props'], fila( '', $ctx ), $ctx );
+	},
+	'dinamica-con'         => function () use ( $ctx ) {
+		$n             = node( 'section', [ 'width' => 'full', 'minHeight' => 'screen' ], 'din' );
+		$n['children'] = [ node( 'heading', [], 'h9' ) ];
+		return ComponentRenders::section( $n, $n['props'], fila( '<h2 class="m-role-h2">Ya hay contenido</h2>', $ctx ), $ctx );
 	},
 
 	'panel-alto-a-medida'  => function () use ( $ctx ) {

@@ -265,9 +265,16 @@
     if (s) s.textContent = state.save;
   }
 
+  // Este lienzo tambien edita secciones (las del pie), asi que pide la
+  // pagina marcada como lienzo: alli una seccion vacia si se imprime
+  // para poder seleccionarla. En la web publica no se imprime.
+  function canvasUrl(url) {
+    return url + (String(url).includes("?") ? "&" : "?") + "krgcms_canvas=1";
+  }
+
   function reload() {
     const iframe = root.querySelector("iframe");
-    const base = cfg.preview || cfg.home;
+    const base = canvasUrl(cfg.preview || cfg.home);
     if (!iframe) return;
     const slot = root.querySelector(".b-frame-slot");
     let y = slot?.scrollTop || 0;
@@ -1236,7 +1243,7 @@
           <div class="b-canvas">
             <div class="b-frame-slot">
               <div class="b-frame-wrap">
-                <iframe src="${esc(cfg.preview || cfg.home)}" title="Vista del sitio"></iframe>
+                <iframe src="${esc(canvasUrl(cfg.preview || cfg.home))}" title="Vista del sitio"></iframe>
                 <div class="b-rz b-rz-e" data-rz="e" title="Arrastra el ancho"></div>
                 <div class="b-rz b-rz-s" data-rz="s" title="Arrastra el alto"></div>
                 <div class="b-rz b-rz-se" data-rz="se" title="Arrastra el tamaño"></div>

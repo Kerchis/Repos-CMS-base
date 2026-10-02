@@ -117,7 +117,12 @@ def review(items, upper=False, clamp=6, per=2):
 
 
 def empty_section(mh_class, etiqueta):
-    """Seccion sin contenido: antes reservaba una pantalla de nada."""
+    """Seccion sin contenido.
+
+    En la web publica ya no se imprime: el renderizador la omite entera.
+    Lo que se ve aqui es lo que muestra el lienzo del constructor, con la
+    banda baja que la deja seleccionable.
+    """
     return (f'<section class="m-c-section is-full is-w-full {mh_class} is-va-center is-no-content" '
             f'data-header-skin="dark"><div class="m-container"></div></section>'
             f'<section class="m-c-section is-full is-w-full" data-header-skin="dark">'
@@ -166,7 +171,7 @@ BLOCKS = [
         'title': 'Altura en porcentaje', 'eyebrow': 'A medida',
         'sub': '45 % de la pantalla.', 'height': 'custom', 'heightValue': 45,
         'heightUnit': 'svh', 'mediaSide': 'left', 'theme': 'surface'}))),
-    ('Seccion vacia: ya no reserva una pantalla', empty_section(
+    ('Seccion vacia: no se imprime en la web publica', empty_section(
         'is-mh-screen-minus-header', 'Justo encima hay una seccion vacia, pegada')),
     ('Hueco por dos alturas distintas: antes', fill_section(
         False, 'Sobra fondo debajo del panel')),

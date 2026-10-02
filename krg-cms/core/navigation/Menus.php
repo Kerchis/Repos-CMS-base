@@ -559,6 +559,10 @@ class Menus {
 		}
 		$ctx            = new \Meridian\Render\RenderContext();
 		$ctx->isPreview = \Meridian\Render\Preview::is_preview();
+		// Igual que en el cuerpo de la página: una sección de pie sin
+		// contenido no se imprime, salvo en el lienzo, donde hay que poder
+		// seleccionarla para llenarla.
+		$ctx->isCanvas  = \Meridian\Render\Preview::is_canvas();
 		$html           = '<div class="m-footer-sections">';
 		foreach ( $sections as $section ) {
 			if ( is_array( $section ) ) {

@@ -1601,33 +1601,38 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 /* ------------------------------------------------------------------ */
 /* Secciones sin contenido                                             */
 /*                                                                      */
-/* El ajuste de alto se aplicaba hubiera o no algo dentro. Una seccion  */
-/* vacia puesta en «pantalla menos la cabecera» reservaba 100svh menos  */
-/* la cabecera de nada, y eso es el hueco que aparecia entre bloques.   */
-/* El renderizador marca `is-no-content` cuando no encuentra ningun     */
-/* modulo bajando por filas y columnas. Nombre propio a proposito:      */
-/* `.is-empty` ya significa «modulo sin items» y pinta un contorno.     */
+/* En la web publica no llegan a existir: el renderizador no imprime    */
+/* una seccion sin contenido real, asi que no hay etiqueta a la que     */
+/* darle alto. Estas reglas son para el lienzo del constructor, donde   */
+/* si se imprime para poder seleccionarla y soltarle algo dentro.       */
 /*                                                                      */
-/* Decaen los altos preestablecidos. NO decae `is-mh-custom`: ese alto  */
-/* lo escribe el editor a mano y una franja de color vacia a medida es  */
-/* un separador legitimo.                                               */
+/* Nombre propio a proposito: `.is-empty` ya significa «modulo sin      */
+/* items» y pinta un contorno.                                          */
+/*                                                                      */
+/* Decae CUALQUIER alto configurado, tambien el de «A medida» y el de   */
+/* «La seccion manda», que son `height` y no `min-height`. El selector  */
+/* lleva el atributo para igualar en especificidad a esas reglas y      */
+/* ganarles por orden de aparicion. Para dejar un hueco a proposito     */
+/* esta el modulo Espaciador, que si es contenido.                      */
 /* ------------------------------------------------------------------ */
-.m-c-section.is-mh-screen.is-no-content,
-.m-c-section.is-mh-screen-minus-header.is-no-content,
-.m-c-section.is-mh-tall.is-no-content,
-.m-c-section.is-mh-half.is-no-content { min-height: 0; }
+.m-c-section.is-no-content,
+.m-c-section[class*="is-mh-"].is-no-content {
+  height: auto;
+  min-height: 0;
+  padding-block: 0;
+}
 
-/* El ritmo vertical de `.m-c-section` tampoco tiene sentido sin contenido
-   que separar: son los ultimos 96 px de aire entre dos bloques. */
-.m-c-section.is-no-content { padding-block: 0; }
+/* Sin alto que llenar, el contenedor deja de estirarse. */
+.m-c-section.is-no-content > .m-container,
+.m-c-section[class*="is-mh-"].is-no-content > .m-container {
+  flex: 0 1 auto;
+  height: auto;
+  min-height: 0;
+}
 
-/* Sin alto que llenar, el contenedor deja de estirarse. Misma
-   especificidad que la regla de arriba, asi que manda por orden. */
-.m-c-section.is-no-content > .m-container { flex: 0 1 auto; }
-
-/* Dentro del constructor sigue ocupando algo: una seccion colapsada a
+/* En el constructor conserva una banda baja: una seccion colapsada a
    cero no se puede ni seleccionar ni usar como destino al soltar. */
-body.krg-preview .m-c-section.is-no-content { min-height: 120px; padding-block: 0; }
+body.krg-preview .m-c-section.is-no-content { min-height: 120px; }
 body.krg-preview .m-c-section.is-no-content > .m-container { min-height: 120px; }
 
 /* ------------------------------------------------------------------ */
