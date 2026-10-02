@@ -1410,8 +1410,10 @@
           ["start", "Arriba"],
           ["center", "Centro"],
           ["end", "Abajo"],
+          ["stretch", "Estirar: el contenido llena el alto"],
         ])}
-      </label>` : `<p class="m-muted">Con un alto fijo podrás centrar el contenido verticalmente.</p>`}
+      </label>
+      <p class="m-muted">Dónde va el contenido cuando ocupa menos que el alto de la sección. Con «Estirar» no queda franja de fondo vacía: el bloque crece hasta llenarla. Si lo único que hay dentro es un panel partido, una portada o un mapa, se estiran solos.</p>` : `<p class="m-muted">Con un alto fijo podrás centrar el contenido verticalmente.</p>`}
     </div>
     <div class="acc"><h5>Cabecera sobre esta sección</h5>
       <label>Color del texto de la cabecera

@@ -125,6 +125,20 @@ def empty_section(mh_class, etiqueta):
             '</div></div></section>')
 
 
+def fill_section(fill, etiqueta):
+    """Seccion con alto propio y, dentro, un panel mas bajo que ella.
+
+    Sin `is-fill-height` la diferencia entre los dos altos se queda como
+    una franja de fondo vacia debajo del panel. Con la clase, el panel
+    crece hasta llenar la seccion.
+    """
+    cls = 'm-c-section is-full is-w-full is-mh-tall is-va-start' + (' is-fill-height' if fill else '')
+    panel = split_panel({'title': etiqueta, 'eyebrow': 'Alto de seccion: 78% · alto del panel: 58%',
+                         'sub': 'La seccion mide mas que el panel.', 'height': 'medium'})
+    return (f'<section class="{cls}" data-header-skin="dark"><div class="m-container">'
+            f'<div class="m-c-row"><div class="m-c-column">{panel}</div></div></div></section>')
+
+
 def section(inner, skin='dark', curtain=False, width='full', mh=None, mode='exact'):
     """Reproduce fila + columna, que es como queda una seccion hecha a mano."""
     legacy = 'is-boxed' if width == 'boxed' else 'is-full'
@@ -154,6 +168,10 @@ BLOCKS = [
         'heightUnit': 'svh', 'mediaSide': 'left', 'theme': 'surface'}))),
     ('Seccion vacia: ya no reserva una pantalla', empty_section(
         'is-mh-screen-minus-header', 'Justo encima hay una seccion vacia, pegada')),
+    ('Hueco por dos alturas distintas: antes', fill_section(
+        False, 'Sobra fondo debajo del panel')),
+    ('Hueco por dos alturas distintas: ahora', fill_section(
+        True, 'El panel llena la seccion')),
     ('Alto de seccion manda · 300 px sobre panel de pantalla completa', section(split_panel({
         'title': 'La seccion impone 300 px', 'eyebrow': 'Quien manda: la seccion',
         'sub': 'El panel pedia pantalla completa y se adapta.'}), mh='300px', mode='exact')),

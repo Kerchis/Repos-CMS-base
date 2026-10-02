@@ -134,7 +134,21 @@ class Catalog {
 							'help'    => __( 'Sólo con la altura «A medida». Si dentro tienes un panel partido o una portada a pantalla completa, con «La sección» se encogen para caber; con «El contenido» mandan ellos y la sección crece.', 'meridian' ),
 						]
 					),
-					self::f( 'vAlign', 'select', 'design', __( 'Alineación vertical', 'meridian' ), [ 'options' => [ 'start', 'center', 'end' ] ] ),
+					self::f(
+						'vAlign',
+						'select',
+						'design',
+						__( 'Alineación vertical', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'start', 'label' => __( 'Arriba', 'meridian' ) ],
+								[ 'value' => 'center', 'label' => __( 'Centro', 'meridian' ) ],
+								[ 'value' => 'end', 'label' => __( 'Abajo', 'meridian' ) ],
+								[ 'value' => 'stretch', 'label' => __( 'Estirar: el contenido llena el alto', 'meridian' ) ],
+							],
+							'help'    => __( 'Dónde se coloca el contenido cuando ocupa menos que el alto de la sección. Con «Estirar» no sobra fondo: el bloque crece hasta llenarla.', 'meridian' ),
+						]
+					),
 					self::f(
 						'width',
 						'select',

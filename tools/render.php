@@ -170,6 +170,29 @@ $panel = function ( $h = 'screen' ) use ( $ctx ) {
 	return \Meridian\Render\BrandRenders::split_panel( $n, $n['props'], '', $ctx );
 };
 
+/**
+ * Envuelve el marcado de un modulo en la fila y la columna que intercala el
+ * constructor, usando los renderizadores de verdad: la fila real es un grid
+ * con `align-items:start`, y eso cambia por completo como se estira (o no)
+ * lo que lleva dentro.
+ */
+function fila( string $markup, RenderContext $ctx, int $columnas = 1 ): string {
+	$celdas = '';
+	for ( $i = 1; $i <= $columnas; $i++ ) {
+		$col     = node( 'column', [ 'span' => (int) ( 12 / $columnas ) ], 'c' . $i );
+		$celdas .= ComponentRenders::column( $col, $col['props'], 1 === $i ? $markup : '<p>Texto</p>', $ctx );
+	}
+	$row = node( 'row', [], 'r1' );
+	return ComponentRenders::row( $row, $row['props'], $celdas, $ctx );
+}
+
+/** Seccion de mapa tal y como la monta el constructor, con alto propio. */
+$mapa_seccion = function () use ( $ctx ) {
+	$sec             = node( 'section', [ 'width' => 'full' ], 'mapa' );
+	$sec['children'] = [ node( 'map', [], 'm1' ) ];
+	return ComponentRenders::section( $sec, $sec['props'], fila( '<div class="m-map" style="--m-map-h:360px"><iframe title="Mapa"></iframe></div>', $ctx ), $ctx );
+};
+
 $cases = [
 	'section-exacto-300px' => function () use ( $ctx, $panel ) {
 		$n = node(
@@ -184,7 +207,8 @@ $cases = [
 			],
 			's1'
 		);
-		return ComponentRenders::section( $n, $n['props'], $panel( 'screen' ), $ctx );
+		$n['children'] = [ node( 'split-panel', [], 'sp1a' ) ];
+		return ComponentRenders::section( $n, $n['props'], fila( $panel( 'screen' ), $ctx ), $ctx );
 	},
 	'section-minimo-300px' => function () use ( $ctx, $panel ) {
 		$n = node(
@@ -198,7 +222,8 @@ $cases = [
 			],
 			's2'
 		);
-		return ComponentRenders::section( $n, $n['props'], $panel( 'screen' ), $ctx );
+		$n['children'] = [ node( 'split-panel', [], 'sp2a' ) ];
+		return ComponentRenders::section( $n, $n['props'], fila( $panel( 'screen' ), $ctx ), $ctx );
 	},
 	'section-porcentaje-45' => function () use ( $ctx, $panel ) {
 		$n = node(
@@ -211,7 +236,8 @@ $cases = [
 			],
 			's3'
 		);
-		return ComponentRenders::section( $n, $n['props'], '<p>contenido</p>', $ctx );
+		$n['children'] = [ node( 'text', [], 't3a' ) ];
+		return ComponentRenders::section( $n, $n['props'], fila( '<p>contenido</p>', $ctx ), $ctx );
 	},
 	// Reproduce la pagina del informe: hero con alto a medida, luego una
 	// seccion «pantalla menos la cabecera» SIN contenido, y despues el mapa.
@@ -277,6 +303,142 @@ $cases = [
 		);
 		return ComponentRenders::section( $n, $n['props'], '', $ctx );
 	},
+	/* ---------------------------------------------------------------- */
+	/* Matriz del hueco entre el hero y el mapa                          */
+	/*                                                                    */
+	/* Cada caso es una estructura plausible de la pagina del informe.    */
+	/* El medidor dice cual deja franja muerta y de donde sale.           */
+	/* ---------------------------------------------------------------- */
+
+	// Hero = panel partido con alto propio; la seccion impone 90% exacto.
+	'hueco-a-panel-exacto' => function () use ( $ctx, $panel, $mapa_seccion ) {
+		$hero = node(
+			'section',
+			[
+				'width'          => 'full',
+				'minHeight'      => 'custom',
+				'minHeightValue' => 90,
+				'minHeightUnit'  => 'vh',
+				'heightMode'     => 'exact',
+				'vAlign'         => 'start',
+				'curtain'        => 'on',
+			],
+			'hero'
+		);
+		$hero['children'] = [ node( 'split-panel', [ 'title' => 'Plantas | Cafe' ], 'sp' ) ];
+		return ComponentRenders::section( $hero, $hero['props'], fila( $panel( 'auto' ), $ctx ), $ctx )
+			. $mapa_seccion();
+	},
+
+	// Hero = panel partido «medio» dentro de una seccion «pantalla menos
+	// cabecera»: el minimo de la seccion es mayor que el panel.
+	'hueco-b-panel-corto'  => function () use ( $ctx, $panel, $mapa_seccion ) {
+		$hero = node(
+			'section',
+			[
+				'width'     => 'full',
+				'minHeight' => 'screen-minus-header',
+				'vAlign'    => 'start',
+				'curtain'   => 'on',
+			],
+			'hero'
+		);
+		$hero['children'] = [ node( 'split-panel', [ 'title' => 'Plantas | Cafe' ], 'sp' ) ];
+		return ComponentRenders::section( $hero, $hero['props'], fila( $panel( 'medium' ), $ctx ), $ctx )
+			. $mapa_seccion();
+	},
+
+	// Hero = fila de dos columnas (texto + imagen), sin modulo de sistema.
+	'hueco-c-columnas'     => function () use ( $ctx, $mapa_seccion ) {
+		$hero = node(
+			'section',
+			[
+				'width'     => 'full',
+				'minHeight' => 'screen-minus-header',
+				'vAlign'    => 'start',
+				'curtain'   => 'on',
+			],
+			'hero'
+		);
+		$txt              = node( 'text', [], 't1' );
+		$img              = node( 'image', [], 'i1' );
+		$c1               = node( 'column', [], 'c1' );
+		$c1['children']   = [ $txt ];
+		$c2               = node( 'column', [], 'c2' );
+		$c2['children']   = [ $img ];
+		$row              = node( 'row', [], 'r1' );
+		$row['children']  = [ $c1, $c2 ];
+		$hero['children'] = [ $row ];
+		$markup = fila( '<h1 class="m-role-h1">Plantas | Cafe</h1>', $ctx, 2 );
+		return ComponentRenders::section( $hero, $hero['props'], $markup, $ctx ) . $mapa_seccion();
+	},
+
+	// El mapa con alto propio dentro de una seccion mas alta que el.
+	'hueco-d-mapa-centrado' => function () use ( $ctx, $panel ) {
+		$hero = node(
+			'section',
+			[
+				'width'     => 'full',
+				'minHeight' => 'screen-minus-header',
+				'vAlign'    => 'start',
+				'curtain'   => 'on',
+			],
+			'hero'
+		);
+		$hero['children'] = [ node( 'split-panel', [ 'title' => 'Plantas | Cafe' ], 'sp' ) ];
+
+		$sec = node(
+			'section',
+			[
+				'width'          => 'full',
+				'minHeight'      => 'custom',
+				'minHeightValue' => 560,
+				'minHeightUnit'  => 'px',
+				'heightMode'     => 'min',
+				'vAlign'         => 'center',
+			],
+			'mapa'
+		);
+		$sec['children'] = [ node( 'map', [], 'm1' ) ];
+
+		return ComponentRenders::section( $hero, $hero['props'], fila( $panel( 'screen' ), $ctx ), $ctx )
+			. ComponentRenders::section( $sec, $sec['props'], fila( '<div class="m-map" style="--m-map-h:360px"><iframe title="Mapa"></iframe></div>', $ctx ), $ctx );
+	},
+
+	// Garantia de que rellenar nunca recorta: seccion con 300 px de
+	// minimo y dentro un panel a pantalla completa. Debe mandar el panel.
+	'minimo-no-recorta'    => function () use ( $ctx, $panel ) {
+		$n = node(
+			'section',
+			[
+				'width'          => 'full',
+				'minHeight'      => 'custom',
+				'minHeightValue' => 300,
+				'minHeightUnit'  => 'px',
+				'heightMode'     => 'min',
+				'vAlign'         => 'start',
+			],
+			'min1'
+		);
+		$n['children'] = [ node( 'split-panel', [ 'title' => 'Alto' ], 'sp7' ) ];
+		return ComponentRenders::section( $n, $n['props'], fila( $panel( 'screen' ), $ctx ), $ctx );
+	},
+
+	// «Estirar» a mano, con contenido que no es un modulo de alto propio.
+	'estirar-a-mano'       => function () use ( $ctx, $panel ) {
+		$n = node(
+			'section',
+			[
+				'width'     => 'full',
+				'minHeight' => 'half',
+				'vAlign'    => 'stretch',
+			],
+			'est1'
+		);
+		$n['children'] = [ node( 'split-panel', [ 'title' => 'Estirado' ], 'sp8' ), node( 'text', [], 't9' ) ];
+		return ComponentRenders::section( $n, $n['props'], fila( $panel( 'medium' ), $ctx ), $ctx );
+	},
+
 	'panel-alto-a-medida'  => function () use ( $ctx ) {
 		$n = node(
 			'split-panel',

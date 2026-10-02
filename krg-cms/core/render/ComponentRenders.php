@@ -107,9 +107,24 @@ class ComponentRenders {
 	 * que cuenta es que haya un bloque con contenido en alguna rama.
 	 */
 	private static function has_content( array $node ): bool {
+		return [] !== self::module_types( $node, 1 );
+	}
+
+	/**
+	 * Modulos que viven dentro de un nodo, bajando por filas y columnas.
+	 *
+	 * Devuelve los tipos encontrados, como mucho `$limit`. Con limite 1
+	 * responde a «¿hay algo?»; con limite 2 responde a «¿hay exactamente
+	 * uno?», que es lo que decide si ese modulo puede mandar en el alto.
+	 *
+	 * @param int $limit Cuantos tipos hacen falta antes de parar.
+	 * @return string[]
+	 */
+	private static function module_types( array $node, int $limit = 2 ): array {
+		$found    = [];
 		$children = $node['children'] ?? null;
 		if ( ! is_array( $children ) ) {
-			return false;
+			return $found;
 		}
 		foreach ( $children as $child ) {
 			if ( ! is_array( $child ) ) {
@@ -119,15 +134,32 @@ class ComponentRenders {
 			if ( '' === $type ) {
 				continue;
 			}
-			if ( ! in_array( $type, self::LAYOUT_ONLY, true ) ) {
-				return true;
+			if ( in_array( $type, self::LAYOUT_ONLY, true ) ) {
+				foreach ( self::module_types( $child, $limit ) as $t ) {
+					$found[] = $t;
+					if ( count( $found ) >= $limit ) {
+						return $found;
+					}
+				}
+				continue;
 			}
-			if ( self::has_content( $child ) ) {
-				return true;
+			$found[] = $type;
+			if ( count( $found ) >= $limit ) {
+				return $found;
 			}
 		}
-		return false;
+		return $found;
 	}
+
+	/**
+	 * Modulos que traen su propio alto medido en pantallas.
+	 *
+	 * Son los unicos que pueden chocar con el alto de la seccion: si el
+	 * panel mide 78svh y la seccion 100svh, sobra el 22% y se ve como una
+	 * franja vacia. Cuando uno de estos es lo unico que hay dentro, el
+	 * alto de la seccion manda y el modulo lo rellena.
+	 */
+	private const FILL_MODULES = [ 'split-panel', 'brand-hero', 'map' ];
 
 	public static function section( array $node, array $props, string $children, RenderContext $ctx ): string {
 		$inner = '<div class="m-container">' . $children . '</div>';
@@ -155,7 +187,7 @@ class ComponentRenders {
 			$mh_mode  = ( 'min' === ( $props['heightMode'] ?? 'exact' ) ) ? ' is-h-min' : ' is-h-exact';
 		}
 		$va = sanitize_html_class( (string) ( $props['vAlign'] ?? 'start' ) );
-		if ( ! in_array( $va, [ 'start', 'center', 'end' ], true ) ) {
+		if ( ! in_array( $va, [ 'start', 'center', 'end', 'stretch' ], true ) ) {
 			$va = 'start';
 		}
 		// `width` manda; `fullWidth` se mantiene para el contenido ya creado.
@@ -176,6 +208,20 @@ class ComponentRenders {
 		// editor a proposito y sirve de separador.
 		if ( '' === trim( $children ) || ! self::has_content( $node ) ) {
 			$class .= ' is-no-content';
+		} elseif ( 'auto' !== $mh && ' is-h-exact' !== $mh_mode ) {
+			// Dos alturas independientes para la misma caja: la de la
+			// seccion y la del modulo que lleva dentro. Si el modulo mide
+			// menos, la diferencia se veia como una franja de fondo vacia
+			// debajo del contenido. Cuando ese modulo es lo unico que hay,
+			// manda el alto de la seccion y el modulo lo rellena. El alto
+			// propio del modulo se conserva como minimo, asi que nunca se
+			// recorta: solo crece. Con «La seccion manda» (`is-h-exact`)
+			// ya existe una cadena propia que ademas recorta, y con el alto
+			// «Automatica» no hay nada que rellenar.
+			$types = self::module_types( $node, 2 );
+			if ( 1 === count( $types ) && in_array( $types[0], self::FILL_MODULES, true ) ) {
+				$class .= ' is-fill-height';
+			}
 		}
 		// Cortina: la sección se queda quieta y la siguiente la tapa al subir.
 		if ( 'on' === sanitize_key( (string) ( $props['curtain'] ?? 'off' ) ) ) {

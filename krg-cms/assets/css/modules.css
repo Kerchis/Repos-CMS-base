@@ -1500,6 +1500,32 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
   .m-c-section.is-mh-custom.is-h-exact .m-sp,
   .m-c-section.is-mh-custom.is-h-exact .m-sp-grid,
   .m-c-section.is-mh-custom.is-h-exact .m-bh { height: auto; }
+
+  /* Al dejar de recortar vuelve a sobrar fondo por abajo, que es
+     justo el hueco que se quiere evitar. Aqui el contenido crece
+     para llenarlo, igual que en las secciones con alto minimo. */
+  .m-c-section.is-mh-custom.is-h-exact > .m-container > .m-c-row {
+    flex: 1 1 auto;
+    align-items: stretch;
+  }
+  .m-c-section.is-mh-custom.is-h-exact .m-c-column {
+    display: flex;
+    flex-direction: column;
+  }
+  .m-c-section.is-mh-custom.is-h-exact .m-c-column > :is(.m-sp, .m-bh, .m-map),
+  .m-c-section.is-mh-custom.is-h-exact > .m-container > :is(.m-sp, .m-bh, .m-map) {
+    flex: 1 1 auto;
+  }
+  .m-c-section.is-mh-custom.is-h-exact :is(.m-sp, .m-map) {
+    display: flex;
+    flex-direction: column;
+  }
+  .m-c-section.is-mh-custom.is-h-exact .m-sp-grid { flex: 1 1 auto; }
+  .m-c-section.is-mh-custom.is-h-exact .m-map iframe {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: var(--m-map-h, 360px);
+  }
 }
 
 .m-c-section[class*="is-mh-"] > .m-container {
@@ -1510,6 +1536,67 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 .m-c-section.is-va-start  > .m-container { justify-content: flex-start; }
 .m-c-section.is-va-center > .m-container { justify-content: center; }
 .m-c-section.is-va-end    > .m-container { justify-content: flex-end; }
+
+/* ------------------------------------------------------------------ */
+/* Rellenar el alto de la seccion                                      */
+/*                                                                      */
+/* Una seccion con alto y, dentro, un modulo con alto propio son dos    */
+/* medidas distintas para la misma caja. Si el modulo mide menos, la    */
+/* diferencia queda como una franja de fondo vacia justo debajo del     */
+/* contenido: es el hueco que se ve entre la portada y el mapa.         */
+/*                                                                      */
+/* Aqui la cadena entera (fila, columna, modulo) crece hasta llenar la  */
+/* seccion. Se hace con `flex: 1 1 auto`, nunca con `height: 100%`:     */
+/* crecer no recorta, asi que un alto minimo sigue siendo un minimo y   */
+/* un modulo mas alto que la seccion la estira como siempre. Para       */
+/* recortar de verdad esta «La seccion manda» (`is-h-exact`), que tiene */
+/* su propia cadena mas arriba.                                         */
+/*                                                                      */
+/* `is-fill-height` lo pone el renderizador cuando el unico modulo de   */
+/* la seccion trae alto propio. `is-va-stretch` es la opcion manual de  */
+/* «Alineacion vertical: estirar», para cualquier contenido.            */
+/* ------------------------------------------------------------------ */
+.m-c-section[class*="is-mh-"].is-fill-height > .m-container > .m-c-row,
+.m-c-section[class*="is-mh-"].is-va-stretch  > .m-container > .m-c-row {
+  flex: 1 1 auto;
+  align-items: stretch;
+}
+
+/* La columna es una celda de un grid: estirarla no basta, tiene que
+   poder repartir su alto a lo que lleva dentro. */
+.m-c-section[class*="is-mh-"].is-fill-height .m-c-column,
+.m-c-section[class*="is-mh-"].is-va-stretch  .m-c-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Solo crecen los modulos que traen alto propio. Un titular o un boton
+   se quedan como estan: estirarlos los separaria sin sentido.
+   El modulo puede colgar de una columna o directamente del contenedor,
+   segun se haya insertado: los dos caminos valen. */
+.m-c-section[class*="is-mh-"].is-fill-height .m-c-column > :is(.m-sp, .m-bh, .m-map),
+.m-c-section[class*="is-mh-"].is-va-stretch  .m-c-column > :is(.m-sp, .m-bh, .m-map),
+.m-c-section[class*="is-mh-"].is-fill-height > .m-container > :is(.m-sp, .m-bh, .m-map),
+.m-c-section[class*="is-mh-"].is-va-stretch  > .m-container > :is(.m-sp, .m-bh, .m-map) {
+  flex: 1 1 auto;
+}
+
+.m-c-section[class*="is-mh-"].is-fill-height :is(.m-sp, .m-map),
+.m-c-section[class*="is-mh-"].is-va-stretch  :is(.m-sp, .m-map) {
+  display: flex;
+  flex-direction: column;
+}
+
+.m-c-section[class*="is-mh-"].is-fill-height .m-sp-grid,
+.m-c-section[class*="is-mh-"].is-va-stretch  .m-sp-grid { flex: 1 1 auto; }
+
+/* El alto del mapa pasa a ser el minimo; el resto lo pone la seccion. */
+.m-c-section[class*="is-mh-"].is-fill-height .m-map iframe,
+.m-c-section[class*="is-mh-"].is-va-stretch  .m-map iframe {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: var(--m-map-h, 360px);
+}
 
 /* ------------------------------------------------------------------ */
 /* Secciones sin contenido                                             */
