@@ -213,6 +213,70 @@ $cases = [
 		);
 		return ComponentRenders::section( $n, $n['props'], '<p>contenido</p>', $ctx );
 	},
+	// Reproduce la pagina del informe: hero con alto a medida, luego una
+	// seccion «pantalla menos la cabecera» SIN contenido, y despues el mapa.
+	'pagina-con-hueco'     => function () use ( $ctx, $panel ) {
+		$hero = node(
+			'section',
+			[
+				'width'          => 'full',
+				'minHeight'      => 'custom',
+				'minHeightValue' => 90,
+				'minHeightUnit'  => 'vh',
+				'heightMode'     => 'exact',
+				'vAlign'         => 'start',
+			],
+			'hero'
+		);
+		$hero['children'] = [ node( 'split-panel', [ 'title' => 'Hero' ], 'sp' ) ];
+
+		$vacia = node(
+			'section',
+			[
+				'width'     => 'full',
+				'minHeight' => 'screen-minus-header',
+				'vAlign'    => 'center',
+			],
+			'vacia'
+		);
+
+		// Vacia «de verdad»: una fila con dos columnas y ningun modulo.
+		$col1               = node( 'column', [], 'c1' );
+		$col2               = node( 'column', [], 'c2' );
+		$row                = node( 'row', [], 'r1' );
+		$row['children']    = [ $col1, $col2 ];
+		$vacia2             = node( 'section', [ 'width' => 'full', 'minHeight' => 'tall', 'vAlign' => 'center' ], 'vacia2' );
+		$vacia2['children'] = [ $row ];
+
+		$mapa             = node( 'section', [ 'width' => 'full' ], 'mapa' );
+		$mapa['children'] = [ node( 'map', [], 'm1' ) ];
+
+		return ComponentRenders::section( $hero, $hero['props'], $panel( 'screen' ), $ctx )
+			. ComponentRenders::section( $vacia, $vacia['props'], '', $ctx )
+			. ComponentRenders::section( $vacia2, $vacia2['props'], '<div class="m-c-row m-n-r1"><div class="m-c-column m-n-c1"></div><div class="m-c-column m-n-c2"></div></div>', $ctx )
+			. ComponentRenders::section( $mapa, $mapa['props'], '<div class="m-map" style="--m-map-h:360px"><iframe title="Mapa"></iframe></div>', $ctx );
+	},
+	// Pantalla completa CON contenido: no debe cambiar nada.
+	'full-con-contenido'   => function () use ( $ctx, $panel ) {
+		$n             = node( 'section', [ 'width' => 'full', 'minHeight' => 'screen', 'vAlign' => 'center' ], 'full1' );
+		$n['children'] = [ node( 'split-panel', [ 'title' => 'Hola' ], 'sp9' ) ];
+		return ComponentRenders::section( $n, $n['props'], $panel( 'auto' ), $ctx );
+	},
+	// Separador a medida sin contenido: el editor lo puso aposta, se respeta.
+	'separador-a-medida'   => function () use ( $ctx ) {
+		$n = node(
+			'section',
+			[
+				'width'          => 'full',
+				'minHeight'      => 'custom',
+				'minHeightValue' => 200,
+				'minHeightUnit'  => 'px',
+				'heightMode'     => 'min',
+			],
+			'sep'
+		);
+		return ComponentRenders::section( $n, $n['props'], '', $ctx );
+	},
 	'panel-alto-a-medida'  => function () use ( $ctx ) {
 		$n = node(
 			'split-panel',

@@ -96,6 +96,39 @@ class ComponentRenders {
 		return $html ?: '<div class="m-img-placeholder" aria-hidden="true"></div>';
 	}
 
+	/** Tipos que solo sirven para colocar: por si solos no son contenido. */
+	private const LAYOUT_ONLY = [ 'section', 'row', 'column' ];
+
+	/**
+	 * ¿Hay algo real dentro de este nodo?
+	 *
+	 * Baja por filas y columnas hasta encontrar un modulo de verdad. Una
+	 * seccion con una fila con tres columnas vacias sigue estando vacia: lo
+	 * que cuenta es que haya un bloque con contenido en alguna rama.
+	 */
+	private static function has_content( array $node ): bool {
+		$children = $node['children'] ?? null;
+		if ( ! is_array( $children ) ) {
+			return false;
+		}
+		foreach ( $children as $child ) {
+			if ( ! is_array( $child ) ) {
+				continue;
+			}
+			$type = (string) ( $child['type'] ?? '' );
+			if ( '' === $type ) {
+				continue;
+			}
+			if ( ! in_array( $type, self::LAYOUT_ONLY, true ) ) {
+				return true;
+			}
+			if ( self::has_content( $child ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static function section( array $node, array $props, string $children, RenderContext $ctx ): string {
 		$inner = '<div class="m-container">' . $children . '</div>';
 		$fw    = $props['fullWidth'] ?? true;
@@ -136,6 +169,13 @@ class ComponentRenders {
 		$class = ( 'boxed' === $width ? 'is-boxed' : 'is-full' ) . ' is-w-' . $width;
 		if ( 'auto' !== $mh ) {
 			$class .= ' is-mh-' . $mh . $mh_mode . ' is-va-' . $va;
+		}
+		// Una seccion sin nada dentro no debe reservar media pantalla. Se
+		// marca aqui y es el CSS el que decide que ajustes de alto decaen:
+		// los preestablecidos si, el alto a medida no, porque ese lo pone el
+		// editor a proposito y sirve de separador.
+		if ( '' === trim( $children ) || ! self::has_content( $node ) ) {
+			$class .= ' is-no-content';
 		}
 		// Cortina: la sección se queda quieta y la siguiente la tapa al subir.
 		if ( 'on' === sanitize_key( (string) ( $props['curtain'] ?? 'off' ) ) ) {

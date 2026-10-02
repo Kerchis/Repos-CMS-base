@@ -116,6 +116,15 @@ def review(items, upper=False, clamp=6, per=2):
             '</div></div>')
 
 
+def empty_section(mh_class, etiqueta):
+    """Seccion sin contenido: antes reservaba una pantalla de nada."""
+    return (f'<section class="m-c-section is-full is-w-full {mh_class} is-va-center is-no-content" '
+            f'data-header-skin="dark"><div class="m-container"></div></section>'
+            f'<section class="m-c-section is-full is-w-full" data-header-skin="dark">'
+            f'<div class="m-container"><div class="qa-pad0">{title(etiqueta, "m-sp-title m-track-normal")}'
+            '</div></div></section>')
+
+
 def section(inner, skin='dark', curtain=False, width='full', mh=None, mode='exact'):
     """Reproduce fila + columna, que es como queda una seccion hecha a mano."""
     legacy = 'is-boxed' if width == 'boxed' else 'is-full'
@@ -143,6 +152,8 @@ BLOCKS = [
         'title': 'Altura en porcentaje', 'eyebrow': 'A medida',
         'sub': '45 % de la pantalla.', 'height': 'custom', 'heightValue': 45,
         'heightUnit': 'svh', 'mediaSide': 'left', 'theme': 'surface'}))),
+    ('Seccion vacia: ya no reserva una pantalla', empty_section(
+        'is-mh-screen-minus-header', 'Justo encima hay una seccion vacia, pegada')),
     ('Alto de seccion manda · 300 px sobre panel de pantalla completa', section(split_panel({
         'title': 'La seccion impone 300 px', 'eyebrow': 'Quien manda: la seccion',
         'sub': 'El panel pedia pantalla completa y se adapta.'}), mh='300px', mode='exact')),
