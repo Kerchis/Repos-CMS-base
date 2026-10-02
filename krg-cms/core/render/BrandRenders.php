@@ -1023,7 +1023,15 @@ class BrandRenders {
 	public static function split_panel( array $node, array $props, string $children, RenderContext $ctx ): string {
 		$side   = ( ( $props['mediaSide'] ?? 'right' ) === 'left' ) ? 'left' : 'right';
 		$ratio  = self::opt( $props['ratio'] ?? 'half', [ 'half', 'media-wide', 'copy-wide' ], 'half' );
-		$height = self::opt( $props['height'] ?? 'screen', [ 'screen', 'tall', 'medium', 'auto' ], 'screen' );
+		$height = self::opt( $props['height'] ?? 'screen', [ 'screen', 'tall', 'medium', 'auto', 'custom' ], 'screen' );
+		// Altura a medida: en píxeles o en porcentaje de la pantalla.
+		$h_style = '';
+		if ( 'custom' === $height ) {
+			$h_unit  = ( ( $props['heightUnit'] ?? 'vh' ) === 'px' ) ? 'px' : 'svh';
+			$h_max   = 'px' === $h_unit ? 4000 : 400;
+			$h_val   = max( 1, min( $h_max, absint( $props['heightValue'] ?? 70 ) ) );
+			$h_style = '--m-sp-h:' . $h_val . $h_unit;
+		}
 		$fit    = ( ( $props['mediaFit'] ?? 'cover' ) === 'contain' ) ? 'contain' : 'cover';
 		$theme  = self::theme( $props['theme'] ?? 'cream' );
 		$mtheme = self::theme( $props['mediaTheme'] ?? 'surface', 'surface' );
@@ -1134,7 +1142,7 @@ class BrandRenders {
 				[
 					'class' => 'm-sp is-media-' . $side . ' is-ratio-' . $ratio . ' is-h-' . $height
 						. ( $media_panel ? '' : ' is-single' ),
-					'style' => self::section_style( $props ),
+					'style' => trim( self::section_style( $props ) . ( $h_style ? ';' . $h_style : '' ), ';' ),
 				],
 				self::skin( $theme )
 			)

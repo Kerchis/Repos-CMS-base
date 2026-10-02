@@ -783,6 +783,8 @@ class BrandCatalog {
 					'mediaSide'   => 'right',
 					'ratio'       => 'half',
 					'height'      => 'screen',
+					'heightValue' => 70,
+					'heightUnit'  => 'vh',
 					'mediaFit'    => 'cover',
 					'mediaTheme'  => 'surface',
 					'theme'       => 'cream',
@@ -862,6 +864,30 @@ class BrandCatalog {
 								[ 'value' => 'tall', 'label' => __( 'Alta', 'meridian' ) ],
 								[ 'value' => 'medium', 'label' => __( 'Media', 'meridian' ) ],
 								[ 'value' => 'auto', 'label' => __( 'La del contenido', 'meridian' ) ],
+								[ 'value' => 'custom', 'label' => __( 'A medida…', 'meridian' ) ],
+							],
+						]
+					),
+					self::f(
+						'heightValue',
+						'number',
+						'layout',
+						__( 'Altura a medida', 'meridian' ),
+						[
+							'min'  => 1,
+							'max'  => 4000,
+							'help' => __( 'Solo se aplica con la altura «A medida». Es un mínimo: si el texto no cabe, el panel crece.', 'meridian' ),
+						]
+					),
+					self::f(
+						'heightUnit',
+						'select',
+						'layout',
+						__( 'Unidad de la altura', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'vh', 'label' => __( '% de la altura de la pantalla', 'meridian' ) ],
+								[ 'value' => 'px', 'label' => __( 'Píxeles', 'meridian' ) ],
 							],
 						]
 					),

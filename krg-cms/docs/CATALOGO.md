@@ -185,6 +185,7 @@ Texto monumental que ocupa todo el ancho, con sombra desplazada en color
 | **Secciones a pantalla completa** | Cualquier sección puede tener altura mínima de pantalla completa, pantalla menos cabecera, 78 % o 50 %, con alineación vertical arriba / centro / abajo. |
 | **Animaciones de scroll** | Dos nuevas en el panel Animación de cualquier nodo: «Aparecer al scroll» (el bloque sube y aparece) y «Escalonada» (los hijos entran uno detrás de otro, como el pie de la referencia). Duración, retardo y curva configurables. |
 | **Cabecera adaptativa** | La cabecera cambia de color según la sección que tiene debajo, al vuelo. Cada sección declara su piel (`auto` la deduce de la luminancia real del fondo) y la cabecera puede adaptar solo el texto o también el fondo. |
+| **Altura a medida** | El panel partido acepta una altura exacta en píxeles o en porcentaje de la pantalla, además de los presets. Es un mínimo: si el texto no cabe, crece. |
 | **Cortina por sección** | Cualquier sección puede quedarse quieta mientras la siguiente se desliza por encima y la tapa. Sección → pestaña **Diseño** → *Animación de entrada* → Cortina. |
 | **Alto y cabecera por sección** | En el mismo panel: alto mínimo (pantalla completa, etc.), alineación vertical y color de la cabecera al pasar por encima. |
 | **Presets propios** | Apariencia → Presets → Crear un preset: guarda la paleta y tipografías actuales con nombre. Se pueden borrar; los que trae el tema no. |

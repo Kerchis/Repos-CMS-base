@@ -1172,6 +1172,10 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 .m-sp.is-h-tall   .m-sp-grid { min-height: 78svh; }
 .m-sp.is-h-medium .m-sp-grid { min-height: 58svh; }
 .m-sp.is-h-auto   .m-sp-grid { min-height: 0; }
+/* Altura a medida: --m-sp-h llega en linea desde el renderizador, en
+   pixeles o en porcentaje de la pantalla. Es un minimo, asi que si el
+   texto no cabe el panel crece en vez de recortarlo. */
+.m-sp.is-h-custom .m-sp-grid { min-height: var(--m-sp-h, 70svh); }
 
 .m-sp-copy {
   display: flex;

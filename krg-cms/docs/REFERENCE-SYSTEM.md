@@ -253,6 +253,19 @@ Sección → Diseño → **Efecto cortina**.
 
 ---
 
+## 5.5 Vista previa del sistema visual
+
+`krg-cms/docs/vista-previa.html` es una página de verificación con el CSS y
+el JavaScript del tema **incrustados**: se abre con doble clic, sin servidor
+ni conexión, y muestra los bloques en su marcado real (incluida la anidación
+sección → fila → columna que crea el constructor, que es donde se escondían
+los fallos de sangrado).
+
+Se regenera con `python3 tools/preview.py`, que además deja una copia con
+los assets sueltos en `.preview/` para servirla con un servidor estático.
+
+---
+
 ## 6. Cómo apuntar el sistema a otra referencia
 
 1. **Paleta y tipografía** → duplicar `presets/honeycomb.json`, cambiar valores
