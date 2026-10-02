@@ -635,7 +635,15 @@ body.krg-preview .m-col {
 .m-everest-form .evf-container,
 .m-everest-form .everest-forms { max-width: 100%; }
 .m-map { border-radius: var(--radius-cards); overflow: hidden; }
-.m-map iframe { width: 100%; border: 0; display: block; }
+/* El alto viene de --m-map-h (px o % de pantalla). Si el mapa va en una
+   seccion a sangre se le quita el redondeo para que llegue a los bordes. */
+.m-map iframe {
+  width: 100%;
+  height: var(--m-map-h, 360px);
+  border: 0;
+  display: block;
+}
+.is-w-bleed .m-map { border-radius: 0; }
 .m-social { list-style: none; display: flex; gap: 16px; padding: 0; margin: 0; }
 .m-logos img { max-height: 40px; width: auto; margin: auto; filter: grayscale(1); opacity: 0.7; }
 .m-article { padding-block: var(--spacing-xl, 40px); max-width: 760px; }

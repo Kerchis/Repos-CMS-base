@@ -69,6 +69,7 @@ class Catalog {
 				'supports'    => [ 'responsive', 'visibility' ],
 				'defaults'    => [
 					'fullWidth'  => true,
+					'width'      => 'full',
 					'minHeight'  => 'auto',
 					'vAlign'     => 'start',
 					'headerSkin' => 'auto',
@@ -86,6 +87,20 @@ class Catalog {
 						[ 'options' => [ 'auto', 'screen', 'screen-minus-header', 'tall', 'half' ] ]
 					),
 					self::f( 'vAlign', 'select', 'design', __( 'Alineación vertical', 'meridian' ), [ 'options' => [ 'start', 'center', 'end' ] ] ),
+					self::f(
+						'width',
+						'select',
+						'design',
+						__( 'Ancho del contenido', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'boxed', 'label' => __( 'Centrado y limitado', 'meridian' ) ],
+								[ 'value' => 'full', 'label' => __( 'Ancho completo con margen', 'meridian' ) ],
+								[ 'value' => 'bleed', 'label' => __( 'A sangre: literalmente de borde a borde', 'meridian' ) ],
+							],
+							'help'    => __( 'A sangre deja el contenido pegado a los bordes del dispositivo, sin ningún margen. Es lo que necesitan los mapas, los vídeos y las fotos a pantalla completa.', 'meridian' ),
+						]
+					),
 					self::f(
 						'headerSkin',
 						'select',
@@ -848,10 +863,34 @@ class Catalog {
 				'name'     => __( 'Google Maps', 'meridian' ),
 				'category' => 'other',
 				'icon'     => 'map',
-				'defaults' => [ 'url' => '', 'height' => 360 ],
+				'defaults' => [ 'url' => '', 'height' => 360, 'heightUnit' => 'px', 'ratio' => 'fixed' ],
 				'fields'   => [
-					self::f( 'url', 'mapsUrl', 'content', __( 'URL o iframe de Google Maps', 'meridian' ) ),
-					self::f( 'height', 'number', 'design', __( 'Alto (px)', 'meridian' ), [ 'min' => 180, 'max' => 720 ] ),
+					self::f(
+						'url',
+						'mapsUrl',
+						'content',
+						__( 'URL o iframe de Google Maps', 'meridian' ),
+						[ 'help' => __( 'Pega el «Insertar un mapa» completo de Google Maps o el enlace para compartir. Se queda solo con la dirección; el alto lo controlas aquí abajo, no el que trae pegado.', 'meridian' ) ]
+					),
+					self::f(
+						'height',
+						'number',
+						'design',
+						__( 'Alto del mapa', 'meridian' ),
+						[ 'min' => 1, 'max' => 4000 ]
+					),
+					self::f(
+						'heightUnit',
+						'select',
+						'design',
+						__( 'Unidad del alto', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'px', 'label' => __( 'Píxeles', 'meridian' ) ],
+								[ 'value' => 'vh', 'label' => __( '% de la altura de la pantalla', 'meridian' ) ],
+							],
+						]
+					),
 				],
 			],
 			[

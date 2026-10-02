@@ -231,9 +231,10 @@
           if (n.type === "section") {
             const els = doc.querySelector(`.m-n-${id}`);
             if (els) {
-              const full = n.props?.fullWidth !== false;
-              els.classList.toggle("is-full", full);
-              els.classList.toggle("is-boxed", !full);
+              const w = n.props?.width || (n.props?.fullWidth === false ? "boxed" : "full");
+              ["boxed", "full", "bleed"].forEach((v) => els.classList.toggle("is-w-" + v, w === v));
+              els.classList.toggle("is-full", w !== "boxed");
+              els.classList.toggle("is-boxed", w === "boxed");
               // Alto, alineación y cortina también en el lienzo, para que
               // lo que se ve aquí sea lo que sale publicado.
               const mh = n.props?.minHeight || "auto";
@@ -1342,7 +1343,18 @@
     const mh = p.minHeight || "auto";
     const sel = (key, value, opts) => `<select data-prop="${key}">${opts.map(([v, l]) =>
       `<option value="${v}" ${String(value) === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
-    return `<div class="acc"><h5>Animación de entrada</h5>
+    const width = p.width || (p.fullWidth === false ? "boxed" : "full");
+    return `<div class="acc"><h5>Ancho del contenido</h5>
+      <label>Hasta dónde llega el contenido
+        ${sel("width", width, [
+          ["boxed", "Centrado y limitado"],
+          ["full", "Ancho completo con margen"],
+          ["bleed", "A sangre: de borde a borde"],
+        ])}
+      </label>
+      <p class="m-muted">A sangre deja el contenido pegado a los bordes del dispositivo, sin ningún margen. Es lo que necesitan los mapas, los vídeos y las fotos a pantalla completa.</p>
+    </div>
+    <div class="acc"><h5>Animación de entrada</h5>
       <label>Revelado al hacer scroll
         ${sel("curtain", p.curtain || "off", [
           ["on", "Cortina (la siguiente sección la tapa)"],
@@ -1766,8 +1778,7 @@
     if (node.type === "section") {
       content = `<div class="acc"><h5>Sección</h5>
         <label>Nombre interno <input data-prop="name" value="${esc(p.name || node.name || "")}"></label>
-        <label>Ancho completo <input type="checkbox" data-prop="fullWidth" ${p.fullWidth !== false ? "checked" : ""}></label>
-        <p class="m-muted">Escritorio: de borde a borde. Tablet y móvil: se adapta para que las fotos no queden enormes. El parallax sigue activo.</p>
+        <p class="m-muted">El ancho del contenido se elige en la pestaña Diseño, en «Ancho del contenido».</p>
       </div>
       <div class="acc"><h5>Disposición</h5>
         <p class="m-muted">Agrupa los módulos en columnas. ‹ › en el árbol mueve un módulo a la columna vecina.</p>
@@ -2108,7 +2119,7 @@
         markDirty();
         // Estos cambian la forma de la sección o qué campos tienen sentido,
         // así que hay que repintar el lienzo y el inspector.
-        const REDRAW = ["parallax", "autoplay", "minHeight", "vAlign", "curtain", "headerSkin"];
+        const REDRAW = ["parallax", "autoplay", "minHeight", "vAlign", "curtain", "headerSkin", "width", "heightUnit"];
         if (REDRAW.includes(inp.dataset.prop)) render();
       };
       inp.addEventListener("change", apply);

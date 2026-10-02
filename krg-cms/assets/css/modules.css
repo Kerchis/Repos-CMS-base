@@ -150,20 +150,43 @@
 .m-c-section.m-bleed { padding-block: 0; }
 .m-c-section.m-bleed > .m-container { width: 100%; max-width: none; margin-inline: 0; }
 
-/* La casilla «Ancho completo» de la sección no tenía ningún estilo detrás:
-   is-full / is-boxed se emitían pero no hacían nada. is-full lleva la
-   sección de borde a borde dejando un margen de respiración para el texto;
-   los módulos a sangre lo anulan en el bloque :has() de abajo. */
-.m-c-section.is-full > .m-container {
+/* Ancho del contenido de la sección. Antes `is-full` / `is-boxed` se
+   emitían pero no tenían ningún estilo detrás: la casilla era decorativa.
+     boxed → centrado y limitado al ancho de página.
+     full  → todo el ancho con un margen de respiración para el texto.
+     bleed → literalmente de borde a borde del dispositivo, sin margen. */
+.m-c-section.is-w-boxed > .m-container {
+  width: min(100% - 40px, var(--page-max-width, 1200px));
+  margin-inline: auto;
+}
+
+.m-c-section.is-w-full > .m-container {
   width: 100%;
   max-width: none;
   margin-inline: 0;
   padding-inline: clamp(20px, 4vw, 64px);
 }
 
-.m-c-section.is-boxed > .m-container {
-  width: min(100% - 40px, var(--page-max-width, 1200px));
-  margin-inline: auto;
+.m-c-section.is-w-bleed {
+  padding-inline: 0;
+}
+
+.m-c-section.is-w-bleed > .m-container {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  padding-inline: 0;
+}
+
+/* La fila y la columna que el constructor intercala no deben reintroducir
+   el margen que acabamos de quitar. */
+.m-c-section.is-w-bleed > .m-container > .m-c-row {
+  margin-inline: 0;
+  max-width: none;
+}
+
+.m-c-section.is-w-bleed > .m-container > .m-c-row > .m-c-column {
+  padding-inline: 0;
 }
 
 .m-c-section.m-bleed > .m-container { padding-inline: 0; }

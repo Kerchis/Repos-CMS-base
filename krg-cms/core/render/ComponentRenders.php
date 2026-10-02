@@ -108,7 +108,12 @@ class ComponentRenders {
 		if ( ! in_array( $va, [ 'start', 'center', 'end' ], true ) ) {
 			$va = 'start';
 		}
-		$class = $full ? 'is-full' : 'is-boxed';
+		// `width` manda; `fullWidth` se mantiene para el contenido ya creado.
+		$width = sanitize_key( (string) ( $props['width'] ?? '' ) );
+		if ( ! in_array( $width, [ 'boxed', 'full', 'bleed' ], true ) ) {
+			$width = $full ? 'full' : 'boxed';
+		}
+		$class = ( 'boxed' === $width ? 'is-boxed' : 'is-full' ) . ' is-w-' . $width;
 		if ( 'auto' !== $mh ) {
 			$class .= ' is-mh-' . $mh . ' is-va-' . $va;
 		}
@@ -764,13 +769,27 @@ class ComponentRenders {
 		$ctx->needed['map'] = true;
 		$url    = (string) ( $props['url'] ?? '' );
 		$embed  = \Meridian\Security\UrlValidator::maps_embed( $url );
-		$height = max( 180, absint( $props['height'] ?? 360 ) );
+		// El alto lo manda el CSS (--m-map-h), no el atributo del iframe: así
+		// se puede dar en píxeles o en porcentaje de la pantalla.
+		$unit = ( ( $props['heightUnit'] ?? 'px' ) === 'vh' ) ? 'svh' : 'px';
+		$max  = 'px' === $unit ? 4000 : 400;
+		$h    = max( 1, min( $max, absint( $props['height'] ?? 360 ) ) );
 		if ( ! $embed ) {
 			$msg = $url ? __( 'La URL introducida no es válida.', 'meridian' ) : __( 'Añade una URL de Google Maps.', 'meridian' );
 			return self::wrap( $node, $ctx, 'div', '<p class="m-form-error">' . esc_html( $msg ) . '</p>' );
 		}
-		$iframe = '<iframe title="' . esc_attr__( 'Mapa', 'meridian' ) . '" src="' . esc_url( $embed ) . '" width="100%" height="' . $height . '" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>';
-		return self::wrap( $node, $ctx, 'div', $iframe, [ 'class' => 'm-map' ] );
+		$iframe = '<iframe title="' . esc_attr__( 'Mapa', 'meridian' ) . '" src="' . esc_url( $embed )
+			. '" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>';
+		return self::wrap(
+			$node,
+			$ctx,
+			'div',
+			$iframe,
+			[
+				'class' => 'm-map',
+				'style' => '--m-map-h:' . $h . $unit,
+			]
+		);
 	}
 
 	public static function social_links( array $node, array $props, string $children, RenderContext $ctx ): string {

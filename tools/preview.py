@@ -70,9 +70,15 @@ def wordmark(text):
             f'<p class="m-wm-text m-track-wide">{text}</p></div></div>')
 
 
-def section(inner, skin='dark', curtain=False, full=True):
+def gmap(h='360px'):
+    return (f'<div class="m-map" style="--m-map-h:{h}"><iframe title="Mapa" loading="lazy" '
+            'src="https://maps.google.com/maps?output=embed&amp;q=Chia,Cundinamarca"></iframe></div>')
+
+
+def section(inner, skin='dark', curtain=False, width='full'):
     """Reproduce fila + columna, que es como queda una seccion hecha a mano."""
-    cls = 'm-c-section ' + ('is-full' if full else 'is-boxed') + (' is-curtain' if curtain else '')
+    legacy = 'is-boxed' if width == 'boxed' else 'is-full'
+    cls = f'm-c-section {legacy} is-w-{width}' + (' is-curtain' if curtain else '')
     return (f'<section class="{cls}" data-header-skin="{skin}">'
             f'<div class="m-container"><div class="m-c-row"><div class="m-c-column">'
             f'{inner}</div></div></div></section>')
@@ -100,6 +106,12 @@ BLOCKS = [
         '<div class="qa-pad qa-dark">' + title('Y ESTA LA CUBRE', 'm-sp-title m-track-normal')
         + '</div>', skin='light')),
     ('Logotipo tipografico', section(wordmark('MIEL HONESTA'))),
+    ('Mapa a sangre · 420 px', section(gmap('420px'), width='bleed')),
+    ('Mapa a sangre · 60 % de pantalla', section(gmap('60svh'), width='bleed')),
+    ('Mapa con margen (comparacion)', section(gmap('300px'), width='full')),
+    ('Seccion centrada (comparacion)', section(
+        '<div class="qa-pad">' + title('CENTRADO Y LIMITADO', 'm-sp-title m-track-normal')
+        + '</div>', width='boxed')),
 ]
 
 EXTRA = """
