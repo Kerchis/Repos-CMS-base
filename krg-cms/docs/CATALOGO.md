@@ -185,7 +185,8 @@ Texto monumental que ocupa todo el ancho, con sombra desplazada en color
 | **Secciones a pantalla completa** | Cualquier sección puede tener altura mínima de pantalla completa, pantalla menos cabecera, 78 % o 50 %, con alineación vertical arriba / centro / abajo. |
 | **Animaciones de scroll** | Dos nuevas en el panel Animación de cualquier nodo: «Aparecer al scroll» (el bloque sube y aparece) y «Escalonada» (los hijos entran uno detrás de otro, como el pie de la referencia). Duración, retardo y curva configurables. |
 | **Cabecera adaptativa** | La cabecera cambia de color según la sección que tiene debajo, al vuelo. Cada sección declara su piel (`auto` la deduce de la luminancia real del fondo) y la cabecera puede adaptar solo el texto o también el fondo. |
-| **Ancho a sangre** | Cada sección elige hasta dónde llega su contenido: centrado y limitado, ancho completo con margen, o a sangre literal de borde a borde del dispositivo. Sección → Diseño → Ancho del contenido. |
+| **Alto de sección a medida** | Además de los presets, la sección acepta un alto exacto en píxeles o en porcentaje de la pantalla. Es un mínimo. |
+| **Ancho a sangre** | Cada sección elige hasta dónde llega su contenido: centrado y limitado, ancho completo con margen, o a sangre literal de borde a borde del dispositivo. Sección → Diseño → Ancho del contenido. «De borde a borde» es el valor por defecto. |
 | **Mapa editable** | El mapa acepta el iframe pegado de Google Maps y su alto se controla en píxeles o en porcentaje de la pantalla. |
 | **Altura a medida** | El panel partido acepta una altura exacta en píxeles o en porcentaje de la pantalla, además de los presets. Es un mínimo: si el texto no cabe, crece. |
 | **Cortina por sección** | Cualquier sección puede quedarse quieta mientras la siguiente se desliza por encima y la tapa. Sección → pestaña **Diseño** → *Animación de entrada* → Cortina. |

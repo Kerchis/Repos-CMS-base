@@ -239,9 +239,15 @@
               // lo que se ve aquí sea lo que sale publicado.
               const mh = n.props?.minHeight || "auto";
               const va = n.props?.vAlign || "start";
-              ["screen", "screen-minus-header", "tall", "half"].forEach((v) => {
+              ["screen", "screen-minus-header", "tall", "half", "custom"].forEach((v) => {
                 els.classList.toggle("is-mh-" + v, mh === v);
               });
+              if (mh === "custom") {
+                const u = n.props?.minHeightUnit === "px" ? "px" : "svh";
+                els.style.setProperty("--m-sec-h", (n.props?.minHeightValue || 60) + u);
+              } else {
+                els.style.removeProperty("--m-sec-h");
+              }
               ["start", "center", "end"].forEach((v) => {
                 els.classList.toggle("is-va-" + v, mh !== "auto" && va === v);
               });
@@ -1343,16 +1349,16 @@
     const mh = p.minHeight || "auto";
     const sel = (key, value, opts) => `<select data-prop="${key}">${opts.map(([v, l]) =>
       `<option value="${v}" ${String(value) === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
-    const width = p.width || (p.fullWidth === false ? "boxed" : "full");
+    const width = (p.width === "bleed" ? "full" : p.width) || (p.fullWidth === false ? "boxed" : "full");
     return `<div class="acc"><h5>Ancho del contenido</h5>
       <label>Hasta dónde llega el contenido
         ${sel("width", width, [
+          ["full", "Todo el ancho, de borde a borde"],
+          ["padded", "Todo el ancho, con margen lateral"],
           ["boxed", "Centrado y limitado"],
-          ["full", "Ancho completo con margen"],
-          ["bleed", "A sangre: de borde a borde"],
         ])}
       </label>
-      <p class="m-muted">A sangre deja el contenido pegado a los bordes del dispositivo, sin ningún margen. Es lo que necesitan los mapas, los vídeos y las fotos a pantalla completa.</p>
+      <p class="m-muted">De borde a borde no deja ningún margen: el contenido llega al filo de la pantalla. Es lo que necesitan los mapas, los vídeos y las fotos a pantalla completa.</p>
     </div>
     <div class="acc"><h5>Animación de entrada</h5>
       <label>Revelado al hacer scroll
@@ -1371,8 +1377,17 @@
           ["screen-minus-header", "Pantalla menos la cabecera"],
           ["tall", "Alta (78 %)"],
           ["half", "Media (50 %)"],
+          ["custom", "A medida…"],
         ])}
       </label>
+      ${mh === "custom" ? `<div class="b-rowfields">
+        <label>Valor <input type="number" data-prop="minHeightValue" min="1" max="4000" value="${esc(p.minHeightValue ?? 60)}"></label>
+        <label>Unidad ${sel("minHeightUnit", p.minHeightUnit || "vh", [
+          ["vh", "% de la pantalla"],
+          ["px", "Píxeles"],
+        ])}</label>
+      </div>
+      <p class="m-muted">Es un mínimo: si el contenido no cabe, la sección crece.</p>` : ""}
       ${mh !== "auto" ? `<label>Alineación vertical del contenido
         ${sel("vAlign", p.vAlign || "start", [
           ["start", "Arriba"],
@@ -2119,7 +2134,8 @@
         markDirty();
         // Estos cambian la forma de la sección o qué campos tienen sentido,
         // así que hay que repintar el lienzo y el inspector.
-        const REDRAW = ["parallax", "autoplay", "minHeight", "vAlign", "curtain", "headerSkin", "width", "heightUnit"];
+        const REDRAW = ["parallax", "autoplay", "minHeight", "minHeightValue", "minHeightUnit",
+          "vAlign", "curtain", "headerSkin", "width", "heightUnit"];
         if (REDRAW.includes(inp.dataset.prop)) render();
       };
       inp.addEventListener("change", apply);

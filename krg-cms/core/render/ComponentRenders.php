@@ -101,8 +101,16 @@ class ComponentRenders {
 		$fw    = $props['fullWidth'] ?? true;
 		$full  = ! ( false === $fw || 0 === $fw || '0' === $fw || '' === $fw );
 		$mh    = sanitize_html_class( (string) ( $props['minHeight'] ?? 'auto' ) );
-		if ( ! in_array( $mh, [ 'auto', 'screen', 'screen-minus-header', 'tall', 'half' ], true ) ) {
+		if ( ! in_array( $mh, [ 'auto', 'screen', 'screen-minus-header', 'tall', 'half', 'custom' ], true ) ) {
 			$mh = 'auto';
+		}
+		// Alto a medida: en píxeles o en porcentaje de la pantalla.
+		$mh_style = '';
+		if ( 'custom' === $mh ) {
+			$mh_unit  = ( ( $props['minHeightUnit'] ?? 'vh' ) === 'px' ) ? 'px' : 'svh';
+			$mh_cap   = 'px' === $mh_unit ? 4000 : 400;
+			$mh_val   = max( 1, min( $mh_cap, absint( $props['minHeightValue'] ?? 60 ) ) );
+			$mh_style = '--m-sec-h:' . $mh_val . $mh_unit;
 		}
 		$va = sanitize_html_class( (string) ( $props['vAlign'] ?? 'start' ) );
 		if ( ! in_array( $va, [ 'start', 'center', 'end' ], true ) ) {
@@ -110,7 +118,10 @@ class ComponentRenders {
 		}
 		// `width` manda; `fullWidth` se mantiene para el contenido ya creado.
 		$width = sanitize_key( (string) ( $props['width'] ?? '' ) );
-		if ( ! in_array( $width, [ 'boxed', 'full', 'bleed' ], true ) ) {
+		if ( 'bleed' === $width ) {
+			$width = 'full';
+		}
+		if ( ! in_array( $width, [ 'boxed', 'full', 'padded' ], true ) ) {
 			$width = $full ? 'full' : 'boxed';
 		}
 		$class = ( 'boxed' === $width ? 'is-boxed' : 'is-full' ) . ' is-w-' . $width;
@@ -135,16 +146,23 @@ class ComponentRenders {
 		if ( ! empty( $props['htmlId'] ) ) {
 			$attrs['id'] = sanitize_html_class( $props['htmlId'] );
 		}
-		$bg = $props['background'] ?? null;
+		$bg    = $props['background'] ?? null;
+		$style = [];
 		if ( is_array( $bg ) ) {
 			if ( ( $bg['mode'] ?? '' ) === 'token' && ! empty( $bg['token'] ) ) {
-				$attrs['style'] = 'background:' . \Meridian\Design\TokenCompiler::token_var( $bg['token'] );
+				$style[] = 'background:' . \Meridian\Design\TokenCompiler::token_var( $bg['token'] );
 			} elseif ( ! empty( $bg['value'] ) ) {
 				$hex = sanitize_hex_color( $bg['value'] );
 				if ( $hex ) {
-					$attrs['style'] = 'background:' . $hex;
+					$style[] = 'background:' . $hex;
 				}
 			}
+		}
+		if ( $mh_style ) {
+			$style[] = $mh_style;
+		}
+		if ( $style ) {
+			$attrs['style'] = implode( ';', $style );
 		}
 		return self::wrap( $node, $ctx, 'section', $inner, $attrs );
 	}

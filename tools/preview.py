@@ -75,11 +75,15 @@ def gmap(h='360px'):
             'src="https://maps.google.com/maps?output=embed&amp;q=Chia,Cundinamarca"></iframe></div>')
 
 
-def section(inner, skin='dark', curtain=False, width='full'):
+def section(inner, skin='dark', curtain=False, width='full', mh=None):
     """Reproduce fila + columna, que es como queda una seccion hecha a mano."""
     legacy = 'is-boxed' if width == 'boxed' else 'is-full'
     cls = f'm-c-section {legacy} is-w-{width}' + (' is-curtain' if curtain else '')
-    return (f'<section class="{cls}" data-header-skin="{skin}">'
+    style = ''
+    if mh:
+        cls += ' is-mh-custom is-va-center'
+        style = f' style="--m-sec-h:{mh}"'
+    return (f'<section class="{cls}"{style} data-header-skin="{skin}">'
             f'<div class="m-container"><div class="m-c-row"><div class="m-c-column">'
             f'{inner}</div></div></div></section>')
 
@@ -106,12 +110,18 @@ BLOCKS = [
         '<div class="qa-pad qa-dark">' + title('Y ESTA LA CUBRE', 'm-sp-title m-track-normal')
         + '</div>', skin='light')),
     ('Logotipo tipografico', section(wordmark('MIEL HONESTA'))),
-    ('Mapa a sangre · 420 px', section(gmap('420px'), width='bleed')),
-    ('Mapa a sangre · 60 % de pantalla', section(gmap('60svh'), width='bleed')),
-    ('Mapa con margen (comparacion)', section(gmap('300px'), width='full')),
-    ('Seccion centrada (comparacion)', section(
+    ('Mapa borde a borde · 420 px', section(gmap('420px'), width='full')),
+    ('Mapa borde a borde · 60 % pantalla', section(gmap('60svh'), width='full')),
+    ('Mapa con margen lateral', section(gmap('300px'), width='padded')),
+    ('Seccion centrada y limitada', section(
         '<div class="qa-pad">' + title('CENTRADO Y LIMITADO', 'm-sp-title m-track-normal')
         + '</div>', width='boxed')),
+    ('Alto de seccion · 35 % pantalla', section(
+        '<div class="qa-dark qa-pad0">' + title('ALTO AL 35 %', 'm-sp-title m-track-normal')
+        + '</div>', skin='light', mh='35svh')),
+    ('Alto de seccion · 260 px', section(
+        '<div class="qa-pad0">' + title('ALTO DE 260 PX', 'm-sp-title m-track-normal')
+        + '</div>', mh='260px')),
 ]
 
 EXTRA = """
@@ -124,6 +134,7 @@ EXTRA = """
  .qa-ph{display:grid;place-items:center;width:100%;height:100%;font:600 12px/1 var(--font-body);
    letter-spacing:.14em;color:#6d6459;background:repeating-linear-gradient(45deg,#e8d9bb 0 14px,#f2e6cc 14px 28px)}
  .qa-pad{text-align:center;padding:12vh 0}
+ .qa-pad0{text-align:center;width:100%;padding:24px}
  .qa-dark{background:var(--color-primary);color:var(--color-background)}
  .qa-nav{position:fixed;top:50%;right:0;transform:translateY(-50%);width:168px;max-height:86vh;
    overflow-y:auto;z-index:900;display:flex;flex-direction:column;gap:3px;background:var(--color-primary);padding:6px}

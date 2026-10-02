@@ -150,27 +150,31 @@
 .m-c-section.m-bleed { padding-block: 0; }
 .m-c-section.m-bleed > .m-container { width: 100%; max-width: none; margin-inline: 0; }
 
-/* Ancho del contenido de la sección. Antes `is-full` / `is-boxed` se
-   emitían pero no tenían ningún estilo detrás: la casilla era decorativa.
-     boxed → centrado y limitado al ancho de página.
-     full  → todo el ancho con un margen de respiración para el texto.
-     bleed → literalmente de borde a borde del dispositivo, sin margen. */
+/* Ancho del contenido de la sección.
+     boxed  → centrado y limitado al ancho de página.
+     padded → todo el ancho con un margen de respiración para el texto.
+     full   → literalmente de borde a borde del dispositivo, margen cero.
+   `full` es el valor por defecto porque es lo que la casilla «Ancho
+   completo» prometía desde el principio. El margen de respiración es una
+   opción aparte, no algo que se imponga. */
 .m-c-section.is-w-boxed > .m-container {
   width: min(100% - 40px, var(--page-max-width, 1200px));
   margin-inline: auto;
 }
 
-.m-c-section.is-w-full > .m-container {
+.m-c-section.is-w-padded > .m-container {
   width: 100%;
   max-width: none;
   margin-inline: 0;
   padding-inline: clamp(20px, 4vw, 64px);
 }
 
+.m-c-section.is-w-full,
 .m-c-section.is-w-bleed {
   padding-inline: 0;
 }
 
+.m-c-section.is-w-full > .m-container,
 .m-c-section.is-w-bleed > .m-container {
   width: 100%;
   max-width: none;
@@ -179,13 +183,15 @@
 }
 
 /* La fila y la columna que el constructor intercala no deben reintroducir
-   el margen que acabamos de quitar. */
-.m-c-section.is-w-bleed > .m-container > .m-c-row {
+   el margen que acabamos de quitar, esten a la profundidad que esten. */
+.m-c-section.is-w-full .m-c-row,
+.m-c-section.is-w-bleed .m-c-row {
   margin-inline: 0;
   max-width: none;
 }
 
-.m-c-section.is-w-bleed > .m-container > .m-c-row > .m-c-column {
+.m-c-section.is-w-full .m-c-column,
+.m-c-section.is-w-bleed .m-c-column {
   padding-inline: 0;
 }
 
@@ -1361,6 +1367,7 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 .m-c-section.is-mh-screen,
 .m-c-section.is-mh-screen-minus-header,
 .m-c-section.is-mh-tall,
+.m-c-section.is-mh-custom,
 .m-c-section.is-mh-half {
   display: flex;
   flex-direction: column;
@@ -1369,6 +1376,9 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 .m-c-section.is-mh-screen-minus-header { min-height: calc(100svh - var(--m-header-h, 84px)); }
 .m-c-section.is-mh-tall { min-height: 78svh; }
 .m-c-section.is-mh-half { min-height: 50svh; }
+/* Alto a medida: --m-sec-h llega en linea, en pixeles o en porcentaje de
+   la pantalla. Es un minimo, asi que el contenido nunca se recorta. */
+.m-c-section.is-mh-custom { min-height: var(--m-sec-h, 60svh); }
 
 .m-c-section[class*="is-mh-"] > .m-container {
   flex: 1 1 auto;

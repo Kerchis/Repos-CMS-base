@@ -71,6 +71,8 @@ class Catalog {
 					'fullWidth'  => true,
 					'width'      => 'full',
 					'minHeight'  => 'auto',
+					'minHeightValue' => 60,
+					'minHeightUnit'  => 'vh',
 					'vAlign'     => 'start',
 					'headerSkin' => 'auto',
 					'curtain'    => 'off',
@@ -84,7 +86,39 @@ class Catalog {
 						'select',
 						'design',
 						__( 'Altura mínima', 'meridian' ),
-						[ 'options' => [ 'auto', 'screen', 'screen-minus-header', 'tall', 'half' ] ]
+						[
+							'options' => [
+								[ 'value' => 'auto', 'label' => __( 'El del contenido', 'meridian' ) ],
+								[ 'value' => 'screen', 'label' => __( 'Pantalla completa', 'meridian' ) ],
+								[ 'value' => 'screen-minus-header', 'label' => __( 'Pantalla menos la cabecera', 'meridian' ) ],
+								[ 'value' => 'tall', 'label' => __( 'Alta (78 %)', 'meridian' ) ],
+								[ 'value' => 'half', 'label' => __( 'Media (50 %)', 'meridian' ) ],
+								[ 'value' => 'custom', 'label' => __( 'A medida…', 'meridian' ) ],
+							],
+						]
+					),
+					self::f(
+						'minHeightValue',
+						'number',
+						'design',
+						__( 'Alto a medida', 'meridian' ),
+						[
+							'min'  => 1,
+							'max'  => 4000,
+							'help' => __( 'Solo con el alto «A medida». Es un mínimo: si el contenido no cabe, la sección crece.', 'meridian' ),
+						]
+					),
+					self::f(
+						'minHeightUnit',
+						'select',
+						'design',
+						__( 'Unidad del alto', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'vh', 'label' => __( '% de la altura de la pantalla', 'meridian' ) ],
+								[ 'value' => 'px', 'label' => __( 'Píxeles', 'meridian' ) ],
+							],
+						]
 					),
 					self::f( 'vAlign', 'select', 'design', __( 'Alineación vertical', 'meridian' ), [ 'options' => [ 'start', 'center', 'end' ] ] ),
 					self::f(
@@ -94,11 +128,11 @@ class Catalog {
 						__( 'Ancho del contenido', 'meridian' ),
 						[
 							'options' => [
+								[ 'value' => 'full', 'label' => __( 'Todo el ancho, de borde a borde', 'meridian' ) ],
+								[ 'value' => 'padded', 'label' => __( 'Todo el ancho, con margen lateral', 'meridian' ) ],
 								[ 'value' => 'boxed', 'label' => __( 'Centrado y limitado', 'meridian' ) ],
-								[ 'value' => 'full', 'label' => __( 'Ancho completo con margen', 'meridian' ) ],
-								[ 'value' => 'bleed', 'label' => __( 'A sangre: literalmente de borde a borde', 'meridian' ) ],
 							],
-							'help'    => __( 'A sangre deja el contenido pegado a los bordes del dispositivo, sin ningún margen. Es lo que necesitan los mapas, los vídeos y las fotos a pantalla completa.', 'meridian' ),
+							'help'    => __( 'De borde a borde no deja ningún margen: el contenido llega al filo de la pantalla. Es lo que necesitan los mapas, los vídeos y las fotos a pantalla completa.', 'meridian' ),
 						]
 					),
 					self::f(
