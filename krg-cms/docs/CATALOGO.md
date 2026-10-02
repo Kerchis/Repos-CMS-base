@@ -6,7 +6,7 @@ marca, ver [`REFERENCE-SYSTEM.md`](REFERENCE-SYSTEM.md).
 
 ---
 
-## 1. Componentes nuevos (16)
+## 1. Componentes nuevos (18)
 
 Todos aparecen en el panel «Añadir componente» del constructor, agrupados por
 categoría. Todos tienen variantes, son reutilizables y reciben el contenido por
@@ -34,6 +34,8 @@ campos: **ninguno trae texto fijo en el código**.
 | Tabla de datos | Contenido | Tabla de dos columnas |
 | Panel partido | Contenido | Dos mitades a sangre: texto + imagen (con carrusel) |
 | Logotipo tipográfico | Texto | Texto monumental con sombra desplazada |
+| Carta / Menú | Contenido | Carta de restaurante por categorías, con foto y precio |
+| Pie partido | Contenido | Pie a dos mitades: imagen + contacto, enlaces y línea legal |
 
 ### Detalle
 
@@ -150,6 +152,47 @@ con flechas y puntos.
 - Tema independiente para cada mitad.
 - En tablet y móvil pasa a una columna con la imagen siempre debajo del texto.
 
+#### Carta / Menú
+Carta de restaurante editable por categorías. Los platos son una lista y cada
+plato elige su categoría de un desplegable que se alimenta de la lista de
+categorías: cambiar un plato de grupo es cambiar ese desplegable, y reordenar
+es usar las flechas del ítem.
+- **Agrupación**: `tabs` (pestañas, una categoría a la vez, filtrado sin
+  recargar) o `stacked` (todas las categorías seguidas, cada una con su título).
+- **Pestaña «Todo»** opcional, con texto configurable.
+- **Categorías** (repeater, hasta 60): nombre y descripción opcional. El orden
+  de la lista es el orden de las pestañas y de los bloques.
+- **Platos** (repeater, hasta 200): nombre, descripción, precio (texto libre,
+  así vale cualquier moneda), categoría, etiqueta («nuevo», «picante»…), foto,
+  texto alternativo y enlace opcional.
+- **Fotos**: se pueden ocultar, y se eligen tamaño (48–320 px) y forma
+  (cuadrada, redondeada o círculo).
+- **Guía al precio**: ninguna, puntos o línea fina, como en una carta impresa.
+- Color de acento propio (precios y pestaña activa), tema, columnas por
+  dispositivo, icono o logo sobre el título y botón final opcional.
+- Si un plato lleva una categoría que no está en la lista, se añade al final en
+  vez de desaparecer.
+
+#### Pie partido
+Pie a dos mitades, en la línea del Panel partido: una imagen a sangre y, al
+lado, el bloque de contacto, las columnas de enlaces y la línea legal. Sirve
+como sección de página y también dentro de la región **Pie** del editor de
+cabecera/pie.
+- **Lado de la imagen**: izquierda o derecha. En tablet y móvil se apila con la
+  imagen arriba.
+- **Proporción**: 50/50 · imagen ancha · contenido ancho. **Altura**: la del
+  contenido, media, alta, pantalla completa o a medida (px o % de pantalla).
+- **Contacto**: logo con ancho propio, antetítulo, dato destacado (teléfono,
+  que se enlaza solo como llamada si no pones URL) y líneas libres de horario
+  o dirección.
+- **Redes** (repeater): 13 iconos SVG en línea (sin peticiones externas) y
+  nombre accesible por enlace.
+- **Columnas de enlaces**: las columnas son una lista de títulos y cada enlace
+  elige su columna en un desplegable. Reordenar enlaces o moverlos de columna
+  no obliga a rehacer nada.
+- **Línea legal**: enlaces legales + copyright, con línea separadora opcional.
+- Tema, alineación y tracking propios.
+
 #### Logotipo tipográfico
 Texto monumental que ocupa todo el ancho, con sombra desplazada en color
 (efecto de relieve) o contorno.
@@ -248,6 +291,25 @@ partido, reseñas, CTA, acordeón, hitos y colección filtrable).
   editaban como texto plano.
 - **Valores iniciales correctos** al añadir un elemento nuevo a un repeater
   (según el tipo de cada sub-campo).
+- **Árbol de estructura con jerarquía real**: el panel «Estructura» pasa de
+  cajas anidadas a un árbol con guías, icono por tipo de bloque, plegado por
+  rama (`−` / `+`, y expandir/contraer todo) y acciones que aparecen al pasar
+  por encima o al seleccionar. Se mantienen el arrastrar y soltar, el renombrar
+  con doble clic y todos los botones anteriores. El plegado es estado de
+  interfaz: no toca el documento ni marca la página como modificada, y al
+  seleccionar un bloque se abren sus ramas para que nunca quede escondido.
+- **Repeaters ordenables**: cada ítem de una lista repetible trae número,
+  resumen y botones de subir, bajar, duplicar y eliminar. Antes solo se podía
+  añadir al final y borrar.
+- **Sub-campos con opciones dinámicas** (`optionsFrom`): un desplegable puede
+  tomar sus opciones de otra lista del mismo bloque (las categorías de la carta,
+  las columnas del pie). Server-side se guarda como texto, así que escribir una
+  opción que ya no existe no rompe nada.
+- **Tope de repeater por campo** (`maxItems`, máximo 300): el límite general
+  sigue en 50, pero una carta de restaurante puede declarar 200 platos.
+- **Repeaters en la región Pie**: el editor de cabecera/pie ya sabe pintar y
+  guardar listas repetibles, así que bloques como «Pie partido» se editan
+  enteros desde ahí.
 - **Reskin del panel**: paleta del sistema en todo el admin y el constructor.
   Los colores que estaban escritos a mano en el CSS del constructor pasaron a
   variables, así que ahora cambian con el tema.

@@ -126,6 +126,16 @@ function has_post_thumbnail( ...$a ) {
 function number_format_i18n( $n, $d = 0 ) {
 	return number_format( (float) $n, (int) $d );
 }
+function sanitize_title( $t ) {
+	$t = strtolower( trim( strip_tags( (string) $t ) ) );
+	$t = strtr( $t, [ 'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ñ' => 'n', 'ü' => 'u' ] );
+	$t = preg_replace( '/[^a-z0-9]+/', '-', $t );
+	return trim( (string) $t, '-' );
+}
+function sanitize_hex_color( $c ) {
+	$c = trim( (string) $c );
+	return preg_match( '/^#([0-9a-f]{3}|[0-9a-f]{6})$/i', $c ) ? $c : null;
+}
 
 /* ---------------------------------------------------------------- */
 /* Carga de las clases que hacen falta                               */
@@ -136,6 +146,7 @@ foreach (
 	[
 		'/core/render/RenderContext.php',
 		'/core/design/Contrast.php',
+		'/core/design/TokenCompiler.php',
 		'/core/render/ComponentRenders.php',
 		'/core/render/BrandRenders.php',
 	] as $f
@@ -199,6 +210,81 @@ $mapa_seccion = function () use ( $ctx ) {
 	$sec['children'] = [ node( 'map', [], 'm1' ) ];
 	return ComponentRenders::section( $sec, $sec['props'], fila( '<div class="m-map" style="--m-map-h:360px"><iframe title="Mapa"></iframe></div>', $ctx ), $ctx );
 };
+
+/** Carta de ejemplo para los casos de prueba (contenido ficticio). */
+function carta_props(): array {
+	return [
+		'title'      => 'Nuestra carta',
+		'eyebrow'    => 'Cocina del dia',
+		'groupMode'  => 'tabs',
+		'showAll'    => true,
+		'allLabel'   => 'Todo',
+		'showImages' => true,
+		'imageShape' => 'square',
+		'imageSize'  => 96,
+		'desktop'    => 2,
+		'theme'      => 'light',
+		'accent'     => [ 'mode' => 'custom', 'value' => '#c0152f' ],
+		'linkText'   => 'Ver el menu de hoy',
+		'linkUrl'    => '/carta/',
+		'categories' => [
+			[ 'label' => 'Pizzas', 'text' => 'Masa madre de 48 horas.' ],
+			[ 'label' => 'Pastas' ],
+			[ 'label' => 'Postres' ],
+			[ 'label' => 'Bebidas' ],
+		],
+		'items'      => [
+			[ 'title' => 'Pizza margarita', 'text' => 'Tomate, mozzarella y albahaca fresca.', 'price' => '$12.00', 'category' => 'Pizzas', 'badge' => '', 'imageId' => 0 ],
+			[ 'title' => 'Pasta al pesto', 'text' => 'Albahaca, pinones y parmesano.', 'price' => '$20.00', 'category' => 'Pastas', 'badge' => 'Nuevo', 'imageId' => 0 ],
+			[ 'title' => 'Pizza prosciutto', 'text' => 'Jamon curado y rucula.', 'price' => '$14.00', 'category' => 'Pizzas', 'badge' => '', 'imageId' => 0 ],
+			[ 'title' => 'Tiramisu', 'text' => 'Receta clasica de la casa.', 'price' => '$6.00', 'category' => 'Postres', 'badge' => '', 'imageId' => 0 ],
+			[ 'title' => 'Limonada de la casa', 'text' => 'Hierbabuena y jengibre.', 'price' => '$4.00', 'category' => 'Bebidas', 'badge' => '', 'imageId' => 0 ],
+		],
+	];
+}
+
+/** Pie partido de ejemplo. */
+function pie_props( string $side ): array {
+	return [
+		'mediaSide' => $side,
+		'ratio'     => 'half',
+		'height'    => 'auto',
+		'imageId'   => 7,
+		'alt'       => 'Fotografia del local',
+		'eyebrow'   => 'Llamanos',
+		'phone'     => '01 2345 6789',
+		'lines'     => [
+			[ 'text' => 'Lunes a viernes: 10:00 - 17:00' ],
+			[ 'text' => 'Fin de semana: 10:00 - 15:00' ],
+		],
+		'social'    => [
+			[ 'network' => 'facebook', 'url' => 'https://facebook.com', 'label' => 'Facebook' ],
+			[ 'network' => 'instagram', 'url' => 'https://instagram.com', 'label' => 'Instagram' ],
+			[ 'network' => 'x', 'url' => 'https://x.com', 'label' => 'X' ],
+			[ 'network' => 'whatsapp', 'url' => 'https://wa.me/1', 'label' => 'WhatsApp' ],
+		],
+		'columns'   => [
+			[ 'title' => 'Servicios' ],
+			[ 'title' => 'Compania' ],
+		],
+		'links'     => [
+			[ 'label' => 'Asesoria 1 a 1', 'url' => '/asesoria/', 'column' => 'Servicios' ],
+			[ 'label' => 'Revision de cuentas', 'url' => '/cuentas/', 'column' => 'Servicios' ],
+			[ 'label' => 'Consultoria', 'url' => '/consultoria/', 'column' => 'Servicios' ],
+			[ 'label' => 'Sobre nosotros', 'url' => '/nosotros/', 'column' => 'Compania' ],
+			[ 'label' => 'El equipo', 'url' => '/equipo/', 'column' => 'Compania' ],
+		],
+		'legal'     => [
+			[ 'label' => 'Terminos y condiciones', 'url' => '/terminos/' ],
+			[ 'label' => 'Privacidad', 'url' => '/privacidad/' ],
+			[ 'label' => 'Cookies', 'url' => '/cookies/' ],
+		],
+		'copyright' => '(c) 2026 Nombre del negocio. Todos los derechos reservados.',
+		'showRule'  => true,
+		'theme'     => 'light',
+		'align'     => 'left',
+	];
+}
 
 $cases = [
 	'section-exacto-300px' => function () use ( $ctx, $panel ) {
@@ -544,6 +630,66 @@ $cases = [
 			'sp2'
 		);
 		return \Meridian\Render\BrandRenders::split_panel( $n, $n['props'], '', $ctx );
+	},
+
+	/* ---------------------------------------------------------------- */
+	/* Carta de restaurante y pie partido                                */
+	/* ---------------------------------------------------------------- */
+
+	'carta-pestanas'       => function () use ( $ctx ) {
+		$n = node( 'menu-list', carta_props(), 'ml1' );
+		$s = node( 'section', [ 'width' => 'padded' ], 'sml' );
+		$s['children'] = [ $n ];
+		return ComponentRenders::section(
+			$s,
+			$s['props'],
+			fila( \Meridian\Render\BrandRenders::menu_list( $n, $n['props'], '', $ctx ), $ctx ),
+			$ctx
+		);
+	},
+
+	'carta-apilada'        => function () use ( $ctx ) {
+		$props              = carta_props();
+		$props['groupMode'] = 'stacked';
+		$props['leader']    = 'dotted';
+		$props['showImages'] = false;
+		$n = node( 'menu-list', $props, 'ml2' );
+		$s = node( 'section', [ 'width' => 'padded' ], 'sml2' );
+		$s['children'] = [ $n ];
+		return ComponentRenders::section(
+			$s,
+			$s['props'],
+			fila( \Meridian\Render\BrandRenders::menu_list( $n, $n['props'], '', $ctx ), $ctx ),
+			$ctx
+		);
+	},
+
+	'pie-partido-izq'      => function () use ( $ctx ) {
+		$n = node( 'footer-split', pie_props( 'left' ), 'fs1' );
+		$s = node( 'section', [ 'width' => 'full' ], 'sfs1' );
+		$s['children'] = [ $n ];
+		return ComponentRenders::section(
+			$s,
+			$s['props'],
+			fila( \Meridian\Render\BrandRenders::footer_split( $n, $n['props'], '', $ctx ), $ctx ),
+			$ctx
+		);
+	},
+
+	'pie-partido-der'      => function () use ( $ctx ) {
+		$props              = pie_props( 'right' );
+		$props['theme']     = 'forest';
+		$props['height']    = 'custom';
+		$props['heightValue'] = 520;
+		$n = node( 'footer-split', $props, 'fs2' );
+		$s = node( 'section', [ 'width' => 'full' ], 'sfs2' );
+		$s['children'] = [ $n ];
+		return ComponentRenders::section(
+			$s,
+			$s['props'],
+			fila( \Meridian\Render\BrandRenders::footer_split( $n, $n['props'], '', $ctx ), $ctx ),
+			$ctx
+		);
 	},
 ];
 

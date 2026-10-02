@@ -198,7 +198,11 @@ class Sanitizer {
 				return self::spacing( $value );
 			case 'repeater':
 				$items = is_array( $value ) ? $value : [];
-				$items = array_slice( $items, 0, 50 );
+				// Tope por defecto 50. Un bloque puede pedir mas (una carta
+				// de restaurante no cabe en 50 platos), nunca mas de 300.
+				$limit = absint( $field['maxItems'] ?? 50 );
+				$limit = max( 1, min( 300, $limit ?: 50 ) );
+				$items = array_slice( $items, 0, $limit );
 				$sub   = $field['itemFields'] ?? [];
 				$out   = [];
 				foreach ( $items as $item ) {

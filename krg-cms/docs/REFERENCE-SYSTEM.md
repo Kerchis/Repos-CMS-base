@@ -137,6 +137,7 @@ datos, nunca por clases de estilo:
 | `data-preloader` | preloader | contador, barra y `sessionStorage` |
 | `data-scroll-text` | scroll-text | revelado palabra a palabra |
 | `data-sp-carousel` | split-panel | carrusel del panel de imagen |
+| `data-carta` | menu-list | pestañas de categoría, filtrado y estado vacío |
 | `data-header-skin` | secciones y bloques | declara si la cabecera necesita texto claro u oscuro |
 | `data-adaptive` | cabecera | `text` o `full`: qué adapta la cabecera al pasar sobre cada sección |
 

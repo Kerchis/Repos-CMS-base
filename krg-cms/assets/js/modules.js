@@ -798,6 +798,50 @@
   }
 
   /* ---------------------------------------------------------------- */
+  /* Carta de restaurante: pestañas de categoría                        */
+  /* ---------------------------------------------------------------- */
+
+  function initMenuList(root) {
+    each(
+      "[data-carta]",
+      function (el) {
+        if (!once(el, "krgCarta")) return;
+        var grid = el.querySelector("[data-carta-grid]");
+        if (!grid) return;
+        var items = Array.prototype.slice.call(grid.querySelectorAll(".m-carta-item"));
+        var tabs = Array.prototype.slice.call(el.querySelectorAll("[data-carta-filter]"));
+        var empty = el.querySelector("[data-carta-empty]");
+        if (!tabs.length) return;
+
+        function apply(filter) {
+          var shown = 0;
+          items.forEach(function (it) {
+            var ok = filter === "*" || it.getAttribute("data-cat") === filter;
+            it.hidden = !ok;
+            if (ok) shown++;
+          });
+          if (empty) empty.hidden = shown !== 0;
+        }
+
+        tabs.forEach(function (tab) {
+          tab.addEventListener("click", function () {
+            tabs.forEach(function (t) {
+              var on = t === tab;
+              t.classList.toggle("is-on", on);
+              t.setAttribute("aria-pressed", on ? "true" : "false");
+            });
+            apply(tab.getAttribute("data-carta-filter") || "*");
+          });
+        });
+
+        var start = tabs.filter(function (t) { return t.classList.contains("is-on"); })[0] || tabs[0];
+        apply(start.getAttribute("data-carta-filter") || "*");
+      },
+      root
+    );
+  }
+
+  /* ---------------------------------------------------------------- */
   /* Arranque                                                           */
   /* ---------------------------------------------------------------- */
 
@@ -808,6 +852,7 @@
     initRail(root);
     initReviews(root);
     initFilterCollection(root);
+    initMenuList(root);
     initTrace(root);
     initSplitPanel(root);
     initStickyHeader();

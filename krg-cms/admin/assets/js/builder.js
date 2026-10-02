@@ -36,6 +36,9 @@
     shell: false,
     inspTab: "content",
     widths: { desktop: 1280, tablet: 768, mobile: 390 },
+    // Ramas plegadas del árbol de estructura. Es estado de interfaz, no
+    // del documento: no se guarda ni ensucia la página.
+    treeClosed: new Set(),
   };
   const PRESETS = {
     desktop: { w: 1280, h: 800 },
@@ -713,6 +716,16 @@
         dropNode(srcId, destId, dropPlace(e, hd, src, dest));
       });
     });
+    treeEl.querySelectorAll("[data-tw]").forEach((b) => {
+      b.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        treeToggle(b.getAttribute("data-tw"));
+      });
+    });
+    root.querySelectorAll("[data-tree-all]").forEach((b) => {
+      b.onclick = () => treeAll(b.getAttribute("data-tree-all") === "open");
+    });
     treeEl.querySelectorAll("[data-rename]").forEach((el) => {
       el.addEventListener("dblclick", (e) => {
         e.preventDefault();
@@ -866,32 +879,124 @@
       </div>`).join("");
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Árbol de estructura                                                  */
+  /* ------------------------------------------------------------------ */
+
+  // Iconos por tipo de nodo. Hacen el árbol legible de un vistazo: el
+  // nombre ya no es lo único que distingue una fila de una columna.
+  const TREE_ICONS = {
+    section: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 2h12v3H2V2zm0 4.5h12V14H2V6.5zm1.2 1.2v5.1h9.6V7.7H3.2z"/></svg>',
+    row: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 3h12v4H2V3zm0 6h12v4H2V9zm1.2 1.2v1.6h9.6v-1.6H3.2zm0-6V5.8h9.6V4.2H3.2z"/></svg>',
+    column: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 2h5v12H2V2zm7 0h5v12H9V2zM3.2 3.2v9.6h2.6V3.2H3.2zm7 0v9.6h2.6V3.2h-2.6z"/></svg>',
+    text: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 3h12v1.6H9v8.4H7V4.6H2V3z"/></svg>',
+    image: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 3h12v10H2V3zm1.2 1.2v6l2.6-2.4 2.3 2.1 2.3-2.8 2.4 2.7V4.2H3.2zM6 5.4a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>',
+    video: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 3h12v10H2V3zm4.4 2.4v5.2L10.8 8 6.4 5.4z"/></svg>',
+    map: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M8 1.6a4 4 0 0 0-4 4c0 3 4 8.8 4 8.8s4-5.8 4-8.8a4 4 0 0 0-4-4zm0 5.6a1.7 1.7 0 1 1 0-3.4 1.7 1.7 0 0 1 0 3.4z"/></svg>',
+    form: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 3h12v3.2H2V3zm0 4.6h12V14H2V7.6zM3.2 8.8v4h9.6v-4H3.2zm0-4.6v1.8h9.6V4.2H3.2z"/></svg>',
+    button: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 5h12a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm.2 1.4v3.2h11.6V6.4H2.2z"/></svg>',
+    list: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 3.2h2v2H2v-2zm3.6 0H14v2H5.6v-2zM2 7h2v2H2V7zm3.6 0H14v2H5.6V7zM2 10.8h2v2H2v-2zm3.6 0H14v2H5.6v-2z"/></svg>',
+    module: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2.6 2.6h10.8v10.8H2.6V2.6zm1.2 1.2v8.4h8.4V3.8H3.8z"/></svg>',
+  };
+  const TREE_ICON_BY_TYPE = {
+    section: "section", row: "row", column: "column",
+    heading: "text", paragraph: "text", "rich-text": "text", text: "text",
+    "display-type": "text", "scroll-text": "text", wordmark: "text",
+    "statement-list": "list", "numbered-list": "list", "info-table": "list",
+    "menu-list": "list", marquee: "text",
+    image: "image", gallery: "image", figure: "image", logo: "image",
+    video: "video", map: "map",
+    "everest-form": "form", form: "form", "contact-form": "form", "search-form": "form",
+    button: "button", buttons: "button",
+  };
+  function treeIcon(type) {
+    return TREE_ICONS[TREE_ICON_BY_TYPE[type] || "module"] || TREE_ICONS.module;
+  }
+
+  /** Ruta de ancestros de un nodo, de la raíz hacia abajo. */
+  function ancestorIds(nid) {
+    const path = [];
+    let hit = findNode(state.doc.sections, nid);
+    while (hit && hit.parent) {
+      path.unshift(hit.parent.id);
+      hit = findNode(state.doc.sections, hit.parent.id);
+    }
+    return path;
+  }
+
+  function treeToggle(nid) {
+    if (state.treeClosed.has(nid)) state.treeClosed.delete(nid);
+    else state.treeClosed.add(nid);
+    render({ keepFrame: true });
+  }
+
+  function treeAll(open) {
+    if (open) {
+      state.treeClosed.clear();
+    } else {
+      const walk = (nodes) => (nodes || []).forEach((n) => {
+        if ((n.children || []).length) {
+          state.treeClosed.add(n.id);
+          walk(n.children);
+        }
+      });
+      walk(state.doc.sections);
+    }
+    render({ keepFrame: true });
+  }
+
   function tree() {
-    const walk = (nodes, depth = 0, parent = null) =>
+    // Al cambiar la selección se abren sus ancestros: seleccionar algo
+    // desde el lienzo no puede dejarlo escondido en una rama plegada.
+    if (state.selected && state.treeOpenedFor !== state.selected) {
+      state.treeOpenedFor = state.selected;
+      ancestorIds(state.selected).forEach((id) => state.treeClosed.delete(id));
+    }
+    const walk = (nodes, parent = null) =>
       (nodes || []).map((n) => {
-        const sel = n.id === state.selected ? " sel" : "";
-        const vis = n.visible === false ? " (oculto)" : "";
-        const glob = n.source === "global" ? " ⌁" : "";
+        const kids = (n.children || []).length > 0;
+        const open = kids && !state.treeClosed.has(n.id);
+        const cls = ["sec"];
+        if (n.id === state.selected) cls.push("sel");
+        if (kids) cls.push("has-kids");
+        if (open) cls.push("is-open");
+        if (n.visible === false) cls.push("is-off");
         const isSec = n.type === "section";
         const inCol = parent?.type === "column";
-        return `<div class="sec${sel}" style="margin-left:${depth * 8}px" data-tree="${n.id}">
+        return `<div class="${cls.join(" ")}" data-tree="${n.id}">
           <div class="hd" data-nid="${n.id}">
+            ${kids
+              ? `<button type="button" class="b-tw" data-tw="${n.id}" aria-expanded="${open ? "true" : "false"}" title="${open ? "Contraer" : "Expandir"}">${open ? "−" : "+"}</button>`
+              : `<span class="b-tw is-leaf" aria-hidden="true"></span>`}
             <span class="b-drag" draggable="true" data-drag="${n.id}" title="Arrastrar para mover">⋮⋮</span>
-            <span data-sel="${n.id}" data-rename="${n.id}" title="Clic para seleccionar · Doble clic para renombrar">${esc(n.name || n.type)}${glob}${vis}</span>
-            <button class="b-ico" data-up="${n.id}" title="Subir">↑</button>
-            <button class="b-ico" data-down="${n.id}" title="Bajar">↓</button>
-            ${inCol ? `<button type="button" class="b-ico" data-shift="${n.id}" data-dir="prev" title="Mover a columna izquierda">‹</button>
-              <button type="button" class="b-ico" data-shift="${n.id}" data-dir="next" title="Mover a columna derecha">›</button>` : ""}
-            <button class="b-ico" data-dup="${n.id}" title="Duplicar">⧉</button>
-            <button class="b-ico" data-hid="${n.id}" title="Ocultar">${n.visible === false ? "○" : "●"}</button>
-            ${isSec ? `<button class="b-ico" data-tpl="${n.id}" title="Plantilla">☆</button>` : ""}
-            <button class="b-ico" data-glb="${n.id}" title="Global">G</button>
-            <button class="b-ico" data-del="${n.id}" title="Eliminar">✕</button>
+            <span class="b-tico" aria-hidden="true">${treeIcon(n.type)}</span>
+            <span class="b-tname" data-sel="${n.id}" data-rename="${n.id}" title="Clic para seleccionar · Doble clic para renombrar">${esc(n.name || n.type)}</span>
+            ${n.source === "global" ? `<span class="b-tag" title="Componente global">⌁</span>` : ""}
+            ${n.visible === false ? `<span class="b-tag">oculto</span>` : ""}
+            <span class="b-acts">
+              <button class="b-ico" data-up="${n.id}" title="Subir">↑</button>
+              <button class="b-ico" data-down="${n.id}" title="Bajar">↓</button>
+              ${inCol ? `<button type="button" class="b-ico" data-shift="${n.id}" data-dir="prev" title="Mover a columna izquierda">‹</button>
+                <button type="button" class="b-ico" data-shift="${n.id}" data-dir="next" title="Mover a columna derecha">›</button>` : ""}
+              <button class="b-ico" data-dup="${n.id}" title="Duplicar">⧉</button>
+              <button class="b-ico" data-hid="${n.id}" title="${n.visible === false ? "Mostrar" : "Ocultar"}">${n.visible === false ? "○" : "●"}</button>
+              ${isSec ? `<button class="b-ico" data-tpl="${n.id}" title="Guardar como plantilla">☆</button>` : ""}
+              <button class="b-ico" data-glb="${n.id}" title="Convertir en global">G</button>
+              <button class="b-ico" data-del="${n.id}" title="Eliminar">✕</button>
+            </span>
           </div>
-          ${walk(n.children, depth + 1, n)}
+          ${kids ? `<div class="b-kids">${walk(n.children, n)}</div>` : ""}
         </div>`;
       }).join("");
-    return `<div class="b-sec"><h4>Estructura</h4><div class="b-tree">${walk(state.doc.sections) || "<p class='b-empty'>Añade una sección.</p>"}</div></div>`;
+    return `<div class="b-sec">
+      <h4 class="b-tree-h">Estructura
+        <span class="b-tree-tools">
+          <button type="button" class="b-ico" data-tree-all="open" title="Expandir todo">⤢</button>
+          <button type="button" class="b-ico" data-tree-all="close" title="Contraer todo">⤡</button>
+        </span>
+      </h4>
+      <div class="b-tree">${walk(state.doc.sections) || "<p class='b-empty'>Añade una sección.</p>"}</div>
+    </div>`;
   }
 
   function unitize(v, unit) {
@@ -2117,6 +2222,20 @@
           </div>`;
         }
         if (sf.key === "imageUrl") return "";
+        // Opciones tomadas de otro repetidor del mismo bloque: así las
+        // categorías de la carta o las columnas del pie se eligen de una
+        // lista en vez de reescribirse a mano en cada ítem.
+        if (sf.optionsFrom) {
+          const src = Array.isArray(node.props?.[sf.optionsFrom]) ? node.props[sf.optionsFrom] : [];
+          const lk = sf.labelKey || "label";
+          const cur = String(it[sf.key] ?? "");
+          const opts = src.map((o) => String(o?.[lk] ?? "").trim()).filter(Boolean);
+          if (cur && !opts.includes(cur)) opts.push(cur);
+          return `<label>${esc(sf.label)} <select data-rep="${f.key}" data-i="${i}" data-k="${sf.key}">
+            <option value="">— Sin asignar —</option>
+            ${opts.map((o) => `<option value="${esc(o)}" ${cur === o ? "selected" : ""}>${esc(o)}</option>`).join("")}
+          </select></label>`;
+        }
         if (sf.type === "textarea") {
           return `<label>${esc(sf.label)} <textarea data-rep="${f.key}" data-i="${i}" data-k="${sf.key}">${esc(it[sf.key] ?? "")}</textarea></label>`;
         }
@@ -2136,10 +2255,27 @@
         }
         return `<label>${esc(sf.label)} <input data-rep="${f.key}" data-i="${i}" data-k="${sf.key}" value="${esc(it[sf.key] ?? "")}"></label>`;
       };
-      return `<div><strong>${esc(f.label)}</strong>
+      const resumen = (it) => {
+        for (const sf of f.itemFields || []) {
+          if (["text", "textarea", "url"].includes(sf.type) && String(it[sf.key] ?? "").trim()) {
+            return String(it[sf.key]).trim().slice(0, 42);
+          }
+        }
+        return "";
+      };
+      return `<div class="b-rep"><strong>${esc(f.label)}</strong>
         ${items.map((it, i) => `<div class="rep-item">
+          <div class="rep-head">
+            <span class="rep-n">${i + 1}</span>
+            <span class="rep-sum">${esc(resumen(it))}</span>
+            <span class="rep-acts">
+              <button type="button" class="b-ico" data-rep-move="${f.key}" data-i="${i}" data-dir="-1" title="Subir">↑</button>
+              <button type="button" class="b-ico" data-rep-move="${f.key}" data-i="${i}" data-dir="1" title="Bajar">↓</button>
+              <button type="button" class="b-ico" data-rep-dup="${f.key}" data-i="${i}" title="Duplicar">⧉</button>
+              <button type="button" class="b-ico" data-rep-del="${f.key}" data-i="${i}" title="Eliminar">✕</button>
+            </span>
+          </div>
           ${(f.itemFields || []).map((sf) => sub(sf, it, i)).join("")}
-          <button type="button" class="b-ico" data-rep-del="${f.key}" data-i="${i}">Eliminar ítem</button>
         </div>`).join("")}
         <button type="button" class="m-btn ghost" data-rep-add="${f.key}">Añadir</button>
       </div>`;
@@ -2526,6 +2662,35 @@
         const h = hit();
         snapshot();
         h.node.props[b.dataset.repDel].splice(Number(b.dataset.i), 1);
+        markDirty();
+        render();
+      };
+    });
+    box.querySelectorAll("[data-rep-move]").forEach((b) => {
+      b.onclick = () => {
+        const h = hit();
+        if (!h) return;
+        const arr = h.node.props[b.dataset.repMove] || [];
+        const i = Number(b.dataset.i);
+        const j = i + Number(b.dataset.dir);
+        if (j < 0 || j >= arr.length) return;
+        snapshot();
+        const tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+        markDirty();
+        render();
+      };
+    });
+    box.querySelectorAll("[data-rep-dup]").forEach((b) => {
+      b.onclick = () => {
+        const h = hit();
+        if (!h) return;
+        const arr = h.node.props[b.dataset.repDup] || [];
+        const i = Number(b.dataset.i);
+        if (!arr[i]) return;
+        snapshot();
+        arr.splice(i + 1, 0, JSON.parse(JSON.stringify(arr[i])));
         markDirty();
         render();
       };

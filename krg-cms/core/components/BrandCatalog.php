@@ -22,7 +22,8 @@ class BrandCatalog {
 			self::collections(),
 			self::editorial(),
 			self::modules(),
-			self::panels()
+			self::panels(),
+			self::extras()
 		);
 	}
 
@@ -977,6 +978,373 @@ class BrandCatalog {
 					self::f( 'textColor', 'color', 'colors', __( 'Color del texto', 'meridian' ) ),
 					self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'light', 'surface', 'forest', 'dark' ] ] ),
 					self::f( 'reveal', 'select', 'design', __( 'Revelado', 'meridian' ), [ 'options' => [ 'fade', 'letters', 'none' ] ] ),
+					...self::spacing_fields(),
+				],
+			],
+		];
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Extras: carta de restaurante y pie partido                          */
+	/* ------------------------------------------------------------------ */
+
+	/** Redes disponibles en los bloques con iconos sociales. */
+	public static function social_networks(): array {
+		return [
+			[ 'value' => 'facebook', 'label' => 'Facebook' ],
+			[ 'value' => 'instagram', 'label' => 'Instagram' ],
+			[ 'value' => 'x', 'label' => 'X / Twitter' ],
+			[ 'value' => 'youtube', 'label' => 'YouTube' ],
+			[ 'value' => 'linkedin', 'label' => 'LinkedIn' ],
+			[ 'value' => 'tiktok', 'label' => 'TikTok' ],
+			[ 'value' => 'whatsapp', 'label' => 'WhatsApp' ],
+			[ 'value' => 'pinterest', 'label' => 'Pinterest' ],
+			[ 'value' => 'github', 'label' => 'GitHub' ],
+			[ 'value' => 'dribbble', 'label' => 'Dribbble' ],
+			[ 'value' => 'email', 'label' => __( 'Correo', 'meridian' ) ],
+			[ 'value' => 'phone', 'label' => __( 'Teléfono', 'meridian' ) ],
+			[ 'value' => 'link', 'label' => __( 'Enlace genérico', 'meridian' ) ],
+		];
+	}
+
+	private static function extras(): array {
+		return [
+			[
+				'slug'        => 'menu-list',
+				'name'        => __( 'Carta / Menú', 'meridian' ),
+				'description' => __( 'Carta de restaurante por categorías: pestañas o bloques separados, con foto, descripción y precio por plato.', 'meridian' ),
+				'category'    => 'content',
+				'icon'        => 'list',
+				'defaults'    => [
+					'eyebrow'     => '',
+					'title'       => 'Nuestra carta',
+					'titleTag'    => 'h2',
+					'tracking'    => 'normal',
+					'align'       => 'center',
+					'iconId'      => 0,
+					'iconWidth'   => 56,
+					'iconAlt'     => '',
+					'groupMode'   => 'tabs',
+					'showAll'     => true,
+					'allLabel'    => 'Todo',
+					'showImages'  => true,
+					'imageShape'  => 'square',
+					'imageSize'   => 96,
+					'leader'      => 'none',
+					'desktop'     => 2,
+					'tablet'      => 1,
+					'mobile'      => 1,
+					'theme'       => 'light',
+					'accent'      => [ 'mode' => 'token', 'token' => 'color.primary' ],
+					'linkText'    => '',
+					'linkUrl'     => '',
+					'buttonStyle' => 'outline',
+					'emptyLabel'  => '',
+					'categories'  => [
+						[ 'label' => 'Entradas' ],
+						[ 'label' => 'Platos fuertes' ],
+						[ 'label' => 'Postres' ],
+						[ 'label' => 'Bebidas' ],
+					],
+					'items'       => [
+						[
+							'title'    => 'Plato de ejemplo',
+							'text'     => 'Descripción corta del plato: ingredientes principales.',
+							'price'    => '$0',
+							'category' => 'Entradas',
+							'badge'    => '',
+							'imageId'  => 0,
+							'imageUrl' => '',
+							'alt'      => '',
+							'url'      => '',
+						],
+						[
+							'title'    => 'Otro plato de ejemplo',
+							'text'     => 'Descripción corta del plato: ingredientes principales.',
+							'price'    => '$0',
+							'category' => 'Platos fuertes',
+							'badge'    => '',
+							'imageId'  => 0,
+							'imageUrl' => '',
+							'alt'      => '',
+							'url'      => '',
+						],
+					],
+				],
+				'fields'      => [
+					self::f( 'eyebrow', 'text', 'content', __( 'Antetítulo', 'meridian' ) ),
+					self::f( 'title', 'textarea', 'content', __( 'Título', 'meridian' ) ),
+					self::f( 'titleTag', 'htmlTag', 'content', __( 'Etiqueta del título', 'meridian' ), [ 'options' => [ 'h1', 'h2', 'h3', 'h4', 'p' ] ] ),
+					self::f( 'iconId', 'image', 'content', __( 'Icono o logo sobre el título', 'meridian' ) ),
+					self::f( 'iconAlt', 'text', 'content', __( 'Texto alternativo del icono', 'meridian' ) ),
+					self::f( 'iconWidth', 'number', 'design', __( 'Ancho del icono (px)', 'meridian' ), [ 'min' => 16, 'max' => 400 ] ),
+					self::f(
+						'groupMode',
+						'select',
+						'layout',
+						__( 'Cómo se agrupan las categorías', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'tabs', 'label' => __( 'Pestañas (una categoría a la vez)', 'meridian' ) ],
+								[ 'value' => 'stacked', 'label' => __( 'Bloques separados (todas, una debajo de otra)', 'meridian' ) ],
+							],
+							'help'    => __( 'Con pestañas el visitante cambia de categoría sin recargar. Con bloques se ve la carta entera, cada categoría con su título.', 'meridian' ),
+						]
+					),
+					self::f( 'showAll', 'toggle', 'design', __( 'Pestaña «Todo»', 'meridian' ) ),
+					self::f( 'allLabel', 'text', 'content', __( 'Texto de la pestaña «Todo»', 'meridian' ) ),
+					self::f( 'emptyLabel', 'text', 'content', __( 'Aviso cuando una categoría está vacía', 'meridian' ) ),
+					self::f( 'showImages', 'toggle', 'design', __( 'Mostrar fotos de los platos', 'meridian' ) ),
+					self::f( 'imageShape', 'select', 'design', __( 'Forma de la foto', 'meridian' ), [ 'options' => [ 'square', 'rounded', 'circle' ] ] ),
+					self::f( 'imageSize', 'number', 'design', __( 'Tamaño de la foto (px)', 'meridian' ), [ 'min' => 48, 'max' => 320 ] ),
+					self::f(
+						'leader',
+						'select',
+						'design',
+						__( 'Línea entre el plato y el precio', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'none', 'label' => __( 'Ninguna', 'meridian' ) ],
+								[ 'value' => 'dotted', 'label' => __( 'Puntos', 'meridian' ) ],
+								[ 'value' => 'solid', 'label' => __( 'Línea fina', 'meridian' ) ],
+							],
+						]
+					),
+					self::f( 'tracking', 'select', 'design', __( 'Tracking del título', 'meridian' ), [ 'options' => [ 'wide', 'normal', 'tight' ] ] ),
+					self::f( 'align', 'alignment', 'design', __( 'Alineación de la cabecera', 'meridian' ), [ 'options' => [ 'left', 'center', 'right' ] ] ),
+					...self::cols( 2, 1, 1, 4 ),
+					self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'light', 'cream', 'surface', 'forest', 'dark' ] ] ),
+					self::f( 'accent', 'color', 'colors', __( 'Color de acento (precios y pestaña activa)', 'meridian' ) ),
+					self::f(
+						'categories',
+						'repeater',
+						'content',
+						__( 'Categorías', 'meridian' ),
+						[
+							'maxItems'   => 60,
+							'help'       => __( 'El orden de esta lista es el orden de las pestañas. Cada plato se asigna a una categoría.', 'meridian' ),
+							'itemFields' => [
+								self::f( 'label', 'text', 'content', __( 'Nombre de la categoría', 'meridian' ) ),
+								self::f( 'text', 'text', 'content', __( 'Descripción (opcional)', 'meridian' ) ),
+							],
+						]
+					),
+					self::f(
+						'items',
+						'repeater',
+						'content',
+						__( 'Platos', 'meridian' ),
+						[
+							'maxItems'   => 200,
+							'itemFields' => [
+								self::f( 'title', 'text', 'content', __( 'Nombre del plato', 'meridian' ) ),
+								self::f( 'text', 'textarea', 'content', __( 'Descripción', 'meridian' ) ),
+								self::f( 'price', 'text', 'content', __( 'Precio', 'meridian' ) ),
+								self::f(
+									'category',
+									'select',
+									'content',
+									__( 'Categoría', 'meridian' ),
+									[
+										'optionsFrom' => 'categories',
+										'labelKey'    => 'label',
+										'help'        => __( 'Se elige entre las categorías de arriba.', 'meridian' ),
+									]
+								),
+								self::f( 'badge', 'text', 'content', __( 'Etiqueta (nuevo, picante…)', 'meridian' ) ),
+								self::f( 'imageId', 'image', 'content', __( 'Foto', 'meridian' ) ),
+								self::f( 'imageUrl', 'url', 'content', __( 'URL de la foto', 'meridian' ) ),
+								self::f( 'alt', 'text', 'content', __( 'Texto alternativo', 'meridian' ) ),
+								self::f( 'url', 'url', 'content', __( 'Enlace (opcional)', 'meridian' ) ),
+							],
+						]
+					),
+					self::f( 'linkText', 'text', 'content', __( 'Texto del botón final', 'meridian' ) ),
+					self::f( 'linkUrl', 'url', 'content', __( 'URL del botón final', 'meridian' ) ),
+					self::f( 'buttonStyle', 'select', 'design', __( 'Estilo del botón', 'meridian' ), [ 'options' => [ 'outline', 'solid', 'ghost' ] ] ),
+					...self::spacing_fields(),
+				],
+			],
+			[
+				'slug'        => 'footer-split',
+				'name'        => __( 'Pie partido', 'meridian' ),
+				'description' => __( 'Pie a dos mitades: una imagen a sangre y, al lado, contacto, redes, columnas de enlaces y la línea legal. La imagen puede ir a izquierda o derecha.', 'meridian' ),
+				'category'    => 'content',
+				'icon'        => 'split',
+				'defaults'    => [
+					'mediaSide'   => 'left',
+					'ratio'       => 'half',
+					'height'      => 'auto',
+					'heightValue' => 460,
+					'heightUnit'  => 'px',
+					'mediaFit'    => 'cover',
+					'imageId'     => 0,
+					'imageUrl'    => '',
+					'alt'         => '',
+					'logoId'      => 0,
+					'logoWidth'   => 160,
+					'logoAlt'     => '',
+					'eyebrow'     => 'Llámanos',
+					'phone'       => '',
+					'phoneUrl'    => '',
+					'lines'       => [
+						[ 'text' => 'Lunes a viernes: 10:00 - 17:00' ],
+						[ 'text' => 'Fin de semana: 10:00 - 15:00' ],
+					],
+					'social'      => [],
+					'columns'     => [
+						[ 'title' => 'Servicios' ],
+						[ 'title' => 'Compañía' ],
+					],
+					'links'       => [],
+					'legal'       => [],
+					'copyright'   => '',
+					'showRule'    => true,
+					'theme'       => 'light',
+					'align'       => 'left',
+					'tracking'    => 'normal',
+				],
+				'fields'      => [
+					self::f(
+						'mediaSide',
+						'select',
+						'layout',
+						__( 'Lado de la imagen', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'left', 'label' => __( 'Imagen a la izquierda', 'meridian' ) ],
+								[ 'value' => 'right', 'label' => __( 'Imagen a la derecha', 'meridian' ) ],
+							],
+							'help'    => __( 'En tablet y móvil se apilan: la imagen arriba y el contenido debajo.', 'meridian' ),
+						]
+					),
+					self::f(
+						'ratio',
+						'select',
+						'layout',
+						__( 'Proporción', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'half', 'label' => __( 'Mitad y mitad', 'meridian' ) ],
+								[ 'value' => 'media-wide', 'label' => __( 'Imagen más ancha', 'meridian' ) ],
+								[ 'value' => 'copy-wide', 'label' => __( 'Contenido más ancho', 'meridian' ) ],
+							],
+						]
+					),
+					self::f(
+						'height',
+						'select',
+						'layout',
+						__( 'Altura', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'auto', 'label' => __( 'La del contenido', 'meridian' ) ],
+								[ 'value' => 'medium', 'label' => __( 'Media', 'meridian' ) ],
+								[ 'value' => 'tall', 'label' => __( 'Alta', 'meridian' ) ],
+								[ 'value' => 'screen', 'label' => __( 'Pantalla completa', 'meridian' ) ],
+								[ 'value' => 'custom', 'label' => __( 'A medida…', 'meridian' ) ],
+							],
+						]
+					),
+					self::f( 'heightValue', 'number', 'layout', __( 'Altura a medida', 'meridian' ), [ 'min' => 1, 'max' => 4000, 'help' => __( 'Es un mínimo: si el contenido no cabe, el pie crece.', 'meridian' ) ] ),
+					self::f(
+						'heightUnit',
+						'select',
+						'layout',
+						__( 'Unidad de la altura', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'px', 'label' => __( 'Píxeles', 'meridian' ) ],
+								[ 'value' => 'vh', 'label' => __( '% de la altura de la pantalla', 'meridian' ) ],
+							],
+						]
+					),
+					self::f( 'imageId', 'image', 'content', __( 'Imagen', 'meridian' ) ),
+					self::f( 'imageUrl', 'url', 'content', __( 'URL de la imagen', 'meridian' ) ),
+					self::f( 'alt', 'text', 'content', __( 'Texto alternativo de la imagen', 'meridian' ) ),
+					self::f( 'mediaFit', 'select', 'design', __( 'Ajuste de la imagen', 'meridian' ), [ 'options' => [ 'cover', 'contain' ] ] ),
+					self::f( 'logoId', 'image', 'content', __( 'Logo', 'meridian' ) ),
+					self::f( 'logoAlt', 'text', 'content', __( 'Texto alternativo del logo', 'meridian' ) ),
+					self::f( 'logoWidth', 'number', 'design', __( 'Ancho del logo (px)', 'meridian' ), [ 'min' => 40, 'max' => 600 ] ),
+					self::f( 'eyebrow', 'text', 'content', __( 'Antetítulo', 'meridian' ) ),
+					self::f( 'phone', 'text', 'content', __( 'Dato destacado (teléfono)', 'meridian' ) ),
+					self::f( 'phoneUrl', 'url', 'content', __( 'Enlace del dato destacado', 'meridian' ), [ 'help' => __( 'Vacío y con un teléfono escrito, se enlaza solo como llamada.', 'meridian' ) ] ),
+					self::f(
+						'lines',
+						'repeater',
+						'content',
+						__( 'Líneas de texto (horarios, dirección…)', 'meridian' ),
+						[
+							'itemFields' => [
+								self::f( 'text', 'text', 'content', __( 'Texto', 'meridian' ) ),
+							],
+						]
+					),
+					self::f(
+						'social',
+						'repeater',
+						'content',
+						__( 'Redes sociales', 'meridian' ),
+						[
+							'itemFields' => [
+								self::f( 'network', 'select', 'content', __( 'Red', 'meridian' ), [ 'options' => self::social_networks() ] ),
+								self::f( 'url', 'url', 'content', __( 'Enlace', 'meridian' ) ),
+								self::f( 'label', 'text', 'content', __( 'Nombre accesible (opcional)', 'meridian' ) ),
+							],
+						]
+					),
+					self::f(
+						'columns',
+						'repeater',
+						'content',
+						__( 'Columnas de enlaces', 'meridian' ),
+						[
+							'help'       => __( 'Cada columna es un título. Los enlaces se asignan a una columna en la lista de abajo.', 'meridian' ),
+							'itemFields' => [
+								self::f( 'title', 'text', 'content', __( 'Título de la columna', 'meridian' ) ),
+							],
+						]
+					),
+					self::f(
+						'links',
+						'repeater',
+						'content',
+						__( 'Enlaces', 'meridian' ),
+						[
+							'itemFields' => [
+								self::f( 'label', 'text', 'content', __( 'Texto', 'meridian' ) ),
+								self::f( 'url', 'url', 'content', __( 'URL', 'meridian' ) ),
+								self::f(
+									'column',
+									'select',
+									'content',
+									__( 'Columna', 'meridian' ),
+									[
+										'optionsFrom' => 'columns',
+										'labelKey'    => 'title',
+									]
+								),
+								self::f( 'newTab', 'toggle', 'content', __( 'Abrir en otra pestaña', 'meridian' ) ),
+							],
+						]
+					),
+					self::f(
+						'legal',
+						'repeater',
+						'content',
+						__( 'Enlaces legales (línea inferior)', 'meridian' ),
+						[
+							'itemFields' => [
+								self::f( 'label', 'text', 'content', __( 'Texto', 'meridian' ) ),
+								self::f( 'url', 'url', 'content', __( 'URL', 'meridian' ) ),
+							],
+						]
+					),
+					self::f( 'copyright', 'text', 'content', __( 'Aviso de copyright', 'meridian' ) ),
+					self::f( 'showRule', 'toggle', 'design', __( 'Línea separadora sobre el pie legal', 'meridian' ) ),
+					self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'light', 'cream', 'surface', 'forest', 'dark' ] ] ),
+					self::f( 'align', 'alignment', 'design', __( 'Alineación del contenido', 'meridian' ), [ 'options' => [ 'left', 'center', 'right' ] ] ),
+					self::f( 'tracking', 'select', 'design', __( 'Tracking del dato destacado', 'meridian' ), [ 'options' => [ 'tight', 'normal', 'wide' ] ] ),
 					...self::spacing_fields(),
 				],
 			],

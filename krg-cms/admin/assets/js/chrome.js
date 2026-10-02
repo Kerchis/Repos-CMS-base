@@ -27,6 +27,8 @@
     inspTab: "content",
     fSel: null,
     registry: [],
+    // Ramas plegadas del árbol del pie (estado de interfaz).
+    treeClosed: new Set(),
     widths: { desktop: 1280, tablet: 768, mobile: 390 },
   };
   const PRESETS = {
@@ -46,6 +48,7 @@
     { t: "divider", l: "Separador" },
     { t: "menu", l: "Menú" },
     { t: "social-links", l: "Redes" },
+    { t: "footer-split", l: "Pie partido" },
     { t: "search-form", l: "Buscador" },
   ];
   const FOOTER_LAYOUTS = [
@@ -745,17 +748,52 @@
     list[i] = list[j];
     list[j] = t;
   }
-  function treeHtml(nodes, depth) {
-    return (nodes || []).map((n) => `
-      <div class="b-tree-row ${state.fSel === n.id ? "is-on" : ""}" style="padding-left:${8 + depth * 12}px">
-        <button type="button" data-fsel="${esc(n.id)}">${esc(n.name || n.type)}</button>
-        <span>
-          <button type="button" data-fup="${esc(n.id)}" title="Subir">↑</button>
-          <button type="button" data-fdn="${esc(n.id)}" title="Bajar">↓</button>
-          <button type="button" data-frm="${esc(n.id)}" title="Quitar">×</button>
-        </span>
-      </div>
-      ${treeHtml(n.children || [], depth + 1)}`).join("");
+  const F_TREE_ICONS = {
+    section: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 2h12v3H2V2zm0 4.5h12V14H2V6.5zm1.2 1.2v5.1h9.6V7.7H3.2z"/></svg>',
+    row: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 3h12v4H2V3zm0 6h12v4H2V9zm1.2 1.2v1.6h9.6v-1.6H3.2zm0-6V5.8h9.6V4.2H3.2z"/></svg>',
+    column: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 2h5v12H2V2zm7 0h5v12H9V2zM3.2 3.2v9.6h2.6V3.2H3.2zm7 0v9.6h2.6V3.2h-2.6z"/></svg>',
+    text: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 3h12v1.6H9v8.4H7V4.6H2V3z"/></svg>',
+    image: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 3h12v10H2V3zm1.2 1.2v6l2.6-2.4 2.3 2.1 2.3-2.8 2.4 2.7V4.2H3.2zM6 5.4a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>',
+    module: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2.6 2.6h10.8v10.8H2.6V2.6zm1.2 1.2v8.4h8.4V3.8H3.8z"/></svg>',
+  };
+  const F_ICON_BY_TYPE = {
+    section: "section", row: "row", column: "column",
+    heading: "text", paragraph: "text", "rich-text": "text", menu: "text",
+    image: "image", logo: "image",
+  };
+  function fTreeIcon(type) {
+    return F_TREE_ICONS[F_ICON_BY_TYPE[type] || "module"] || F_TREE_ICONS.module;
+  }
+  function treeHtml(nodes) {
+    return (nodes || []).map((n) => {
+      const kids = (n.children || []).length > 0;
+      const open = kids && !state.treeClosed.has(n.id);
+      const cls = ["sec"];
+      if (state.fSel === n.id) cls.push("sel");
+      if (kids) cls.push("has-kids");
+      if (open) cls.push("is-open");
+      if (n.visible === false) cls.push("is-off");
+      return `<div class="${cls.join(" ")}">
+        <div class="hd">
+          ${kids
+            ? `<button type="button" class="b-tw" data-ftw="${esc(n.id)}" aria-expanded="${open ? "true" : "false"}" title="${open ? "Contraer" : "Expandir"}">${open ? "−" : "+"}</button>`
+            : `<span class="b-tw is-leaf" aria-hidden="true"></span>`}
+          <span class="b-tico" aria-hidden="true">${fTreeIcon(n.type)}</span>
+          <button type="button" class="b-tname" data-fsel="${esc(n.id)}" title="Seleccionar">${esc(n.name || n.type)}</button>
+          <span class="b-acts">
+            <button type="button" class="b-ico" data-fup="${esc(n.id)}" title="Subir">↑</button>
+            <button type="button" class="b-ico" data-fdn="${esc(n.id)}" title="Bajar">↓</button>
+            <button type="button" class="b-ico" data-frm="${esc(n.id)}" title="Quitar">✕</button>
+          </span>
+        </div>
+        ${kids ? `<div class="b-kids">${treeHtml(n.children)}</div>` : ""}
+      </div>`;
+    }).join("");
+  }
+  function fTreeToggle(nid) {
+    if (state.treeClosed.has(nid)) state.treeClosed.delete(nid);
+    else state.treeClosed.add(nid);
+    paintChrome();
   }
   function paintLeft() {
     const box = root.querySelector("#chrome-left");
@@ -785,7 +823,7 @@
         ${FOOTER_ADD.map((x) => `<button type="button" data-fadd="${x.t}">${esc(x.l)}</button>`).join("")}
       </div>
       <h4>Estructura</h4>
-      <div class="b-tree">${treeHtml(fSections(), 0) || "<p class='b-empty'>Añade una sección.</p>"}</div>
+      <div class="b-tree">${treeHtml(fSections()) || "<p class='b-empty'>Añade una sección.</p>"}</div>
     </div>`;
     box.querySelectorAll("[data-region]").forEach((b) => {
       b.onclick = () => { state.region = b.dataset.region; state.fSel = null; paintChrome(); ping(); };
@@ -793,6 +831,7 @@
     box.querySelector("[data-froot]")?.addEventListener("click", () => { state.fSel = null; paintInspector(); });
     box.querySelectorAll("[data-fadd]").forEach((b) => b.onclick = () => addFooterNode(b.dataset.fadd));
     box.querySelectorAll("[data-fsel]").forEach((b) => b.onclick = () => { state.fSel = b.dataset.fsel; paintChrome(); });
+    box.querySelectorAll("[data-ftw]").forEach((b) => b.onclick = (e) => { e.stopPropagation(); fTreeToggle(b.dataset.ftw); });
     box.querySelectorAll("[data-fup],[data-fdn],[data-frm]").forEach((b) => {
       b.onclick = (e) => {
         e.stopPropagation();
@@ -1012,7 +1051,68 @@
     if (f.key === "imageId" || f.type === "image") {
       return field(f.label, `<input type="number" ${attr} value="${esc(v || 0)}"><button type="button" class="m-btn ghost" data-fprop-media="${esc(f.key)}">Biblioteca</button>`);
     }
+    if (f.type === "repeater") {
+      return repeaterField(node, f, Array.isArray(v) ? v : []);
+    }
     return field(f.label || f.key, `<input ${attr} value="${esc(v ?? "")}">`);
+  }
+
+  /**
+   * Repetidor dentro del pie: mismas acciones que en el constructor de
+   * páginas (añadir, mover, duplicar, eliminar) para que un bloque como
+   * «Pie partido» se pueda editar entero sin salir de esta pantalla.
+   */
+  function repeaterField(node, f, items) {
+    const sub = (sf, it, i) => {
+      const at = `data-frep="${esc(f.key)}" data-i="${i}" data-k="${esc(sf.key)}"`;
+      if (sf.key === "imageUrl") return "";
+      if (sf.optionsFrom) {
+        const src = Array.isArray(node.props?.[sf.optionsFrom]) ? node.props[sf.optionsFrom] : [];
+        const lk = sf.labelKey || "label";
+        const cur = String(it[sf.key] ?? "");
+        const opts = src.map((o) => String(o?.[lk] ?? "").trim()).filter(Boolean);
+        if (cur && !opts.includes(cur)) opts.push(cur);
+        return field(sf.label, `<select ${at}><option value="">— Sin asignar —</option>${
+          opts.map((o) => `<option value="${esc(o)}" ${cur === o ? "selected" : ""}>${esc(o)}</option>`).join("")
+        }</select>`);
+      }
+      if (sf.type === "toggle") {
+        return `<label class="rep-toggle">${esc(sf.label)} <input type="checkbox" data-frep-bool="${esc(f.key)}" data-i="${i}" data-k="${esc(sf.key)}" ${it[sf.key] ? "checked" : ""}></label>`;
+      }
+      if (sf.type === "textarea") {
+        return field(sf.label, `<textarea ${at}>${esc(it[sf.key] ?? "")}</textarea>`);
+      }
+      if (sf.type === "number" || sf.type === "image") {
+        const extra = sf.type === "image"
+          ? `<button type="button" class="m-btn ghost" data-frep-media="${esc(f.key)}" data-i="${i}" data-k="${esc(sf.key)}">Biblioteca</button>`
+          : "";
+        return field(sf.label, `<input type="number" ${at} value="${esc(it[sf.key] ?? 0)}">${extra}`);
+      }
+      if (sf.type === "select") {
+        const opts = (sf.options || []).map((o) => {
+          const val = typeof o === "string" ? o : (o.value ?? "");
+          const lab = typeof o === "string" ? o : (o.label ?? o.value ?? "");
+          return `<option value="${esc(val)}" ${String(it[sf.key] ?? "") === String(val) ? "selected" : ""}>${esc(lab)}</option>`;
+        }).join("");
+        return field(sf.label, `<select ${at}>${opts}</select>`);
+      }
+      return field(sf.label, `<input ${at} value="${esc(it[sf.key] ?? "")}">`);
+    };
+    return `<div class="b-rep"><strong>${esc(f.label)}</strong>
+      ${items.map((it, i) => `<div class="rep-item">
+        <div class="rep-head">
+          <span class="rep-n">${i + 1}</span>
+          <span class="rep-acts">
+            <button type="button" class="b-ico" data-frep-move="${esc(f.key)}" data-i="${i}" data-dir="-1" title="Subir">↑</button>
+            <button type="button" class="b-ico" data-frep-move="${esc(f.key)}" data-i="${i}" data-dir="1" title="Bajar">↓</button>
+            <button type="button" class="b-ico" data-frep-dup="${esc(f.key)}" data-i="${i}" title="Duplicar">⧉</button>
+            <button type="button" class="b-ico" data-frep-del="${esc(f.key)}" data-i="${i}" title="Eliminar">✕</button>
+          </span>
+        </div>
+        ${(f.itemFields || []).map((sf) => sub(sf, it, i)).join("")}
+      </div>`).join("")}
+      <button type="button" class="m-btn ghost" data-frep-add="${esc(f.key)}">Añadir</button>
+    </div>`;
   }
 
   function bindInspector() {
@@ -1159,6 +1259,102 @@
         hit.node.animation = b.dataset.fanim;
         markDirty();
         paintInspector();
+      };
+    });
+    const repArr = (key) => {
+      const hit = state.fSel ? findF(fSections(), state.fSel) : null;
+      if (!hit) return null;
+      hit.node.props = hit.node.props || {};
+      if (!Array.isArray(hit.node.props[key])) hit.node.props[key] = [];
+      return hit.node.props[key];
+    };
+    bind("[data-frep]", (inp) => {
+      const go = () => {
+        const arr = repArr(inp.dataset.frep);
+        if (!arr || !arr[Number(inp.dataset.i)]) return;
+        arr[Number(inp.dataset.i)][inp.dataset.k] = inp.type === "number" ? Number(inp.value) : inp.value;
+        markDirty();
+      };
+      inp.addEventListener("input", go);
+      inp.addEventListener("change", go);
+    });
+    bind("[data-frep-bool]", (inp) => inp.addEventListener("change", () => {
+      const arr = repArr(inp.dataset.frepBool);
+      if (!arr || !arr[Number(inp.dataset.i)]) return;
+      arr[Number(inp.dataset.i)][inp.dataset.k] = inp.checked;
+      markDirty();
+    }));
+    bind("[data-frep-add]", (b) => {
+      b.onclick = () => {
+        const hit = state.fSel ? findF(fSections(), state.fSel) : null;
+        if (!hit) return;
+        const def = defOf(hit.node.type);
+        const f = (def.fields || []).find((x) => x.key === b.dataset.frepAdd);
+        const blank = {};
+        (f?.itemFields || []).forEach((sf) => {
+          if (sf.type === "toggle") blank[sf.key] = false;
+          else if (sf.type === "number" || sf.type === "image") blank[sf.key] = 0;
+          else if (sf.type === "select" && !sf.optionsFrom) {
+            const first = (sf.options || [])[0];
+            blank[sf.key] = typeof first === "object" ? (first?.value ?? "") : (first ?? "");
+          } else blank[sf.key] = "";
+        });
+        const arr = repArr(b.dataset.frepAdd);
+        if (!arr) return;
+        arr.push(blank);
+        markDirty();
+        paintInspector();
+      };
+    });
+    bind("[data-frep-del]", (b) => {
+      b.onclick = () => {
+        const arr = repArr(b.dataset.frepDel);
+        if (!arr) return;
+        arr.splice(Number(b.dataset.i), 1);
+        markDirty();
+        paintInspector();
+      };
+    });
+    bind("[data-frep-move]", (b) => {
+      b.onclick = () => {
+        const arr = repArr(b.dataset.frepMove);
+        if (!arr) return;
+        const i = Number(b.dataset.i);
+        const j = i + Number(b.dataset.dir);
+        if (j < 0 || j >= arr.length) return;
+        const tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+        markDirty();
+        paintInspector();
+      };
+    });
+    bind("[data-frep-dup]", (b) => {
+      b.onclick = () => {
+        const arr = repArr(b.dataset.frepDup);
+        const i = Number(b.dataset.i);
+        if (!arr || !arr[i]) return;
+        arr.splice(i + 1, 0, JSON.parse(JSON.stringify(arr[i])));
+        markDirty();
+        paintInspector();
+      };
+    });
+    bind("[data-frep-media]", (b) => {
+      b.onclick = () => {
+        if (!window.wp?.media) return;
+        const frame = wp.media({ title: "Imagen", multiple: false });
+        frame.on("select", () => {
+          const att = frame.state().get("selection").first().toJSON();
+          const arr = repArr(b.dataset.frepMedia);
+          const i = Number(b.dataset.i);
+          if (!arr) return;
+          arr[i] = arr[i] || {};
+          arr[i][b.dataset.k] = att.id;
+          arr[i].imageUrl = att.url || att.sizes?.large?.url || "";
+          markDirty();
+          paintInspector();
+        });
+        frame.open();
       };
     });
     bind("[data-fprop-media]", (b) => {

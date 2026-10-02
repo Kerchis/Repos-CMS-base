@@ -1238,4 +1238,453 @@ class BrandRenders {
 		}
 		return '';
 	}
+
+	/* ------------------------------------------------------------------ */
+	/* menu-list (carta de restaurante)                                    */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * Lista de categorias de la carta, en el orden declarado.
+	 *
+	 * Primero las que el usuario ha definido (ese es el orden de las
+	 * pestanas) y despues las que aparezcan escritas en un plato pero no
+	 * esten en la lista: asi escribir una categoria nueva en un plato no
+	 * lo hace desaparecer de la carta.
+	 *
+	 * @return array<string, array{label:string,text:string}>
+	 */
+	private static function menu_categories( array $declared, array $items ): array {
+		$out = [];
+		foreach ( $declared as $c ) {
+			if ( ! is_array( $c ) ) {
+				continue;
+			}
+			$label = trim( (string) ( $c['label'] ?? '' ) );
+			if ( '' === $label ) {
+				continue;
+			}
+			$slug = sanitize_title( $label );
+			if ( '' === $slug || isset( $out[ $slug ] ) ) {
+				continue;
+			}
+			$out[ $slug ] = [
+				'label' => $label,
+				'text'  => trim( (string) ( $c['text'] ?? '' ) ),
+			];
+		}
+		foreach ( $items as $it ) {
+			$label = trim( (string) ( $it['category'] ?? '' ) );
+			if ( '' === $label ) {
+				continue;
+			}
+			$slug = sanitize_title( $label );
+			if ( '' === $slug || isset( $out[ $slug ] ) ) {
+				continue;
+			}
+			$out[ $slug ] = [
+				'label' => $label,
+				'text'  => '',
+			];
+		}
+		return $out;
+	}
+
+	/** Un plato de la carta. */
+	private static function menu_item( RenderContext $ctx, array $it, bool $images, string $shape ): string {
+		$title = trim( (string) ( $it['title'] ?? '' ) );
+		$text  = trim( (string) ( $it['text'] ?? '' ) );
+		$price = trim( (string) ( $it['price'] ?? '' ) );
+		$badge = trim( (string) ( $it['badge'] ?? '' ) );
+		$url   = (string) ( $it['url'] ?? '' );
+		$img   = absint( $it['imageId'] ?? 0 );
+		$alt   = (string) ( $it['alt'] ?? $title );
+		$cat   = trim( (string) ( $it['category'] ?? '' ) );
+
+		$media = '';
+		if ( $images && $img ) {
+			$media = '<span class="m-carta-media is-' . esc_attr( $shape ) . '">'
+				. self::media( $ctx, $img, $alt, 'm-carta-img', 'medium' )
+				. '</span>';
+		}
+
+		$head = '<span class="m-carta-row">'
+			. '<span class="m-carta-name">' . esc_html( $title ) . '</span>'
+			. ( '' !== $price ? '<span class="m-carta-price">' . esc_html( $price ) . '</span>' : '' )
+			. '</span>';
+
+		$body = $head;
+		if ( '' !== $badge ) {
+			$body .= '<span class="m-carta-badge">' . esc_html( $badge ) . '</span>';
+		}
+		if ( '' !== $text ) {
+			$body .= '<span class="m-carta-desc">' . nl2br( esc_html( $text ) ) . '</span>';
+		}
+
+		$inner = $media . '<span class="m-carta-body">' . $body . '</span>';
+		if ( '' !== $url ) {
+			$inner = '<a class="m-carta-link" href="' . esc_url( $url ) . '">' . $inner . '</a>';
+		}
+
+		return '<li class="m-carta-item" data-cat="' . esc_attr( '' !== $cat ? sanitize_title( $cat ) : '' ) . '">' . $inner . '</li>';
+	}
+
+	public static function menu_list( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$items = is_array( $props['items'] ?? null ) ? $props['items'] : [];
+		$items = array_values(
+			array_filter(
+				$items,
+				static fn( $i ) => is_array( $i ) && ( '' !== trim( (string) ( $i['title'] ?? '' ) ) || '' !== trim( (string) ( $i['price'] ?? '' ) ) )
+			)
+		);
+		if ( ! $items ) {
+			return $ctx->isPreview
+				? ComponentRenders::wrap( $node, $ctx, 'div', '<div class="m-container"><p class="m-muted">' . esc_html__( 'Añade platos a la carta.', 'meridian' ) . '</p></div>', [ 'class' => 'm-carta is-empty' ] )
+				: '';
+		}
+
+		$mode   = self::opt( $props['groupMode'] ?? 'tabs', [ 'tabs', 'stacked' ], 'tabs' );
+		$theme  = self::theme( $props['theme'] ?? 'light', 'light' );
+		$align  = self::align( $props['align'] ?? 'center', 'center' );
+		$shape  = self::opt( $props['imageShape'] ?? 'square', [ 'square', 'rounded', 'circle' ], 'square' );
+		$leader = self::opt( $props['leader'] ?? 'none', [ 'none', 'dotted', 'solid' ], 'none' );
+		$images = ! empty( $props['showImages'] );
+		$cats   = self::menu_categories( is_array( $props['categories'] ?? null ) ? $props['categories'] : [], $items );
+
+		$style  = self::col_vars( $props, 2, 1, 1 ) . self::section_style( $props );
+		$style .= '--m-carta-img:' . max( 48, min( 320, absint( $props['imageSize'] ?? 96 ) ) ) . 'px;';
+		$accent = self::color_value( $props['accent'] ?? null );
+		if ( '' !== $accent ) {
+			$style .= '--m-carta-accent:' . $accent . ';';
+		}
+
+		/* --- cabecera --- */
+		$head    = '';
+		$icon_id = absint( $props['iconId'] ?? 0 );
+		if ( $icon_id ) {
+			$w     = max( 16, min( 400, absint( $props['iconWidth'] ?? 56 ) ) );
+			$head .= '<span class="m-carta-icon" style="--m-carta-icon-w:' . $w . 'px">'
+				. self::media( $ctx, $icon_id, (string) ( $props['iconAlt'] ?? '' ), 'm-carta-icon-img', 'medium' )
+				. '</span>';
+		}
+		$eyebrow = trim( (string) ( $props['eyebrow'] ?? '' ) );
+		if ( '' !== $eyebrow ) {
+			$head .= '<p class="m-eyebrow">' . esc_html( $eyebrow ) . '</p>';
+		}
+		$head .= self::display_title(
+			(string) ( $props['title'] ?? '' ),
+			self::tag( $props['titleTag'] ?? 'h2' ),
+			'm-carta-title m-track-' . self::tracking( $props['tracking'] ?? 'normal' ),
+			'fade'
+		);
+		if ( '' !== $head ) {
+			$head = '<div class="m-carta-head is-align-' . $align . '">' . $head . '</div>';
+		}
+
+		/* --- cuerpo --- */
+		$body = '';
+		if ( 'stacked' === $mode ) {
+			foreach ( $cats as $slug => $cat ) {
+				$list = '';
+				foreach ( $items as $it ) {
+					if ( sanitize_title( (string) ( $it['category'] ?? '' ) ) !== $slug ) {
+						continue;
+					}
+					$list .= self::menu_item( $ctx, $it, $images, $shape );
+				}
+				if ( '' === $list ) {
+					continue;
+				}
+				$body .= '<section class="m-carta-group">'
+					. '<h3 class="m-carta-cat">' . esc_html( $cat['label'] ) . '</h3>'
+					. ( '' !== $cat['text'] ? '<p class="m-carta-cat-text">' . esc_html( $cat['text'] ) . '</p>' : '' )
+					. '<ul class="m-carta-grid">' . $list . '</ul>'
+					. '</section>';
+			}
+			$loose = '';
+			foreach ( $items as $it ) {
+				if ( '' !== trim( (string) ( $it['category'] ?? '' ) ) ) {
+					continue;
+				}
+				$loose .= self::menu_item( $ctx, $it, $images, $shape );
+			}
+			if ( '' !== $loose ) {
+				$body .= '<section class="m-carta-group"><ul class="m-carta-grid">' . $loose . '</ul></section>';
+			}
+		} else {
+			$tabs = '';
+			if ( $cats ) {
+				$all   = trim( (string) ( $props['allLabel'] ?? '' ) );
+				$first = '';
+				$tabs .= '<div class="m-carta-tabs is-align-' . $align . '" role="group" aria-label="' . esc_attr__( 'Categorías de la carta', 'meridian' ) . '">';
+				if ( ! empty( $props['showAll'] ) ) {
+					$first = '*';
+					$tabs .= '<button type="button" class="m-carta-tab is-on" data-carta-filter="*" aria-pressed="true">'
+						. esc_html( '' !== $all ? $all : __( 'Todo', 'meridian' ) ) . '</button>';
+				}
+				foreach ( $cats as $slug => $cat ) {
+					$on    = '' === $first;
+					$first = $on ? $slug : $first;
+					$tabs .= '<button type="button" class="m-carta-tab' . ( $on ? ' is-on' : '' ) . '" data-carta-filter="' . esc_attr( $slug ) . '"'
+						. ' aria-pressed="' . ( $on ? 'true' : 'false' ) . '">' . esc_html( $cat['label'] ) . '</button>';
+				}
+				$tabs .= '</div>';
+			}
+			$list = '';
+			foreach ( $items as $it ) {
+				$list .= self::menu_item( $ctx, $it, $images, $shape );
+			}
+			$empty = trim( (string) ( $props['emptyLabel'] ?? '' ) );
+			$body  = $tabs . '<ul class="m-carta-grid" data-carta-grid>' . $list . '</ul>'
+				. '<p class="m-carta-empty" data-carta-empty hidden>' . esc_html( '' !== $empty ? $empty : __( 'No hay platos en esta categoría.', 'meridian' ) ) . '</p>';
+		}
+
+		/* --- boton final --- */
+		$cta  = '';
+		$text = trim( (string) ( $props['linkText'] ?? '' ) );
+		if ( '' !== $text ) {
+			$map  = [ 'solid' => 'm-btn-primary', 'outline' => 'm-btn-outline', 'ghost' => 'm-btn-ghost' ];
+			$bst  = self::opt( $props['buttonStyle'] ?? 'outline', [ 'outline', 'solid', 'ghost' ], 'outline' );
+			$cta  = '<div class="m-carta-cta"><a class="m-btn ' . $map[ $bst ] . '" href="'
+				. esc_url( (string) ( $props['linkUrl'] ?: '#' ) ) . '">' . esc_html( $text ) . '</a></div>';
+		}
+
+		$attrs = [
+			'class' => 'm-carta is-theme-' . $theme . ' is-mode-' . $mode . ' is-leader-' . $leader
+				. ( $images ? '' : ' is-no-img' ),
+			'style' => $style,
+		];
+		if ( 'tabs' === $mode ) {
+			$attrs['data-carta'] = '1';
+		}
+		$attrs = array_merge( $attrs, self::skin( $theme ) );
+
+		return ComponentRenders::wrap(
+			$node,
+			$ctx,
+			'div',
+			'<div class="m-container">' . $head . $body . $cta . '</div>',
+			$attrs
+		);
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* footer-split (pie partido)                                          */
+	/* ------------------------------------------------------------------ */
+
+	/** Icono de red social como SVG en linea (sin peticiones externas). */
+	private static function social_icon( string $name ): string {
+		$paths = [
+			'facebook'  => 'M13.5 9H16V6h-2.5C11.6 6 10 7.6 10 9.5V11H8v3h2v7h3v-7h2.2l.4-3H13V9.8c0-.5.2-.8.5-.8z',
+			'instagram' => 'M12 7.2A4.8 4.8 0 1 0 16.8 12 4.81 4.81 0 0 0 12 7.2zm0 7.9A3.1 3.1 0 1 1 15.1 12 3.1 3.1 0 0 1 12 15.1zm6.1-8.1a1.12 1.12 0 1 1-1.12-1.12A1.12 1.12 0 0 1 18.1 7zM21 7.05a5.57 5.57 0 0 0-1.52-3.93A5.6 5.6 0 0 0 15.55 1.6C14 1.5 10 1.5 8.45 1.6a5.6 5.6 0 0 0-3.93 1.52A5.57 5.57 0 0 0 3 7.05c-.1 1.55-.1 6.35 0 7.9a5.57 5.57 0 0 0 1.52 3.93 5.61 5.61 0 0 0 3.93 1.52c1.55.1 6.35.1 7.9 0a5.57 5.57 0 0 0 3.93-1.52A5.6 5.6 0 0 0 21 14.95c.1-1.55.1-6.34 0-7.9z',
+			'x'         => 'M17.5 3h3l-6.6 7.6L21.8 21h-6l-4.7-6.1L5.7 21H2.6l7-8-6.7-10h6.1l4.3 5.6zM16.4 19.2h1.7L7.7 4.7H5.9z',
+			'youtube'   => 'M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z',
+			'linkedin'  => 'M6.94 5a1.94 1.94 0 1 1-3.88 0 1.94 1.94 0 0 1 3.88 0zM3.5 8.5h3v12h-3zM9.5 8.5h2.9v1.6h.04A3.2 3.2 0 0 1 15.3 8.3c3.1 0 3.7 2 3.7 4.7v7.5h-3v-6.6c0-1.6 0-3.6-2.2-3.6s-2.5 1.7-2.5 3.5v6.7h-3z',
+			'tiktok'    => 'M16.5 3a5.3 5.3 0 0 0 4.2 4.1v3a8.2 8.2 0 0 1-4.2-1.2v6.4a6.2 6.2 0 1 1-6.2-6.2c.3 0 .6 0 .9.1v3.1a3.2 3.2 0 1 0 2.2 3V3z',
+			'whatsapp'  => 'M12 2a9.9 9.9 0 0 0-8.5 15L2 22l5.2-1.4A9.9 9.9 0 1 0 12 2zm5.2 13.9c-.2.6-1.3 1.2-1.8 1.2s-1 .2-3.3-.7a11.6 11.6 0 0 1-4.8-4.2 5.5 5.5 0 0 1-1.1-2.9 3.1 3.1 0 0 1 1-2.3 1 1 0 0 1 .7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.5c-.1.2-.3.3-.1.6a8.5 8.5 0 0 0 1.5 1.9 7.7 7.7 0 0 0 2.2 1.4c.3.1.4.1.6-.1l.8-1c.2-.2.3-.2.6-.1l2 .9c.3.1.5.2.6.3a2.1 2.1 0 0 1-.4 1.8z',
+			'pinterest' => 'M12 2a10 10 0 0 0-3.6 19.3 9.6 9.6 0 0 1 0-2.9l1.2-5a3.6 3.6 0 0 1-.3-1.5c0-1.4.8-2.5 1.9-2.5a1.3 1.3 0 0 1 1.3 1.5 20 20 0 0 1-.8 3.4 1.5 1.5 0 0 0 1.5 1.9c1.8 0 3.2-1.9 3.2-4.7a4 4 0 0 0-4.3-4.2 4.5 4.5 0 0 0-4.6 4.5 4 4 0 0 0 .8 2.4.3.3 0 0 1 .1.3l-.3 1.1c0 .2-.2.3-.4.2-1.3-.6-2.1-2.4-2.1-3.9 0-3.2 2.3-6.1 6.7-6.1a6 6 0 0 1 6.2 5.8c0 3.5-2.2 6.3-5.3 6.3a2.7 2.7 0 0 1-2.3-1.2l-.6 2.4a11 11 0 0 1-1.3 2.7A10 10 0 1 0 12 2z',
+			'github'    => 'M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.3-3.4-1.3a2.7 2.7 0 0 0-1.1-1.5c-.9-.6.1-.6.1-.6a2.1 2.1 0 0 1 1.6 1 2.2 2.2 0 0 0 3 .9 2.2 2.2 0 0 1 .6-1.4c-2.2-.2-4.6-1.1-4.6-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.7s.9-.3 2.8 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1a3.6 3.6 0 0 1 .1 2.7 3.9 3.9 0 0 1 1 2.7c0 3.9-2.3 4.8-4.6 5a2.5 2.5 0 0 1 .7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0 0 12 2z',
+			'dribbble'  => 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm6.6 4.6a8.3 8.3 0 0 1 1.9 5.2 19.8 19.8 0 0 0-5.8-.3c-.2-.6-.5-1.1-.8-1.7a11.7 11.7 0 0 0 4.7-3.2zM12 3.5a8.4 8.4 0 0 1 5.5 2.1 10 10 0 0 1-4.3 2.8A29 29 0 0 0 9.7 3.8 8.5 8.5 0 0 1 12 3.5zM8 4.4a34 34 0 0 1 3.5 4.6 27 27 0 0 1-7.3 1A8.6 8.6 0 0 1 8 4.4zM3.5 12v-.3a29 29 0 0 0 8.6-1.2l.6 1.3A11.2 11.2 0 0 0 7 17.7 8.4 8.4 0 0 1 3.5 12zm8.5 8.5a8.4 8.4 0 0 1-5-1.7 9.6 9.6 0 0 1 5.1-5.4 32 32 0 0 1 1.7 6.6 8.4 8.4 0 0 1-1.8.5zm3.3-1.2a34 34 0 0 0-1.6-6.1 15.6 15.6 0 0 1 5-.1 8.5 8.5 0 0 1-3.4 6.2z',
+			'email'     => 'M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm9 8.1L4.6 7H19.4zM4 17h16V8.5l-7.4 6.2a1 1 0 0 1-1.2 0L4 8.5z',
+			'phone'     => 'M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2 11.4 11.4 0 0 0 3.6.6 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .6 3.6 1 1 0 0 1-.3 1z',
+			'link'      => 'M10.6 13.4a1 1 0 0 1 0-1.4l1.4-1.4a1 1 0 0 1 1.4 1.4l-1.4 1.4a1 1 0 0 1-1.4 0zM8.5 17.9a4 4 0 0 1-2.8-6.8l2.8-2.8a1 1 0 0 1 1.4 1.4l-2.8 2.8a2 2 0 0 0 2.8 2.8l2.8-2.8a1 1 0 0 1 1.4 1.4l-2.8 2.8a4 4 0 0 1-2.8 1.2zm9.8-5.1a1 1 0 0 1-.7-1.7l1.7-1.7a2 2 0 1 0-2.8-2.8l-2.8 2.8a1 1 0 0 1-1.4-1.4l2.8-2.8a4 4 0 0 1 5.6 5.6l-1.7 1.7a1 1 0 0 1-.7.3z',
+		];
+		$key  = isset( $paths[ $name ] ) ? $name : 'link';
+		return '<svg class="m-soc-ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">'
+			. '<path fill="currentColor" d="' . $paths[ $key ] . '"/></svg>';
+	}
+
+	public static function footer_split( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$side   = ( ( $props['mediaSide'] ?? 'left' ) === 'right' ) ? 'right' : 'left';
+		$ratio  = self::opt( $props['ratio'] ?? 'half', [ 'half', 'media-wide', 'copy-wide' ], 'half' );
+		$height = self::opt( $props['height'] ?? 'auto', [ 'auto', 'medium', 'tall', 'screen', 'custom' ], 'auto' );
+		$fit    = ( ( $props['mediaFit'] ?? 'cover' ) === 'contain' ) ? 'contain' : 'cover';
+		$theme  = self::theme( $props['theme'] ?? 'light', 'light' );
+		$align  = self::align( $props['align'] ?? 'left' );
+		$track  = self::tracking( $props['tracking'] ?? 'normal' );
+
+		$style = self::section_style( $props );
+		if ( 'custom' === $height ) {
+			$unit   = ( ( $props['heightUnit'] ?? 'px' ) === 'vh' ) ? 'svh' : 'px';
+			$max    = 'px' === $unit ? 4000 : 400;
+			$value  = max( 1, min( $max, absint( $props['heightValue'] ?? 460 ) ) );
+			$style .= '--m-fs-h:' . $value . $unit . ';';
+		}
+
+		/* --- panel de imagen --- */
+		$img_id = absint( $props['imageId'] ?? 0 );
+		$media  = '';
+		if ( $img_id ) {
+			$media = '<div class="m-fs-media is-fit-' . $fit . '">'
+				. self::media( $ctx, $img_id, (string) ( $props['alt'] ?? '' ), 'm-fs-img' )
+				. '</div>';
+		}
+
+		/* --- bloque de contacto --- */
+		$contact = '';
+		$logo_id = absint( $props['logoId'] ?? 0 );
+		if ( $logo_id ) {
+			$lw       = max( 40, min( 600, absint( $props['logoWidth'] ?? 160 ) ) );
+			$contact .= '<div class="m-fs-logo" style="--m-fs-logo-w:' . $lw . 'px">'
+				. self::media( $ctx, $logo_id, (string) ( $props['logoAlt'] ?? '' ), 'm-fs-logo-img', 'medium' )
+				. '</div>';
+		}
+		$eyebrow = trim( (string) ( $props['eyebrow'] ?? '' ) );
+		if ( '' !== $eyebrow ) {
+			$contact .= '<p class="m-eyebrow m-fs-eyebrow">' . esc_html( $eyebrow ) . '</p>';
+		}
+		$phone = trim( (string) ( $props['phone'] ?? '' ) );
+		if ( '' !== $phone ) {
+			$href = trim( (string) ( $props['phoneUrl'] ?? '' ) );
+			if ( '' === $href ) {
+				$digits = preg_replace( '/[^0-9+]/', '', $phone );
+				$href   = strlen( (string) $digits ) >= 6 ? 'tel:' . $digits : '';
+			}
+			$big = '<span class="m-fs-phone m-track-' . $track . '">' . esc_html( $phone ) . '</span>';
+			$contact .= '' !== $href
+				? '<p class="m-fs-phone-row"><a class="m-fs-phone-link" href="' . esc_url( $href ) . '">' . $big . '</a></p>'
+				: '<p class="m-fs-phone-row">' . $big . '</p>';
+		}
+		$lines = is_array( $props['lines'] ?? null ) ? $props['lines'] : [];
+		$rows  = '';
+		foreach ( $lines as $l ) {
+			$t = is_array( $l ) ? trim( (string) ( $l['text'] ?? '' ) ) : '';
+			if ( '' !== $t ) {
+				$rows .= '<li>' . esc_html( $t ) . '</li>';
+			}
+		}
+		if ( '' !== $rows ) {
+			$contact .= '<ul class="m-fs-lines">' . $rows . '</ul>';
+		}
+		$social = is_array( $props['social'] ?? null ) ? $props['social'] : [];
+		$socs   = '';
+		foreach ( $social as $s ) {
+			if ( ! is_array( $s ) ) {
+				continue;
+			}
+			$url = trim( (string) ( $s['url'] ?? '' ) );
+			if ( '' === $url ) {
+				continue;
+			}
+			$net   = sanitize_key( (string) ( $s['network'] ?? 'link' ) );
+			$label = trim( (string) ( $s['label'] ?? '' ) );
+			$label = '' !== $label ? $label : ucfirst( $net );
+			$socs .= '<li><a class="m-fs-soc" href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">'
+				. self::social_icon( $net )
+				. '<span class="screen-reader-text">' . esc_html( $label ) . '</span></a></li>';
+		}
+		if ( '' !== $socs ) {
+			$contact .= '<ul class="m-fs-social">' . $socs . '</ul>';
+		}
+		if ( '' !== $contact ) {
+			$contact = '<div class="m-fs-contact">' . $contact . '</div>';
+		}
+
+		/* --- columnas de enlaces --- */
+		$columns = is_array( $props['columns'] ?? null ) ? $props['columns'] : [];
+		$links   = is_array( $props['links'] ?? null ) ? $props['links'] : [];
+		$cols    = [];
+		foreach ( $columns as $c ) {
+			$title = is_array( $c ) ? trim( (string) ( $c['title'] ?? '' ) ) : '';
+			if ( '' === $title ) {
+				continue;
+			}
+			$cols[ sanitize_title( $title ) ] = [
+				'title' => $title,
+				'items' => [],
+			];
+		}
+		$loose = [];
+		foreach ( $links as $l ) {
+			if ( ! is_array( $l ) ) {
+				continue;
+			}
+			$label = trim( (string) ( $l['label'] ?? '' ) );
+			if ( '' === $label ) {
+				continue;
+			}
+			$key = sanitize_title( (string) ( $l['column'] ?? '' ) );
+			if ( '' !== $key && isset( $cols[ $key ] ) ) {
+				$cols[ $key ]['items'][] = $l;
+			} elseif ( '' !== $key ) {
+				$cols[ $key ] = [
+					'title' => trim( (string) $l['column'] ),
+					'items' => [ $l ],
+				];
+			} else {
+				$loose[] = $l;
+			}
+		}
+		if ( $loose ) {
+			$cols[] = [
+				'title' => '',
+				'items' => $loose,
+			];
+		}
+		$nav = '';
+		foreach ( $cols as $col ) {
+			if ( ! $col['items'] ) {
+				continue;
+			}
+			$list = '';
+			foreach ( $col['items'] as $l ) {
+				$blank = ! empty( $l['newTab'] ) ? ' target="_blank" rel="noopener noreferrer"' : '';
+				$list .= '<li><a href="' . esc_url( (string) ( $l['url'] ?? '' ) ?: '#' ) . '"' . $blank . '>'
+					. esc_html( (string) $l['label'] ) . '</a></li>';
+			}
+			$nav .= '<div class="m-fs-col">'
+				. ( '' !== $col['title'] ? '<h3 class="m-fs-col-title">' . esc_html( $col['title'] ) . '</h3>' : '' )
+				. '<ul class="m-fs-links">' . $list . '</ul></div>';
+		}
+		if ( '' !== $nav ) {
+			$nav = '<nav class="m-fs-cols" aria-label="' . esc_attr__( 'Enlaces del pie', 'meridian' ) . '">' . $nav . '</nav>';
+		}
+
+		/* --- linea legal --- */
+		$legal = is_array( $props['legal'] ?? null ) ? $props['legal'] : [];
+		$legs  = '';
+		foreach ( $legal as $l ) {
+			$label = is_array( $l ) ? trim( (string) ( $l['label'] ?? '' ) ) : '';
+			if ( '' === $label ) {
+				continue;
+			}
+			$legs .= '<li><a href="' . esc_url( (string) ( $l['url'] ?? '' ) ?: '#' ) . '">' . esc_html( $label ) . '</a></li>';
+		}
+		$copy   = trim( (string) ( $props['copyright'] ?? '' ) );
+		$bottom = '';
+		if ( '' !== $legs || '' !== $copy ) {
+			$bottom = '<div class="m-fs-bottom' . ( empty( $props['showRule'] ) ? '' : ' has-rule' ) . '">'
+				. ( '' !== $legs ? '<ul class="m-fs-legal">' . $legs . '</ul>' : '<span></span>' )
+				. ( '' !== $copy ? '<p class="m-fs-copy">' . esc_html( $copy ) . '</p>' : '' )
+				. '</div>';
+		}
+
+		$panel = '<div class="m-fs-panel is-theme-' . $theme . ' is-align-' . $align . '">'
+			. '<div class="m-fs-panel-inner">'
+			. ( '' !== $contact || '' !== $nav ? '<div class="m-fs-top">' . $contact . $nav . '</div>' : '' )
+			. $bottom
+			. '</div></div>';
+
+		if ( '' === $media && '' === $contact && '' === $nav && '' === $bottom ) {
+			return $ctx->isPreview
+				? ComponentRenders::wrap( $node, $ctx, 'div', '<div class="m-container"><p class="m-muted">' . esc_html__( 'Añade contenido al pie partido.', 'meridian' ) . '</p></div>', [ 'class' => 'm-fs is-empty' ] )
+				: '';
+		}
+
+		$grid = 'left' === $side ? $media . $panel : $panel . $media;
+
+		return ComponentRenders::wrap(
+			$node,
+			$ctx,
+			'div',
+			'<div class="m-fs-grid">' . $grid . '</div>',
+			array_merge(
+				[
+					'class' => 'm-fs is-media-' . $side . ' is-ratio-' . $ratio . ' is-h-' . $height
+						. ( '' === $media ? ' is-no-media' : '' ),
+					'style' => $style,
+				],
+				self::skin( $theme )
+			)
+		);
+	}
 }
