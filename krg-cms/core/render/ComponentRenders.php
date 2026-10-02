@@ -105,12 +105,21 @@ class ComponentRenders {
 			$mh = 'auto';
 		}
 		// Alto a medida: en píxeles o en porcentaje de la pantalla.
+		//
+		// `heightMode` decide quién manda cuando dentro hay un módulo con su
+		// propio alto (un panel partido a pantalla completa, por ejemplo).
+		// Con «exact» manda la sección y el módulo se adapta; con «min» el
+		// valor es sólo un mínimo y el módulo puede estirarlo. Antes sólo
+		// existía el segundo caso, así que fijar el alto de la sección no
+		// hacía nada visible: un mínimo nunca encoge a lo que lleva dentro.
 		$mh_style = '';
+		$mh_mode  = '';
 		if ( 'custom' === $mh ) {
 			$mh_unit  = ( ( $props['minHeightUnit'] ?? 'vh' ) === 'px' ) ? 'px' : 'svh';
 			$mh_cap   = 'px' === $mh_unit ? 4000 : 400;
 			$mh_val   = max( 1, min( $mh_cap, absint( $props['minHeightValue'] ?? 60 ) ) );
 			$mh_style = '--m-sec-h:' . $mh_val . $mh_unit;
+			$mh_mode  = ( 'min' === ( $props['heightMode'] ?? 'exact' ) ) ? ' is-h-min' : ' is-h-exact';
 		}
 		$va = sanitize_html_class( (string) ( $props['vAlign'] ?? 'start' ) );
 		if ( ! in_array( $va, [ 'start', 'center', 'end' ], true ) ) {
@@ -126,7 +135,7 @@ class ComponentRenders {
 		}
 		$class = ( 'boxed' === $width ? 'is-boxed' : 'is-full' ) . ' is-w-' . $width;
 		if ( 'auto' !== $mh ) {
-			$class .= ' is-mh-' . $mh . ' is-va-' . $va;
+			$class .= ' is-mh-' . $mh . $mh_mode . ' is-va-' . $va;
 		}
 		// Cortina: la sección se queda quieta y la siguiente la tapa al subir.
 		if ( 'on' === sanitize_key( (string) ( $props['curtain'] ?? 'off' ) ) ) {

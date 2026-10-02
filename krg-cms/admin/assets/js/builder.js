@@ -242,6 +242,9 @@
               ["screen", "screen-minus-header", "tall", "half", "custom"].forEach((v) => {
                 els.classList.toggle("is-mh-" + v, mh === v);
               });
+              const exact = (n.props?.heightMode || "exact") !== "min";
+              els.classList.toggle("is-h-exact", mh === "custom" && exact);
+              els.classList.toggle("is-h-min", mh === "custom" && !exact);
               if (mh === "custom") {
                 const u = n.props?.minHeightUnit === "px" ? "px" : "svh";
                 els.style.setProperty("--m-sec-h", (n.props?.minHeightValue || 60) + u);
@@ -1394,7 +1397,14 @@
           ["px", "Píxeles"],
         ])}</label>
       </div>
-      <p class="m-muted">Es un mínimo: si el contenido no cabe, la sección crece.</p>` : ""}
+      <label>¿Quién manda en el alto?
+        ${sel("heightMode", p.heightMode || "exact", [
+          ["exact", "La sección: el contenido se adapta"],
+          ["min", "El contenido: el alto es sólo un mínimo"],
+        ])}
+      </label>
+      <p class="m-muted">Si dentro tienes un panel partido o una portada a pantalla completa, ese módulo trae su propio alto. Con «La sección» se encoge para caber; con «El contenido» manda él y la sección crece. En móvil el alto siempre pasa a ser un mínimo, para no recortar texto.</p>
+      ${fitWarning(node)}` : ""}
       ${mh !== "auto" ? `<label>Alineación vertical del contenido
         ${sel("vAlign", p.vAlign || "start", [
           ["start", "Arriba"],
@@ -1830,6 +1840,16 @@
       ${inspTabs()}${body}`;
   }
 
+  // Con alto exacto lo que no cabe se recorta. Callarlo seria peor que el
+  // problema: aqui se dice, con los numeros y la salida a mano.
+  function fitWarning(node) {
+    const f = (state.fitWarn || {})[node.id];
+    if (!f) return "";
+    return `<p class="b-warn">El contenido necesita ${f.need} px y la sección mide ${f.have} px,
+      así que se está recortando ${f.need - f.have} px. Sube el alto, baja el contenido
+      o pasa a «El contenido manda».</p>`;
+  }
+
   function inspector() {
     if (!state.selected) {
       return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
@@ -2123,7 +2143,7 @@
     if (!box) return;
     const hit = () => findNode(state.doc.sections, state.selected);
     box.querySelectorAll("[data-prop]").forEach((inp) => {
-      const apply = () => {
+      const apply = (ev) => {
         const h = hit();
         if (!h) return;
         let v = inp.type === "checkbox" ? inp.checked : inp.value;
@@ -2139,14 +2159,17 @@
           });
         }
         markDirty();
-        // Estos cambian la forma de la sección o qué campos tienen sentido,
-        // así que hay que repintar el lienzo y el inspector.
-        const REDRAW = ["parallax", "autoplay", "minHeight", "minHeightValue", "minHeightUnit",
-          "vAlign", "curtain", "headerSkin", "width", "heightUnit"];
-        if (REDRAW.includes(inp.dataset.prop)) render();
+        // Repintar el inspector solo cuando cambia QUE campos se muestran.
+        // Antes tambien estaban aqui los valores numericos y las unidades,
+        // y como esto corria en cada pulsacion, el panel se reconstruia
+        // letra a letra: perdias el foco y la barra saltaba arriba. Los
+        // valores ya se reflejan solos en el lienzo.
+        const REDRAW = ["parallax", "autoplay", "minHeight", "heightMode",
+          "vAlign", "curtain", "headerSkin", "width"];
+        if (REDRAW.includes(inp.dataset.prop) && ev === "change") render();
       };
-      inp.addEventListener("change", apply);
-      inp.addEventListener("input", apply);
+      inp.addEventListener("change", () => apply("change"));
+      inp.addEventListener("input", () => apply("input"));
     });
     box.querySelectorAll("[data-page]").forEach((inp) => {
       inp.addEventListener("input", () => {
@@ -2775,7 +2798,22 @@
       };
     }
     const prev = root.querySelector("#preview");
-    if (prev) prev.onclick = () => window.open(state.doc.previewUrl, "_blank");
+    if (prev) {
+      // Abria la pagina sin guardar antes, asi que mostraba el ultimo
+      // borrador grabado y no lo que acabas de tocar. Y al repetir la misma
+      // URL el navegador reutilizaba la pestana cacheada. Ahora se guarda
+      // primero y se anade una marca de tiempo para forzar una carga limpia.
+      prev.onclick = async () => {
+        prev.disabled = true;
+        try {
+          if (state.dirty || state.saving) await saveDraft();
+          const url = state.doc.previewUrl + (state.doc.previewUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
+          window.open(url, "krg-preview");
+        } finally {
+          prev.disabled = false;
+        }
+      };
+    }
     bindSplit();
     const hist = root.querySelector("#history");
     if (hist) hist.onclick = openHistory;
@@ -3004,7 +3042,55 @@
     });
   }
 
+  // --------------------------------------------------------------------
+  // El inspector se reconstruye entero con innerHTML en cada render(), asi
+  // que perdia la posicion de la barra y el foco: al tocar cualquier cosa el
+  // panel derecho saltaba arriba. Esto guarda y devuelve ambas cosas.
+  // --------------------------------------------------------------------
+  const FOCUS_KEYS = ["data-prop", "data-style", "data-node", "data-page",
+    "data-rep", "data-style-num", "data-range", "data-page-num", "data-typo"];
+
+  function panelSnap() {
+    const ae = document.activeElement;
+    let focus = null;
+    if (ae && root.contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) {
+      for (const key of FOCUS_KEYS) {
+        if (!ae.hasAttribute(key)) continue;
+        let sel = `[${key}="${CSS.escape(ae.getAttribute(key))}"]`;
+        // Los repetidores necesitan indice y subcampo para no confundirse.
+        if (ae.hasAttribute("data-i")) sel += `[data-i="${CSS.escape(ae.getAttribute("data-i"))}"]`;
+        if (ae.hasAttribute("data-k")) sel += `[data-k="${CSS.escape(ae.getAttribute("data-k"))}"]`;
+        let start = null, end = null;
+        // selectionStart revienta en los input de tipo number.
+        try { start = ae.selectionStart; end = ae.selectionEnd; } catch (e) { /* sin cursor */ }
+        focus = { sel, start, end };
+        break;
+      }
+    }
+    return {
+      right: root.querySelector(".b-right")?.scrollTop || 0,
+      left: root.querySelector(".b-left")?.scrollTop || 0,
+      focus,
+    };
+  }
+
+  function panelRestore(snap) {
+    if (!snap) return;
+    const right = root.querySelector(".b-right");
+    const left = root.querySelector(".b-left");
+    if (right) right.scrollTop = snap.right;
+    if (left) left.scrollTop = snap.left;
+    if (!snap.focus) return;
+    let el = null;
+    try { el = root.querySelector(snap.focus.sel); } catch (e) { return; }
+    if (!el || el === document.activeElement) return;
+    el.focus({ preventScroll: true });
+    if (snap.focus.start == null || !el.setSelectionRange) return;
+    try { el.setSelectionRange(snap.focus.start, snap.focus.end); } catch (e) { /* sin cursor */ }
+  }
+
   function render() {
+    const snap = panelSnap();
     ensureShell();
     root.querySelectorAll("[data-bp]").forEach((b) => b.classList.toggle("is-on", b.dataset.bp === state.bp));
     applyBp();
@@ -3016,6 +3102,7 @@
     bindLeftAndTop();
     bindInspector();
     paintLiveCss();
+    panelRestore(snap);
   }
 
   function onMsg(e) {
@@ -3024,6 +3111,17 @@
     if (d.type === "select" && d.id) {
       state.selected = d.id;
       render();
+      return;
+    }
+    // El lienzo avisa de las secciones de alto exacto cuyo contenido no cabe.
+    if (d.type === "fit" && Array.isArray(d.items)) {
+      const next = {};
+      d.items.forEach((it) => { next[it.id] = it; });
+      const before = JSON.stringify(state.fitWarn || {});
+      state.fitWarn = next;
+      // Solo se repinta si cambia el aviso de la seccion que estas editando.
+      const sel = state.selected;
+      if (before !== JSON.stringify(next) && sel && (next[sel] || JSON.parse(before)[sel])) render();
     }
   }
 

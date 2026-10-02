@@ -1,0 +1,242 @@
+<?php
+/**
+ * Ejecuta los renderizadores del tema fuera de WordPress.
+ *
+ * Por que: hasta ahora el marcado de prueba se escribia a mano en
+ * tools/preview.py, asi que se verificaba una imitacion, no el codigo real.
+ * Con el PHP que monta tools/devenv.sh si se puede llamar a los
+ * renderizadores de verdad y comprobar que clases y estilos emiten.
+ *
+ * Solo define las funciones de WordPress que tocan los renderizadores de
+ * maquetacion y de marca. No es un WordPress: es un banco de pruebas para
+ * el marcado. Lo que dependa de la base de datos o de la biblioteca de
+ * medios devuelve valores vacios a proposito.
+ *
+ *   .tools/php/php tools/render.php            lista los casos
+ *   .tools/php/php tools/render.php section    imprime el marcado de uno
+ */
+
+define( 'ABSPATH', __DIR__ . '/' );
+
+/* ---------------------------------------------------------------- */
+/* Minimo de WordPress                                              */
+/* ---------------------------------------------------------------- */
+
+function sanitize_html_class( $c, $fallback = '' ) {
+	$c = preg_replace( '/[^A-Za-z0-9_-]/', '', (string) $c );
+	return '' === $c ? $fallback : $c;
+}
+function sanitize_key( $k ) {
+	return strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', (string) $k ) );
+}
+function sanitize_text_field( $t ) {
+	return trim( strip_tags( (string) $t ) );
+}
+function absint( $n ) {
+	return abs( (int) $n );
+}
+function esc_attr( $t ) {
+	return htmlspecialchars( (string) $t, ENT_QUOTES, 'UTF-8' );
+}
+function esc_html( $t ) {
+	return htmlspecialchars( (string) $t, ENT_QUOTES, 'UTF-8' );
+}
+function esc_url( $u ) {
+	return htmlspecialchars( (string) $u, ENT_QUOTES, 'UTF-8' );
+}
+function esc_attr__( $t, $d = '' ) {
+	return esc_attr( $t );
+}
+function esc_html__( $t, $d = '' ) {
+	return esc_html( $t );
+}
+function __( $t, $d = '' ) {
+	return $t;
+}
+function _e( $t, $d = '' ) {
+	echo $t;
+}
+function wp_kses_post( $t ) {
+	return (string) $t;
+}
+function wp_parse_args( $a, $b = [] ) {
+	return array_merge( (array) $b, (array) $a );
+}
+function wp_get_attachment_image( ...$a ) {
+	return '';
+}
+function wp_get_attachment_image_url( ...$a ) {
+	return '';
+}
+function wp_get_attachment_image_src( ...$a ) {
+	return false;
+}
+function get_post_meta( ...$a ) {
+	return '';
+}
+function get_bloginfo( $k = 'name' ) {
+	return 'Sitio de prueba';
+}
+function home_url( $p = '/' ) {
+	return 'https://ejemplo.test' . $p;
+}
+function get_permalink( $id = 0 ) {
+	return 'https://ejemplo.test/pagina/';
+}
+function apply_filters( $tag, $value, ...$rest ) {
+	return $value;
+}
+function do_action( ...$a ) {}
+function add_action( ...$a ) {}
+function add_filter( ...$a ) {}
+function get_option( $k, $d = false ) {
+	return $d;
+}
+function wp_unique_id( $p = '' ) {
+	static $i = 0;
+	return $p . ( ++$i );
+}
+function is_user_logged_in() {
+	return false;
+}
+function shortcode_exists( $t ) {
+	return false;
+}
+function do_shortcode( $t ) {
+	return (string) $t;
+}
+function wp_rand( $min = 0, $max = 0 ) {
+	return $min;
+}
+function wp_strip_all_tags( $t, $br = false ) {
+	return trim( strip_tags( (string) $t ) );
+}
+function wp_json_encode( $d, $f = 0 ) {
+	return json_encode( $d, $f );
+}
+function wp_trim_words( $t, $n = 55, $m = null ) {
+	return (string) $t;
+}
+function get_the_ID() {
+	return 0;
+}
+function has_post_thumbnail( ...$a ) {
+	return false;
+}
+function number_format_i18n( $n, $d = 0 ) {
+	return number_format( (float) $n, (int) $d );
+}
+
+/* ---------------------------------------------------------------- */
+/* Carga de las clases que hacen falta                               */
+/* ---------------------------------------------------------------- */
+
+$base = dirname( __DIR__ ) . '/krg-cms';
+foreach (
+	[
+		'/core/render/RenderContext.php',
+		'/core/design/Contrast.php',
+		'/core/render/ComponentRenders.php',
+		'/core/render/BrandRenders.php',
+	] as $f
+) {
+	if ( file_exists( $base . $f ) ) {
+		require_once $base . $f;
+	}
+}
+
+use Meridian\Render\ComponentRenders;
+use Meridian\Render\RenderContext;
+
+$ctx            = new RenderContext();
+$ctx->isPreview = false;
+
+/** Monta un nodo con lo minimo que esperan los renderizadores. */
+function node( string $type, array $props = [], string $id = 'x1' ): array {
+	return [
+		'id'       => $id,
+		'type'     => $type,
+		'props'    => $props,
+		'children' => [],
+	];
+}
+
+/* ---------------------------------------------------------------- */
+/* Casos                                                             */
+/* ---------------------------------------------------------------- */
+
+$panel = function ( $h = 'screen' ) use ( $ctx ) {
+	$n = node( 'split-panel', [ 'title' => 'Titular', 'height' => $h ], 'sp1' );
+	return \Meridian\Render\BrandRenders::split_panel( $n, $n['props'], '', $ctx );
+};
+
+$cases = [
+	'section-exacto-300px' => function () use ( $ctx, $panel ) {
+		$n = node(
+			'section',
+			[
+				'width'          => 'full',
+				'minHeight'      => 'custom',
+				'minHeightValue' => 300,
+				'minHeightUnit'  => 'px',
+				'heightMode'     => 'exact',
+				'vAlign'         => 'center',
+			],
+			's1'
+		);
+		return ComponentRenders::section( $n, $n['props'], $panel( 'screen' ), $ctx );
+	},
+	'section-minimo-300px' => function () use ( $ctx, $panel ) {
+		$n = node(
+			'section',
+			[
+				'width'          => 'full',
+				'minHeight'      => 'custom',
+				'minHeightValue' => 300,
+				'minHeightUnit'  => 'px',
+				'heightMode'     => 'min',
+			],
+			's2'
+		);
+		return ComponentRenders::section( $n, $n['props'], $panel( 'screen' ), $ctx );
+	},
+	'section-porcentaje-45' => function () use ( $ctx, $panel ) {
+		$n = node(
+			'section',
+			[
+				'width'          => 'full',
+				'minHeight'      => 'custom',
+				'minHeightValue' => 45,
+				'minHeightUnit'  => 'vh',
+			],
+			's3'
+		);
+		return ComponentRenders::section( $n, $n['props'], '<p>contenido</p>', $ctx );
+	},
+	'panel-alto-a-medida'  => function () use ( $ctx ) {
+		$n = node(
+			'split-panel',
+			[
+				'title'       => 'Titular',
+				'height'      => 'custom',
+				'heightValue' => 420,
+				'heightUnit'  => 'px',
+			],
+			'sp2'
+		);
+		return \Meridian\Render\BrandRenders::split_panel( $n, $n['props'], '', $ctx );
+	},
+];
+
+$want = $argv[1] ?? '';
+if ( '' === $want ) {
+	foreach ( array_keys( $cases ) as $k ) {
+		echo $k, "\n";
+	}
+	exit( 0 );
+}
+if ( ! isset( $cases[ $want ] ) ) {
+	fwrite( STDERR, "No existe el caso: {$want}\n" );
+	exit( 1 );
+}
+echo $cases[ $want ](), "\n";

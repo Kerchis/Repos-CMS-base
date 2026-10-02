@@ -73,6 +73,7 @@ class Catalog {
 					'minHeight'  => 'auto',
 					'minHeightValue' => 60,
 					'minHeightUnit'  => 'vh',
+					'heightMode'     => 'exact',
 					'vAlign'     => 'start',
 					'headerSkin' => 'auto',
 					'curtain'    => 'off',
@@ -118,6 +119,19 @@ class Catalog {
 								[ 'value' => 'vh', 'label' => __( '% de la altura de la pantalla', 'meridian' ) ],
 								[ 'value' => 'px', 'label' => __( 'Píxeles', 'meridian' ) ],
 							],
+						]
+					),
+					self::f(
+						'heightMode',
+						'select',
+						'design',
+						__( '¿Quién manda en el alto?', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'exact', 'label' => __( 'La sección: el contenido se adapta', 'meridian' ) ],
+								[ 'value' => 'min', 'label' => __( 'El contenido: el alto es sólo un mínimo', 'meridian' ) ],
+							],
+							'help'    => __( 'Sólo con la altura «A medida». Si dentro tienes un panel partido o una portada a pantalla completa, con «La sección» se encogen para caber; con «El contenido» mandan ellos y la sección crece.', 'meridian' ),
 						]
 					),
 					self::f( 'vAlign', 'select', 'design', __( 'Alineación vertical', 'meridian' ), [ 'options' => [ 'start', 'center', 'end' ] ] ),

@@ -436,3 +436,15 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .b-rev { list-style: none; padding: 0; margin: 0 0 16px; }
 .b-rev li { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
 .b-rev h4, .box h4 { margin: 16px 0 8px; font-size: 13px; }
+
+/* Aviso de contenido recortado en las secciones de alto exacto. */
+.b-insp .b-warn {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--m-orange, #3f5e58);
+  border-radius: 0 6px 6px 0;
+  background: var(--m-accent-soft, #e7eeec);
+  color: var(--m-ink, #0c0f0e);
+  font-size: 12px;
+  line-height: 1.5;
+}

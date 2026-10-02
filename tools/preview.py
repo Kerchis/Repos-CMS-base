@@ -116,13 +116,13 @@ def review(items, upper=False, clamp=6, per=2):
             '</div></div>')
 
 
-def section(inner, skin='dark', curtain=False, width='full', mh=None):
+def section(inner, skin='dark', curtain=False, width='full', mh=None, mode='exact'):
     """Reproduce fila + columna, que es como queda una seccion hecha a mano."""
     legacy = 'is-boxed' if width == 'boxed' else 'is-full'
     cls = f'm-c-section {legacy} is-w-{width}' + (' is-curtain' if curtain else '')
     style = ''
     if mh:
-        cls += ' is-mh-custom is-va-center'
+        cls += f' is-mh-custom is-h-{mode} is-va-center'
         style = f' style="--m-sec-h:{mh}"'
     return (f'<section class="{cls}"{style} data-header-skin="{skin}">'
             f'<div class="m-container"><div class="m-c-row"><div class="m-c-column">'
@@ -143,6 +143,13 @@ BLOCKS = [
         'title': 'Altura en porcentaje', 'eyebrow': 'A medida',
         'sub': '45 % de la pantalla.', 'height': 'custom', 'heightValue': 45,
         'heightUnit': 'svh', 'mediaSide': 'left', 'theme': 'surface'}))),
+    ('Alto de seccion manda · 300 px sobre panel de pantalla completa', section(split_panel({
+        'title': 'La seccion impone 300 px', 'eyebrow': 'Quien manda: la seccion',
+        'sub': 'El panel pedia pantalla completa y se adapta.'}), mh='300px', mode='exact')),
+    ('Alto de seccion como minimo · manda el panel', section(split_panel({
+        'title': 'Aqui manda el panel', 'eyebrow': 'Quien manda: el contenido',
+        'sub': 'La seccion pedia 300 px, pero solo como minimo.',
+        'mediaSide': 'left', 'theme': 'surface'}), mh='300px', mode='min')),
     ('Resenas largas con «leer completa»', section(review([
         {'text': LONG, 'author': 'Marcela', 'source': 'Compra verificada'},
         {'text': SHORT, 'author': 'Andres', 'source': 'Amazon'},

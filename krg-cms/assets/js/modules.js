@@ -814,6 +814,7 @@
     initAdaptiveHeader();
     initCurtainFooter(root);
     initCurtainSections(root);
+    reportFit();
   }
 
   if (document.readyState === "loading") {
@@ -822,7 +823,32 @@
     boot(document);
   }
 
+  /* ---------------------------------------------------------------- */
+  /* Aviso al constructor: contenido que no cabe en un alto exacto      */
+  /* ---------------------------------------------------------------- */
+
+  // Una seccion con alto exacto recorta lo que sobra, asi que el editor
+  // tiene que enterarse. Solo se informa dentro del lienzo del CMS.
+  function reportFit() {
+    if (window.parent === window) return;
+    var items = [];
+    each(".m-c-section.is-h-exact", function (sec) {
+      var id = sec.getAttribute("data-krg-id");
+      if (!id) return;
+      var have = Math.round(sec.getBoundingClientRect().height);
+      var need = sec.scrollHeight;
+      if (need > have + 2) items.push({ id: id, have: have, need: need });
+    });
+    try {
+      window.parent.postMessage({ source: "krg", type: "fit", items: items }, "*");
+    } catch (e) { /* otro origen: no se avisa */ }
+  }
+
+  window.addEventListener("resize", debounce(reportFit, 220));
+  window.addEventListener("load", reportFit);
+
   // El preview del constructor repinta el canvas: permitir re-inicializar.
+
   window.KrgModules = { boot: boot };
   document.addEventListener("krg:rendered", function (e) {
     boot((e && e.detail && e.detail.root) || document);

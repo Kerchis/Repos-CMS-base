@@ -1440,6 +1440,68 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
    la pantalla. Es un minimo, asi que el contenido nunca se recorta. */
 .m-c-section.is-mh-custom { min-height: var(--m-sec-h, 60svh); }
 
+/* ------------------------------------------------------------------ */
+/* Alto a medida: quien manda                                          */
+/*                                                                      */
+/* Un min-height solo puede estirar, nunca encoger. Si la seccion lleva */
+/* dentro un panel partido a pantalla completa (100svh), fijarle 300px  */
+/* a la seccion no hacia absolutamente nada: el modulo seguia mandando. */
+/* Con «is-h-exact» la seccion impone su alto y la cadena entera        */
+/* (contenedor, fila, columna, modulo) se estira para llenarlo.         */
+/* ------------------------------------------------------------------ */
+.m-c-section.is-mh-custom.is-h-exact {
+  height: var(--m-sec-h, 60svh);
+  min-height: var(--m-sec-h, 60svh);
+}
+
+.m-c-section.is-mh-custom.is-h-exact > .m-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.m-c-section.is-mh-custom.is-h-exact .m-c-row {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.m-c-section.is-mh-custom.is-h-exact .m-c-column { height: 100%; min-height: 0; }
+
+/* Los modulos con alto propio dejan de imponerlo y rellenan la seccion. */
+.m-c-section.is-mh-custom.is-h-exact .m-sp,
+.m-c-section.is-mh-custom.is-h-exact .m-bh,
+.m-c-section.is-mh-custom.is-h-exact .m-map { height: 100%; min-height: 0; }
+
+.m-c-section.is-mh-custom.is-h-exact .m-sp-grid {
+  height: 100%;
+  min-height: 0;
+}
+
+.m-c-section.is-mh-custom.is-h-exact .m-map iframe { height: 100%; }
+
+/* Con un alto exacto el relleno generoso de los modulos deja de caber: se
+   comprime para que el contenido entre en cajas bajas antes de recortar. */
+.m-c-section.is-mh-custom.is-h-exact .m-sp-copy {
+  padding: clamp(16px, 3vh, 96px) clamp(24px, 5vw, 80px);
+}
+
+/* Lo que aun asi no quepa se recorta aqui dentro, en vez de derramarse
+   encima de la seccion siguiente. El constructor avisa cuando pasa. */
+.m-c-section.is-mh-custom.is-h-exact { overflow: hidden; }
+
+/* En movil se vuelve a un minimo: un alto fijo ahi recorta el texto. */
+@media (max-width: 767px) {
+  .m-c-section.is-mh-custom.is-h-exact {
+    height: auto;
+    min-height: var(--m-sec-h, 60svh);
+    overflow: visible;
+  }
+  .m-c-section.is-mh-custom.is-h-exact .m-sp,
+  .m-c-section.is-mh-custom.is-h-exact .m-sp-grid,
+  .m-c-section.is-mh-custom.is-h-exact .m-bh { height: auto; }
+}
+
 .m-c-section[class*="is-mh-"] > .m-container {
   flex: 1 1 auto;
   display: flex;
