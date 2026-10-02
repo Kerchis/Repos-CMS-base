@@ -26,6 +26,50 @@ class Installer {
 			self::create_tables();
 			update_option( 'meridian_schema_version', self::SCHEMA_VERSION );
 		}
+		self::release_forced_caps();
+	}
+
+	/**
+	 * Suelta las mayúsculas forzadas que heredaron las instalaciones antiguas.
+	 *
+	 * Los módulos llevaban «text-transform: uppercase» escrito a fuego en el
+	 * CSS y los ajustes preestablecidos guardaban «uppercase» en cada rol de
+	 * tipografía, así que todo el sitio salía en versales y la opción de
+	 * tipografía no servía de nada. Ahora manda el token, pero quien ya tenga
+	 * los ajustes guardados seguiría viendo versales sin esta pasada. Se hace
+	 * una sola vez y respeta cualquier valor que no sea «uppercase».
+	 */
+	private static function release_forced_caps(): void {
+		if ( get_option( 'meridian_caps_released' ) ) {
+			return;
+		}
+		update_option( 'meridian_caps_released', 1, false );
+
+		$tokens = get_option( MERIDIAN_OPTION_TOKENS );
+		if ( ! is_array( $tokens ) || empty( $tokens['tokens']['typography'] ) ) {
+			return;
+		}
+		$typo    = $tokens['tokens']['typography'];
+		$touched = false;
+		foreach ( $typo as $role => $item ) {
+			if ( is_array( $item ) && isset( $item['textTransform'] ) && 'uppercase' === $item['textTransform'] ) {
+				$typo[ $role ]['textTransform'] = 'none';
+				$touched                        = true;
+			}
+		}
+		if ( ! $touched ) {
+			return;
+		}
+		$tokens['tokens']['typography'] = $typo;
+		update_option( MERIDIAN_OPTION_TOKENS, $tokens, false );
+
+		// Las mismas invalidaciones que hace el repositorio al guardar.
+		wp_cache_delete( MERIDIAN_OPTION_TOKENS, 'options' );
+		wp_cache_delete( 'alloptions', 'options' );
+		delete_transient( 'meridian_tokens_css' );
+		if ( class_exists( '\\Meridian\\Cache\\DocumentCache' ) ) {
+			\Meridian\Cache\DocumentCache::flush_chrome();
+		}
 	}
 
 	public static function create_tables(): void {

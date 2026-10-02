@@ -767,12 +767,17 @@
     return Object.entries(typo || {}).map(([role, item]) => `
       <div class="m-panel" style="padding:12px 16px;margin-bottom:10px">
         <strong>${esc(names[role] || role)}</strong>
-        <div class="m-field-row" style="grid-template-columns:repeat(5,1fr);margin-top:8px">
+        <div class="m-field-row" style="grid-template-columns:repeat(6,1fr);margin-top:8px">
           <label class="m-field">Familia <select data-typo="${role}" data-k="fontFamily">${fontOpts(item.fontFamily)}</select></label>
           <label class="m-field">Tamaño <input data-typo="${role}" data-k="fontSize" value="${esc(item.fontSize || "")}"></label>
           <label class="m-field">Peso <input data-typo="${role}" data-k="fontWeight" value="${esc(item.fontWeight || "")}"></label>
           <label class="m-field">Interlineado <input data-typo="${role}" data-k="lineHeight" value="${esc(item.lineHeight || "")}"></label>
           <label class="m-field">Tracking <input data-typo="${role}" data-k="letterSpacing" value="${esc(item.letterSpacing || "")}"></label>
+          <label class="m-field">Mayúsculas <select data-typo="${role}" data-k="textTransform">${
+            [["none", "Como se escribe"], ["uppercase", "MAYÚSCULAS"], ["lowercase", "minúsculas"], ["capitalize", "Iniciales"]]
+              .map(([v, l]) => `<option value="${v}" ${String(item.textTransform || "none") === v ? "selected" : ""}>${esc(l)}</option>`)
+              .join("")
+          }</select></label>
         </div>
       </div>`).join("");
   }

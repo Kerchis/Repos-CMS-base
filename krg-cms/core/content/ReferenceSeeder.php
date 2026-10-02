@@ -96,12 +96,12 @@ class ReferenceSeeder {
 				self::node(
 					'product-rail',
 					[
-						'eyebrow'   => 'DE NUESTRA FAMILIA A LA TUYA',
-						'title'     => 'NUESTROS MÁS VENDIDOS',
+						'eyebrow'   => 'De nuestra familia a la tuya',
+						'title'     => 'Nuestros más vendidos',
 						'titleTag'  => 'h2',
 						'tracking'  => 'normal',
 						'align'     => 'center',
-						'linkText'  => 'VER MÁS PRODUCTOS',
+						'linkText'  => 'Ver más productos',
 						'linkUrl'   => '/productos/',
 						'desktop'   => 4,
 						'tablet'    => 2,
@@ -111,11 +111,11 @@ class ReferenceSeeder {
 						'arrows'    => true,
 						'theme'     => 'cream',
 						'items'     => [
-							[ 'title' => 'FORMATO 340 G', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '/productos/', 'badge' => '' ],
-							[ 'title' => 'FORMATO 450 G', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '/productos/', 'badge' => '' ],
-							[ 'title' => 'MONODOSIS (20 UD.)', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '/productos/', 'badge' => 'NUEVO' ],
-							[ 'title' => 'FORMATO 680 G', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '/productos/', 'badge' => '' ],
-							[ 'title' => 'CREMA 340 G', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '/productos/', 'badge' => '' ],
+							[ 'title' => 'Formato 340 g', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '/productos/', 'badge' => '' ],
+							[ 'title' => 'Formato 450 g', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '/productos/', 'badge' => '' ],
+							[ 'title' => 'Monodosis (20 ud.)', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '/productos/', 'badge' => 'Nuevo' ],
+							[ 'title' => 'Formato 680 g', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '/productos/', 'badge' => '' ],
+							[ 'title' => 'Crema 340 g', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '/productos/', 'badge' => '' ],
 						],
 					]
 				),
@@ -132,21 +132,21 @@ class ReferenceSeeder {
 					'review-slider',
 					[
 						'eyebrow'  => '',
-						'title'    => 'OPINIONES HONESTAS',
+						'title'    => 'Opiniones honestas',
 						'titleTag' => 'h2',
 						'tracking' => 'wide',
 						'align'    => 'center',
-						'linkText' => 'VER TODAS LAS RESEÑAS',
+						'linkText' => 'Ver todas las reseñas',
 						'linkUrl'  => '#',
 						'perView'  => 2,
 						'autoplay' => true,
 						'interval' => 6000,
 						'theme'    => 'surface',
 						'items'    => [
-							[ 'text' => 'NO TODA LA MIEL ES IGUAL. ESTA ES SUAVE Y DELICIOSA.', 'author' => 'MEL', 'source' => 'CLIENTE', 'rating' => 5 ],
-							[ 'text' => 'ME ENCANTA. SOSTENIBLE Y RASTREABLE.', 'author' => 'MONTY', 'source' => 'CLIENTE', 'rating' => 5 ],
-							[ 'text' => 'SABROSA Y TRAZABLE. EL ÚNICO PRODUCTO QUE ME HA HECHO DEJAR UNA RESEÑA.', 'author' => 'SEAN', 'source' => 'CLIENTE', 'rating' => 5 ],
-							[ 'text' => 'EL SABOR ES DULCE, CON UN AROMA FLORAL ESTUPENDO.', 'author' => 'T.', 'source' => 'CLIENTE', 'rating' => 5 ],
+							[ 'text' => 'No toda la miel es igual. Esta es suave y deliciosa.', 'author' => 'MEL', 'source' => 'Cliente', 'rating' => 5 ],
+							[ 'text' => 'Me encanta. Sostenible y rastreable.', 'author' => 'Monty', 'source' => 'Cliente', 'rating' => 5 ],
+							[ 'text' => 'Sabrosa y trazable. El único producto que me ha hecho dejar una reseña.', 'author' => 'Sean', 'source' => 'Cliente', 'rating' => 5 ],
+							[ 'text' => 'El sabor es dulce, con un aroma floral estupendo.', 'author' => 'T.', 'source' => 'Cliente', 'rating' => 5 ],
 						],
 					]
 				),
@@ -163,9 +163,9 @@ class ReferenceSeeder {
 					'statement-cta',
 					[
 						'eyebrow'    => '',
-						'title'      => 'MIEL REALMENTE TRAZABLE CERCA DE TI',
+						'title'      => 'Miel realmente trazable cerca de ti',
 						'text'       => '',
-						'buttonText' => 'ENCONTRAR TIENDA',
+						'buttonText' => 'Encontrar tienda',
 						'buttonUrl'  => '/contacto/',
 						'iconId'     => 0,
 						'iconCount'  => 0,
@@ -191,9 +191,9 @@ class ReferenceSeeder {
 						'eyebrow'     => '',
 						'title'       => "RASTREA EL VIAJE\nDE TU MIEL",
 						'titleTag'    => 'h2',
-						'subtitle'    => 'DE LA FLOR A LA COLMENA, DE LA COSECHA A TI.',
+						'subtitle'    => 'De la flor a la colmena, de la cosecha a ti.',
 						'text'        => '',
-						'buttonText'  => 'EMPEZAR',
+						'buttonText'  => 'Empezar',
 						'buttonUrl'   => '#rastrea-tu-miel',
 						'buttonStyle' => 'solid',
 						'buttonArrow' => true,
@@ -227,12 +227,12 @@ class ReferenceSeeder {
 				self::node(
 					'split-panel',
 					[
-						'eyebrow'     => 'MIEL CRUDA TRAZABLE',
-						'title'       => 'FORMATO 340 G',
+						'eyebrow'     => 'Miel cruda trazable',
+						'title'       => 'Formato 340 g',
 						'titleTag'    => 'h2',
 						'subtitle'    => '',
 						'text'        => '',
-						'buttonText'  => 'COMPRAR',
+						'buttonText'  => 'Comprar',
 						'buttonUrl'   => '/productos/',
 						'buttonStyle' => 'outline',
 						'buttonArrow' => false,
@@ -266,7 +266,7 @@ class ReferenceSeeder {
 				self::node(
 					'wordmark',
 					[
-						'text'        => strtoupper( (string) get_bloginfo( 'name' ) ),
+						'text'        => (string) get_bloginfo( 'name' ),
 						'tag'         => 'p',
 						'url'         => '/',
 						'fit'         => 'fill',
@@ -301,7 +301,7 @@ class ReferenceSeeder {
 						'preloader',
 						[
 							'label'     => 'RECOGIENDO NÉCTAR…',
-							'claim'     => 'PREPÁRATE PARA MIEL HONESTA.',
+							'claim'     => 'Prepárate para miel honesta.',
 							'imageId'   => 0,
 							'duration'  => 1600,
 							'once'      => true,
@@ -319,10 +319,10 @@ class ReferenceSeeder {
 							'variant'       => 'center',
 							'eyebrow'       => '',
 							'title'         => "CONOCE\nTU MIEL",
-							'subtitle'      => 'SABOR QUE PUEDES RASTREAR.',
-							'subtitle2'     => 'DESDE LA CASA DE LA MIEL.',
+							'subtitle'      => 'Sabor que puedes rastrear.',
+							'subtitle2'     => 'Desde la casa de la miel.',
 							'text'          => '',
-							'buttons'       => [ self::btn( 'RASTREA TU BOTE', '#rastrea-tu-miel', 'primary' ) ],
+							'buttons'       => [ self::btn( 'Rastrea tu bote', '#rastrea-tu-miel', 'primary' ) ],
 							'imageId'       => 0,
 							'mobileImageId' => 0,
 							'overlay'       => 25,
@@ -333,7 +333,7 @@ class ReferenceSeeder {
 					),
 				]
 			),
-			self::strip( 'HECHO AQUÍ', 'solid', 'md' ),
+			self::strip( 'Hecho aquí', 'solid', 'md' ),
 			self::split_hero(),
 			self::bleed(
 				'Trazabilidad',
@@ -342,11 +342,11 @@ class ReferenceSeeder {
 						'trace-module',
 						[
 							'eyebrow'     => '',
-							'title'       => 'RASTREA EL VIAJE DE TU MIEL',
+							'title'       => 'Rastrea el viaje de tu miel',
 							'titleTag'    => 'h2',
 							'text'        => 'De la flor a la colmena, de la colmena a la cosecha, y de ahí hasta tu mesa.',
 							'placeholder' => 'Código de lote',
-							'buttonText'  => 'EMPEZAR',
+							'buttonText'  => 'Empezar',
 							'helpText'    => 'Encontrarás el código impreso en la etiqueta del bote.',
 							'errorText'   => 'No encontramos ese código. Revísalo e inténtalo de nuevo.',
 							'demoCode'    => '',
@@ -354,10 +354,10 @@ class ReferenceSeeder {
 							'theme'       => 'forest',
 							'align'       => 'center',
 							'steps'       => [
-								[ 'title' => 'FLOR', 'text' => 'Las fuentes florales que visitaron las abejas.', 'meta' => 'Origen', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'COLMENA', 'text' => 'Dónde estaban asentadas las colmenas.', 'meta' => 'Ubicación', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'COSECHA', 'text' => 'Cuándo y cómo se extrajo la miel.', 'meta' => 'Extracción', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'TU CASA', 'text' => 'Dónde se envasó tu bote concreto.', 'meta' => 'Envasado', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Flor', 'text' => 'Las fuentes florales que visitaron las abejas.', 'meta' => 'Origen', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Colmena', 'text' => 'Dónde estaban asentadas las colmenas.', 'meta' => 'Ubicación', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Cosecha', 'text' => 'Cuándo y cómo se extrajo la miel.', 'meta' => 'Extracción', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Tu casa', 'text' => 'Dónde se envasó tu bote concreto.', 'meta' => 'Envasado', 'imageId' => 0, 'alt' => '' ],
 							],
 						],
 						[],
@@ -372,11 +372,11 @@ class ReferenceSeeder {
 					self::node(
 						'split-feature',
 						[
-							'eyebrow'    => 'DE SU COLMENA OCUPADA A TU CASA OCUPADA',
-							'title'      => 'MIEL HONESTA DEL CORAZÓN DEL CAMPO',
+							'eyebrow'    => 'De su colmena ocupada a tu casa ocupada',
+							'title'      => 'Miel honesta del corazón del campo',
 							'titleTag'   => 'h2',
 							'text'       => '<p>Trabajamos con apicultores seleccionados uno a uno y con nuestros propios colmenares. Cada lote se analiza y se puede rastrear hasta su origen.</p>',
-							'linkText'   => 'CONOCE MÁS',
+							'linkText'   => 'Conoce más',
 							'linkUrl'    => '/nosotros/',
 							'imageId'    => 0,
 							'imageSide'  => 'left',
@@ -396,15 +396,15 @@ class ReferenceSeeder {
 					self::node(
 						'retail-strip',
 						[
-							'title'     => 'DISPONIBLE EN TUS TIENDAS HABITUALES',
+							'title'     => 'Disponible en tus tiendas habituales',
 							'titleTag'  => 'h2',
 							'tracking'  => 'wide',
 							'grayscale' => true,
 							'theme'     => 'cream',
 							'items'     => [
-								[ 'title' => 'DISTRIBUIDOR 1', 'imageId' => 0, 'alt' => '', 'url' => '' ],
-								[ 'title' => 'DISTRIBUIDOR 2', 'imageId' => 0, 'alt' => '', 'url' => '' ],
-								[ 'title' => 'DISTRIBUIDOR 3', 'imageId' => 0, 'alt' => '', 'url' => '' ],
+								[ 'title' => 'Distribuidor 1', 'imageId' => 0, 'alt' => '', 'url' => '' ],
+								[ 'title' => 'Distribuidor 2', 'imageId' => 0, 'alt' => '', 'url' => '' ],
+								[ 'title' => 'Distribuidor 3', 'imageId' => 0, 'alt' => '', 'url' => '' ],
 							],
 						]
 					),
@@ -425,8 +425,8 @@ class ReferenceSeeder {
 						[
 							'variant'    => 'center',
 							'eyebrow'    => '',
-							'title'      => 'RASTREA SU DULCE VIAJE HASTA TI',
-							'subtitle'   => 'MIEL CRUDA, UN SOLO INGREDIENTE.',
+							'title'      => 'Rastrea su dulce viaje hasta ti',
+							'subtitle'   => 'Miel cruda, un solo ingrediente.',
 							'subtitle2'  => '',
 							'text'       => '',
 							'buttons'    => [],
@@ -439,15 +439,15 @@ class ReferenceSeeder {
 					),
 				]
 			),
-			self::strip( 'UN SOLO INGREDIENTE', 'solid', 'md' ),
+			self::strip( 'Un solo ingrediente', 'solid', 'md' ),
 			self::bleed(
 				'Más vendidos',
 				[
 					self::node(
 						'product-rail',
 						[
-							'eyebrow'   => 'DE NUESTRA FAMILIA A LA TUYA',
-							'title'     => 'NUESTROS MÁS VENDIDOS',
+							'eyebrow'   => 'De nuestra familia a la tuya',
+							'title'     => 'Nuestros más vendidos',
 							'titleTag'  => 'h2',
 							'tracking'  => 'normal',
 							'align'     => 'center',
@@ -461,12 +461,12 @@ class ReferenceSeeder {
 							'arrows'    => false,
 							'theme'     => 'cream',
 							'items'     => [
-								[ 'title' => 'FORMATO 340 G', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
-								[ 'title' => 'FORMATO 450 G', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
-								[ 'title' => 'MONODOSIS (20 UD.)', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
-								[ 'title' => 'FORMATO 680 G', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
-								[ 'title' => 'FORMATO 900 G', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
-								[ 'title' => 'CREMA 340 G', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'title' => 'Formato 340 g', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'title' => 'Formato 450 g', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'title' => 'Monodosis (20 ud.)', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'title' => 'Formato 680 g', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'title' => 'Formato 900 g', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'title' => 'Crema 340 g', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
 							],
 						]
 					),
@@ -478,8 +478,8 @@ class ReferenceSeeder {
 					self::node(
 						'collection-grid',
 						[
-							'eyebrow'   => 'MIEL LOCAL',
-							'title'     => 'HECHA POR ABEJAS CERCA DE TI',
+							'eyebrow'   => 'Miel local',
+							'title'     => 'Hecha por abejas cerca de ti',
 							'titleTag'  => 'h2',
 							'tracking'  => 'normal',
 							'align'     => 'center',
@@ -492,14 +492,14 @@ class ReferenceSeeder {
 							'ratio'     => 'square',
 							'theme'     => 'surface',
 							'items'     => [
-								[ 'category' => 'NORTE', 'title' => 'MIEL DEL NORTE', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'LEVANTE', 'title' => 'MIEL DE LEVANTE', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'SUR', 'title' => 'MIEL DEL SUR', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'MESETA', 'title' => 'MIEL DE MESETA', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'ISLAS', 'title' => 'MIEL DE ISLAS', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'PIRINEOS', 'title' => 'MIEL DE MONTAÑA', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'ATLÁNTICO', 'title' => 'MIEL ATLÁNTICA', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'INTERIOR', 'title' => 'MIEL DE INTERIOR', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Norte', 'title' => 'Miel del norte', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Levante', 'title' => 'Miel de levante', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'SUR', 'title' => 'Miel del sur', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Meseta', 'title' => 'Miel de meseta', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Islas', 'title' => 'Miel de islas', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Pirineos', 'title' => 'Miel de montaña', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Atlántico', 'title' => 'Miel atlántica', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Interior', 'title' => 'Miel de interior', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver ficha', 'url' => '#', 'badge' => '' ],
 							],
 						]
 					),
@@ -521,9 +521,9 @@ class ReferenceSeeder {
 						'brand-hero',
 						[
 							'variant'    => 'center',
-							'eyebrow'    => 'MÁS QUE UNA EMPRESA DE MIEL',
-							'title'      => 'BIENVENIDO A LA CASA DE LA MIEL',
-							'subtitle'   => 'UNA FAMILIA QUE QUIERE A LAS ABEJAS.',
+							'eyebrow'    => 'Más que una empresa de miel',
+							'title'      => 'Bienvenido a la casa de la miel',
+							'subtitle'   => 'Una familia que quiere a las abejas.',
 							'subtitle2'  => '',
 							'text'       => '',
 							'buttons'    => [],
@@ -542,8 +542,8 @@ class ReferenceSeeder {
 					self::node(
 						'split-feature',
 						[
-							'eyebrow'    => 'TODO EMPEZÓ HACE UN SIGLO',
-							'title'      => 'CIEN AÑOS APRENDIENDO DE LAS ABEJAS',
+							'eyebrow'    => 'Todo empezó hace un siglo',
+							'title'      => 'Cien años aprendiendo de las abejas',
 							'titleTag'   => 'h2',
 							'text'       => '<p>Nuestras raíces apícolas vienen de muy atrás: un bisabuelo que aprendió el oficio en los colmenares y compró sus primeras treinta colmenas. Seguimos trabajando con apicultores de confianza y con nuestros propios colmenares, con estándares altos de seguridad, calidad, pureza y trazabilidad real.</p>',
 							'linkText'   => '',
@@ -565,8 +565,8 @@ class ReferenceSeeder {
 					self::node(
 						'display-type',
 						[
-							'eyebrow'   => 'NUESTRA MISIÓN',
-							'text'      => 'CUIDAR A LAS ABEJAS, POR ELLAS Y POR NOSOTROS',
+							'eyebrow'   => 'Nuestra misión',
+							'text'      => 'Cuidar a las abejas, por ellas y por nosotros',
 							'tag'       => 'h2',
 							'size'      => 'xl',
 							'tracking'  => 'wide',
@@ -584,8 +584,8 @@ class ReferenceSeeder {
 					self::node(
 						'numbered-list',
 						[
-							'eyebrow'     => 'LIDERANDO EL SECTOR',
-							'title'       => 'ESTÁNDARES ALTOS. PRÁCTICAS CUIDADOSAS.',
+							'eyebrow'     => 'Liderando el sector',
+							'title'       => 'Estándares altos. Prácticas cuidadosas.',
 							'titleTag'    => 'h2',
 							'tracking'    => 'wide',
 							'align'       => 'left',
@@ -598,11 +598,11 @@ class ReferenceSeeder {
 							'mobile'      => 1,
 							'theme'       => 'surface',
 							'items'       => [
-								[ 'title' => 'COLMENAS CUIDADAS', 'text' => 'Las abejas a nuestro cargo se tratan con delicadeza y respeto.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'HECHA DE FORMA NATURAL', 'text' => 'La miel la hacen las abejas con el néctar que recogen. Nada más.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'SALUD DE LA COLMENA', 'text' => 'Cuando hace falta tratar plagas o enfermedades, empezamos siempre por prácticas naturales y ecológicas.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'CALIDAD TRANSPARENTE', 'text' => 'Cada lote pasa controles de seguridad alimentaria y de transparencia en la cadena de suministro.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'INVESTIGACIÓN', 'text' => 'Financiamos investigación y proyectos de salud de las abejas junto a universidades y centros especializados.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Colmenas cuidadas', 'text' => 'Las abejas a nuestro cargo se tratan con delicadeza y respeto.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Hecha de forma natural', 'text' => 'La miel la hacen las abejas con el néctar que recogen. Nada más.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Salud de la colmena', 'text' => 'Cuando hace falta tratar plagas o enfermedades, empezamos siempre por prácticas naturales y ecológicas.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Calidad transparente', 'text' => 'Cada lote pasa controles de seguridad alimentaria y de transparencia en la cadena de suministro.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Investigación', 'text' => 'Financiamos investigación y proyectos de salud de las abejas junto a universidades y centros especializados.', 'imageId' => 0, 'alt' => '' ],
 							],
 						]
 					),
@@ -614,8 +614,8 @@ class ReferenceSeeder {
 					self::node(
 						'split-feature',
 						[
-							'eyebrow'    => 'CÓMO TRABAJAMOS',
-							'title'      => 'NUESTRA FORMA DE HACER LAS COSAS',
+							'eyebrow'    => 'Cómo trabajamos',
+							'title'      => 'Nuestra forma de hacer las cosas',
 							'titleTag'   => 'h2',
 							'text'       => '<p>Respetamos a las abejas y las tratamos bien, reconociendo todo lo que tenemos en común. Como ellas, cuidamos de los nuestros, trabajamos duro, perseveramos y celebramos los éxitos dulces.</p>',
 							'linkText'   => '',
@@ -637,17 +637,17 @@ class ReferenceSeeder {
 					self::node(
 						'statement-list',
 						[
-							'eyebrow'  => 'INNOVAMOS',
-							'title'    => 'NUESTROS PRIMEROS PASOS',
+							'eyebrow'  => 'Innovamos',
+							'title'    => 'Nuestros primeros pasos',
 							'titleTag' => 'h2',
 							'tracking' => 'normal',
 							'align'    => 'left',
 							'theme'    => 'cream',
 							'items'    => [
-								[ 'label' => 'ANÁLISIS CONSTANTE', 'title' => 'LOS PRIMEROS EN MONTAR UN LABORATORIO PROPIO PARA ANALIZAR CADA LOTE', 'url' => '' ],
-								[ 'label' => 'TRANSPARENCIA', 'title' => 'LOS PRIMEROS EN OFRECER TRAZABILIDAD REAL: FLOR, COLMENA, COSECHA Y CONSUMIDOR', 'url' => '' ],
-								[ 'label' => 'CADENA DE SUMINISTRO', 'title' => 'LOS PRIMEROS EN CERTIFICAR EL ORIGEN Y LA CADENA DE SUMINISTRO', 'url' => '' ],
-								[ 'label' => 'SEGURIDAD Y CALIDAD', 'title' => 'LOS PRIMEROS EN ADOPTAR LA CERTIFICACIÓN DE SEGURIDAD ALIMENTARIA DEL SECTOR', 'url' => '' ],
+								[ 'label' => 'Análisis constante', 'title' => 'Los primeros en montar un laboratorio propio para analizar cada lote', 'url' => '' ],
+								[ 'label' => 'Transparencia', 'title' => 'Los primeros en ofrecer trazabilidad real: flor, colmena, cosecha y consumidor', 'url' => '' ],
+								[ 'label' => 'Cadena de suministro', 'title' => 'Los primeros en certificar el origen y la cadena de suministro', 'url' => '' ],
+								[ 'label' => 'Seguridad y calidad', 'title' => 'Los primeros en adoptar la certificación de seguridad alimentaria del sector', 'url' => '' ],
 							],
 						]
 					),
@@ -666,8 +666,8 @@ class ReferenceSeeder {
 						'brand-hero',
 						[
 							'variant'    => 'center',
-							'eyebrow'    => 'EN LA COCINA',
-							'title'      => 'RECETAS PARA INSPIRARTE',
+							'eyebrow'    => 'En la cocina',
+							'title'      => 'Recetas para inspirarte',
 							'subtitle'   => '',
 							'subtitle2'  => '',
 							'text'       => '',
@@ -688,7 +688,7 @@ class ReferenceSeeder {
 						'collection-grid',
 						[
 							'eyebrow'   => '',
-							'title'     => 'NUESTRAS FAVORITAS',
+							'title'     => 'Nuestras favoritas',
 							'titleTag'  => 'h2',
 							'tracking'  => 'normal',
 							'align'     => 'center',
@@ -701,9 +701,9 @@ class ReferenceSeeder {
 							'ratio'     => 'portrait',
 							'theme'     => 'cream',
 							'items'     => [
-								[ 'category' => 'POSTRES', 'title' => 'POLOS DE FRESA Y MIEL', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => '', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'ENSALADAS', 'title' => 'ENSALADA DE BRÓCOLI', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => '', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'BEBIDAS', 'title' => 'LIMONADA CON MIEL', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => '', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Postres', 'title' => 'Polos de fresa y miel', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => '', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Ensaladas', 'title' => 'Ensalada de brócoli', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => '', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Bebidas', 'title' => 'Limonada con miel', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => '', 'url' => '#', 'badge' => '' ],
 							],
 						]
 					),
@@ -716,7 +716,7 @@ class ReferenceSeeder {
 						'display-type',
 						[
 							'eyebrow'   => '',
-							'text'      => 'TRUCOS DE REPOSTERÍA',
+							'text'      => 'Trucos de repostería',
 							'tag'       => 'h2',
 							'size'      => 'display',
 							'tracking'  => 'wider',
@@ -758,9 +758,9 @@ class ReferenceSeeder {
 							'mobile'      => 1,
 							'theme'       => 'surface',
 							'items'       => [
-								[ 'title' => 'CÓMO MEDIRLA', 'text' => 'Engrasa ligeramente el vaso medidor o caliéntalo con agua: la miel se despega sola y la medida es exacta. La miel se vende por peso, no por volumen.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'EQUIVALENCIAS', 'text' => 'Como se vende por peso y las recetas suelen pedir volumen, siempre necesitas un poco más de lo que crees.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'AL HORNEAR', 'text' => 'Hasta una taza puedes sustituir azúcar por miel a partes iguales. Por encima, usa entre 2/3 y 3/4 de taza de miel por cada taza de azúcar, baja el horno unos grados y reduce el resto de líquidos.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Cómo medirla', 'text' => 'Engrasa ligeramente el vaso medidor o caliéntalo con agua: la miel se despega sola y la medida es exacta. La miel se vende por peso, no por volumen.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Equivalencias', 'text' => 'Como se vende por peso y las recetas suelen pedir volumen, siempre necesitas un poco más de lo que crees.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Al hornear', 'text' => 'Hasta una taza puedes sustituir azúcar por miel a partes iguales. Por encima, usa entre 2/3 y 3/4 de taza de miel por cada taza de azúcar, baja el horno unos grados y reduce el resto de líquidos.', 'imageId' => 0, 'alt' => '' ],
 							],
 						]
 					),
@@ -772,7 +772,7 @@ class ReferenceSeeder {
 					self::node(
 						'info-table',
 						[
-							'title'   => 'EQUIVALENCIAS DE PESO A VOLUMEN',
+							'title'   => 'Equivalencias de peso a volumen',
 							'headA'   => 'Peso',
 							'headB'   => 'Volumen aproximado',
 							'caption' => 'Tabla orientativa para recetas de repostería.',
@@ -795,7 +795,7 @@ class ReferenceSeeder {
 					self::node(
 						'filter-collection',
 						[
-							'title'       => 'ENCUENTRA LA RECETA PERFECTA',
+							'title'       => 'Encuentra la receta perfecta',
 							'titleTag'    => 'h2',
 							'text'        => 'Explora el recetario y encuentra un plato o una bebida que convenza hasta al paladar más exigente.',
 							'align'       => 'center',
@@ -806,22 +806,22 @@ class ReferenceSeeder {
 							'showSearch'  => true,
 							'showFilters' => true,
 							'allLabel'    => 'Todo',
-							'moreLabel'   => 'CARGAR MÁS',
+							'moreLabel'   => 'Cargar más',
 							'emptyLabel'  => 'No hay recetas que coincidan con ese filtro.',
 							'theme'       => 'cream',
 							'items'       => [
-								[ 'category' => 'Carnes', 'title' => 'LOMO GLASEADO CON MIEL Y CEBOLLA', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'Bebidas', 'title' => 'LASSI DE MANGO Y JENGIBRE', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'Entrantes', 'title' => 'BRIE AL HORNO CON MIEL', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'Postres', 'title' => 'TARTA DE CALABAZA', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'Sopas', 'title' => 'CREMA DE TOMATE', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'Bebidas', 'title' => 'PONCHE DE SIDRA', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'Sopas', 'title' => 'CREMA DE CALABAZA', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'Bebidas', 'title' => 'LIMONADA CON MIEL', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'Postres', 'title' => 'BUÑUELOS DE MIEL', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'Bebidas', 'title' => 'PONCHE DE VERANO', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'Ensaladas', 'title' => 'ENSALADA DE BRÓCOLI', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
-								[ 'category' => 'Postres', 'title' => 'POLOS DE FRESA Y MIEL', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Carnes', 'title' => 'Lomo glaseado con miel y cebolla', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Bebidas', 'title' => 'Lassi de mango y jengibre', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Entrantes', 'title' => 'Brie al horno con miel', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Postres', 'title' => 'Tarta de calabaza', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Sopas', 'title' => 'Crema de tomate', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Bebidas', 'title' => 'Ponche de sidra', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Sopas', 'title' => 'Crema de calabaza', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Bebidas', 'title' => 'Limonada con miel', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Postres', 'title' => 'Buñuelos de miel', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Bebidas', 'title' => 'Ponche de verano', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Ensaladas', 'title' => 'Ensalada de brócoli', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
+								[ 'category' => 'Postres', 'title' => 'Polos de fresa y miel', 'text' => '', 'imageId' => 0, 'alt' => '', 'linkText' => 'Ver receta', 'url' => '#', 'badge' => '' ],
 							],
 						]
 					),
@@ -834,7 +834,7 @@ class ReferenceSeeder {
 						'numbered-list',
 						[
 							'eyebrow'     => '',
-							'title'       => 'MARIDAJES CON MIEL',
+							'title'       => 'Maridajes con miel',
 							'titleTag'    => 'h2',
 							'tracking'    => 'wide',
 							'align'       => 'center',
@@ -847,12 +847,12 @@ class ReferenceSeeder {
 							'mobile'      => 1,
 							'theme'       => 'cream',
 							'items'       => [
-								[ 'title' => 'HIERBAS Y ESPECIAS', 'text' => 'Infusiona la miel con hierbas y especias. Va bien en salsas, guisos, marinadas, glaseados, aliños y masa de pizza.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'FRUTA Y FRUTOS SECOS', 'text' => 'Perfecta en parfaits, sobre tortitas y ensaladas, en batidos, pincelada sobre fruta antes de asarla o glaseando frutos secos.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'LÁCTEOS', 'text' => 'Endulza leche y bebidas vegetales, helados, cereales, cafés e infusiones. Y acompaña de maravilla a los quesos.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'AVES', 'text' => 'Da un punto dulce y fresco a salsas barbacoa, marinadas y glaseados. Pincela pollo, pato o pavo para una piel crujiente.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'CARNES', 'text' => 'Añádela a marinadas, salsas, guisos y glaseados. Pincela costillas o asados al final de la cocción.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => 'BEBIDAS', 'text' => 'Aporta dulzor natural a tés fríos, cafés, zumos y batidos. Deliciosa en infusiones y en chocolate caliente.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Hierbas y especias', 'text' => 'Infusiona la miel con hierbas y especias. Va bien en salsas, guisos, marinadas, glaseados, aliños y masa de pizza.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Fruta y frutos secos', 'text' => 'Perfecta en parfaits, sobre tortitas y ensaladas, en batidos, pincelada sobre fruta antes de asarla o glaseando frutos secos.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Lácteos', 'text' => 'Endulza leche y bebidas vegetales, helados, cereales, cafés e infusiones. Y acompaña de maravilla a los quesos.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Aves', 'text' => 'Da un punto dulce y fresco a salsas barbacoa, marinadas y glaseados. Pincela pollo, pato o pavo para una piel crujiente.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Carnes', 'text' => 'Añádela a marinadas, salsas, guisos y glaseados. Pincela costillas o asados al final de la cocción.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => 'Bebidas', 'text' => 'Aporta dulzor natural a tés fríos, cafés, zumos y batidos. Deliciosa en infusiones y en chocolate caliente.', 'imageId' => 0, 'alt' => '' ],
 							],
 						]
 					),
@@ -871,8 +871,8 @@ class ReferenceSeeder {
 						'brand-hero',
 						[
 							'variant'    => 'center',
-							'eyebrow'    => 'RESUELVE TUS DUDAS',
-							'title'      => 'PREGUNTAS FRECUENTES',
+							'eyebrow'    => 'Resuelve tus dudas',
+							'title'      => 'Preguntas frecuentes',
 							'subtitle'   => '',
 							'subtitle2'  => '',
 							'text'       => '',
@@ -906,18 +906,18 @@ class ReferenceSeeder {
 							'mobile'      => 1,
 							'theme'       => 'cream',
 							'items'       => [
-								[ 'title' => '¿QUÉ ES LA MIEL?', 'text' => 'Es una sustancia dulce y espesa que producen las abejas a partir del néctar de las flores. Añaden enzimas y eliminan agua hasta convertirlo en miel: azúcares naturales, agua, minerales, vitaminas y enzimas.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => '¿QUÉ ES LA MIEL CRUDA?', 'text' => 'Es la miel tal y como está en la colmena o con un procesado mínimo: se atempera suavemente y se cuela, no se filtra, para conservar polen, enzimas y nutrientes.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => '¿QUÉ LLEVA DENTRO?', 'text' => 'Miel cruda, y nada más. Sin añadidos y sin quitar nada. Cada lote se analiza en seguridad, calidad y pureza.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => '¿DÓNDE ESTÁIS?', 'text' => 'Tenemos sede y centros repartidos para acortar los kilómetros entre donde se hace la miel, se cosecha y se envasa.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => '¿CÓMO LA CONSEGUÍS?', 'text' => 'Trabajamos con apicultores de confianza, seleccionados uno a uno, y también con nuestros propios colmenares.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => '¿QUÉ SIGNIFICA TRAZABLE?', 'text' => 'Que puedes seguir el recorrido de tu bote desde la flor hasta el envase: dónde estaban las colmenas, qué flores visitaron las abejas y dónde se extrajo y envasó.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => '¿ESTÁ MEZCLADA?', 'text' => 'No se mezcla nunca con miel de otros orígenes. Un solo ingrediente: miel cruda.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => '¿CÓMO SABÉIS QUÉ FLORES VISITARON?', 'text' => 'Mediante análisis de laboratorio independiente de los pólenes presentes en la miel.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => '¿CÓMO LA GUARDO? ¿CADUCA?', 'text' => 'A temperatura ambiente y sin luz directa. No necesita nevera. Bien cerrada, la miel cruda no caduca.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => '¿POR QUÉ HA CAMBIADO DE TEXTURA?', 'text' => 'Es natural: la miel cruda cristaliza con el tiempo y sigue siendo segura. Si la prefieres líquida, pon el bote en agua templada hasta que se deshagan los cristales.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => '¿PUEDEN TOMARLA BEBÉS O PERSONAS ALÉRGICAS?', 'text' => 'Nunca debe darse miel a menores de un año. Para el resto es segura salvo alergia conocida a la miel o a productos de la abeja.', 'imageId' => 0, 'alt' => '' ],
-								[ 'title' => '¿CUÁL ES SU INFORMACIÓN NUTRICIONAL?', 'text' => 'Por ración de una cucharada (21 g): 60 kcal, 0 g de grasa, 0 mg de sodio, 17 g de hidratos, 17 g de azúcares y 0 g de proteína.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => '¿qué es la miel?', 'text' => 'Es una sustancia dulce y espesa que producen las abejas a partir del néctar de las flores. Añaden enzimas y eliminan agua hasta convertirlo en miel: azúcares naturales, agua, minerales, vitaminas y enzimas.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => '¿qué es la miel cruda?', 'text' => 'Es la miel tal y como está en la colmena o con un procesado mínimo: se atempera suavemente y se cuela, no se filtra, para conservar polen, enzimas y nutrientes.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => '¿qué lleva dentro?', 'text' => 'Miel cruda, y nada más. Sin añadidos y sin quitar nada. Cada lote se analiza en seguridad, calidad y pureza.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => '¿dónde estáis?', 'text' => 'Tenemos sede y centros repartidos para acortar los kilómetros entre donde se hace la miel, se cosecha y se envasa.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => '¿cómo la conseguís?', 'text' => 'Trabajamos con apicultores de confianza, seleccionados uno a uno, y también con nuestros propios colmenares.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => '¿qué significa trazable?', 'text' => 'Que puedes seguir el recorrido de tu bote desde la flor hasta el envase: dónde estaban las colmenas, qué flores visitaron las abejas y dónde se extrajo y envasó.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => '¿está mezclada?', 'text' => 'No se mezcla nunca con miel de otros orígenes. Un solo ingrediente: miel cruda.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => '¿cómo sabéis qué flores visitaron?', 'text' => 'Mediante análisis de laboratorio independiente de los pólenes presentes en la miel.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => '¿cómo la guardo? ¿caduca?', 'text' => 'A temperatura ambiente y sin luz directa. No necesita nevera. Bien cerrada, la miel cruda no caduca.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => '¿por qué ha cambiado de textura?', 'text' => 'Es natural: la miel cruda cristaliza con el tiempo y sigue siendo segura. Si la prefieres líquida, pon el bote en agua templada hasta que se deshagan los cristales.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => '¿pueden tomarla bebés o personas alérgicas?', 'text' => 'Nunca debe darse miel a menores de un año. Para el resto es segura salvo alergia conocida a la miel o a productos de la abeja.', 'imageId' => 0, 'alt' => '' ],
+								[ 'title' => '¿cuál es su información nutricional?', 'text' => 'Por ración de una cucharada (21 g): 60 kcal, 0 g de grasa, 0 mg de sodio, 17 g de hidratos, 17 g de azúcares y 0 g de proteína.', 'imageId' => 0, 'alt' => '' ],
 							],
 						]
 					),
@@ -936,12 +936,12 @@ class ReferenceSeeder {
 						'brand-hero',
 						[
 							'variant'    => 'center',
-							'eyebrow'    => 'CONTACTO',
-							'title'      => '¿PREGUNTAS? ¿COMENTARIOS?',
+							'eyebrow'    => 'Contacto',
+							'title'      => '¿preguntas? ¿comentarios?',
 							'subtitle'   => '',
 							'subtitle2'  => '',
 							'text'       => 'Escríbenos con el formulario y cuéntanos qué tienes en mente. Te leemos.',
-							'buttons'    => [ self::btn( '¿MÁS INFORMACIÓN?', '/faq/', 'outline' ) ],
+							'buttons'    => [ self::btn( '¿más información?', '/faq/', 'outline' ) ],
 							'imageId'    => 0,
 							'overlay'    => 25,
 							'height'     => 'short',
@@ -957,7 +957,7 @@ class ReferenceSeeder {
 					self::node(
 						'contact-form',
 						[
-							'submit'      => 'ENVIAR',
+							'submit'      => 'Enviar',
 							'success'     => 'Mensaje enviado. Gracias.',
 							'showPhone'   => false,
 							'showSubject' => false,
@@ -972,7 +972,7 @@ class ReferenceSeeder {
 					),
 				]
 			),
-			self::strip( 'TE LEEMOS', 'solid', 'md' ),
+			self::strip( 'Te leemos', 'solid', 'md' ),
 		];
 	}
 
@@ -1007,7 +1007,7 @@ class ReferenceSeeder {
 
 		$wanted = [
 			[ __( 'Hero de marca', 'meridian' ), self::pick( $home, 'brand-hero' ) ],
-			[ __( 'Marquesina', 'meridian' ), self::strip( 'TEXTO EN BUCLE', 'solid', 'md' ) ],
+			[ __( 'Marquesina', 'meridian' ), self::strip( 'Texto en bucle', 'solid', 'md' ) ],
 			[ __( 'Panel partido a pantalla completa', 'meridian' ), self::split_hero() ],
 			[ __( 'Panel de producto con carrusel', 'meridian' ), self::product_panel() ],
 			[ __( 'Módulo de trazabilidad', 'meridian' ), self::pick( $home, 'trace-module' ) ],
@@ -1041,7 +1041,7 @@ class ReferenceSeeder {
 			\Meridian\Navigation\Menus::default_header(),
 			[
 				'sticky'         => true,
-				'ctaText'        => 'ENCONTRAR TIENDA',
+				'ctaText'        => 'Encontrar tienda',
 				'ctaUrl'         => '/contacto/',
 				'height'         => 84,
 				'paddingY'       => 18,
@@ -1075,7 +1075,7 @@ class ReferenceSeeder {
 				'linkColor'      => 'var(--color-on-primary, #fff)',
 				'linkHoverFg'    => 'var(--color-background)',
 				'showSearch'     => false,
-				'extraTitle'     => 'TRAZABILIDAD',
+				'extraTitle'     => 'Trazabilidad',
 				'extraText'      => 'Introduce el código de tu bote y sigue su recorrido completo.',
 			]
 		);

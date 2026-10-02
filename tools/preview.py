@@ -54,7 +54,7 @@ def split_panel(p):
             + title(p['title'], 'm-sp-title m-track-normal')
             + (f'<p class="m-sp-sub m-track-wide">{p["sub"]}</p>' if p.get('sub') else '')
             + '<div class="m-btn-row"><a class="m-btn m-btn-primary m-sp-btn" href="#">'
-              'VER MAS<span class="m-btn-arrow" aria-hidden="true">&#8594;</span></a></div>'
+              'Ver más<span class="m-btn-arrow" aria-hidden="true">&#8594;</span></a></div>'
             '</div></div>')
     media = (f'<div class="m-sp-media is-theme-{p.get("mediaTheme","surface")} is-fit-cover">'
              f'<ul class="m-sp-track" data-sp-track><li class="m-sp-slide">{PH}</li></ul></div>')
@@ -131,17 +131,17 @@ def section(inner, skin='dark', curtain=False, width='full', mh=None):
 
 BLOCKS = [
     ('Panel partido · imagen derecha', section(split_panel({
-        'title': 'PLANTAS | CAFE |\nGASTRONOMIA', 'eyebrow': 'DESDE 1920',
-        'sub': 'SABOR QUE PUEDES RASTREAR.'}))),
+        'title': 'Plantas | Café |\nGastronomía', 'eyebrow': 'Desde 1920',
+        'sub': 'Sabor que puedes rastrear.'}))),
     ('Panel partido · imagen izquierda', section(split_panel({
-        'title': 'EL MISMO BLOQUE,\nDADO LA VUELTA', 'eyebrow': 'LADO DE LA IMAGEN',
-        'sub': 'SOLO CAMBIA UN SELECTOR.', 'mediaSide': 'left', 'theme': 'forest'}), skin='light')),
+        'title': 'El mismo bloque,\ndado la vuelta', 'eyebrow': 'Lado de la imagen',
+        'sub': 'Solo cambia un selector.', 'mediaSide': 'left', 'theme': 'forest'}), skin='light')),
     ('Panel partido · altura 420 px', section(split_panel({
-        'title': 'ALTURA EN PIXELES', 'eyebrow': 'A MEDIDA',
-        'sub': '420 PX EXACTOS.', 'height': 'custom', 'heightValue': 420, 'heightUnit': 'px'}))),
+        'title': 'Altura en píxeles', 'eyebrow': 'A medida',
+        'sub': '420 px exactos.', 'height': 'custom', 'heightValue': 420, 'heightUnit': 'px'}))),
     ('Panel partido · altura 45 %', section(split_panel({
-        'title': 'ALTURA EN PORCENTAJE', 'eyebrow': 'A MEDIDA',
-        'sub': '45 % DE LA PANTALLA.', 'height': 'custom', 'heightValue': 45,
+        'title': 'Altura en porcentaje', 'eyebrow': 'A medida',
+        'sub': '45 % de la pantalla.', 'height': 'custom', 'heightValue': 45,
         'heightUnit': 'svh', 'mediaSide': 'left', 'theme': 'surface'}))),
     ('Resenas largas con «leer completa»', section(review([
         {'text': LONG, 'author': 'Marcela', 'source': 'Compra verificada'},
@@ -153,30 +153,30 @@ BLOCKS = [
         {'text': SHORT, 'author': 'Ines', 'source': 'Amazon'},
     ], upper=True, clamp=0), skin='dark', width='padded')),
     ('Cortina con panel a pantalla completa', section(split_panel({
-        'title': 'CORTINA SOBRE UN PANEL\nDE PANTALLA COMPLETA', 'eyebrow': 'ANTES NO FUNCIONABA',
-        'sub': 'DESPLAZA: ESTA SE QUEDA ANCLADA.'}), curtain=True)),
+        'title': 'Cortina sobre un panel\nde pantalla completa', 'eyebrow': 'Antes no funcionaba',
+        'sub': 'Desplaza: esta se queda anclada.'}), curtain=True)),
     ('La que tapa la cortina alta', section(
-        '<div class="qa-pad qa-dark">' + title('Y ESTA SUBE ENCIMA', 'm-sp-title m-track-normal')
+        '<div class="qa-pad qa-dark">' + title('Y esta sube encima', 'm-sp-title m-track-normal')
         + '</div>', skin='light')),
     ('Seccion con cortina', section(
-        '<div class="qa-pad">' + title('ESTA SECCION SE QUEDA QUIETA', 'm-sp-title m-track-normal')
+        '<div class="qa-pad">' + title('Esta sección se queda quieta', 'm-sp-title m-track-normal')
         + '<p class="m-sp-sub m-track-wide">La siguiente se desliza por encima.</p></div>',
         curtain=True)),
     ('Seccion que la tapa', section(
-        '<div class="qa-pad qa-dark">' + title('Y ESTA LA CUBRE', 'm-sp-title m-track-normal')
+        '<div class="qa-pad qa-dark">' + title('Y esta la cubre', 'm-sp-title m-track-normal')
         + '</div>', skin='light')),
-    ('Logotipo tipografico', section(wordmark('MIEL HONESTA'))),
+    ('Logotipo tipografico', section(wordmark('Miel honesta'))),
     ('Mapa borde a borde · 420 px', section(gmap('420px'), width='full')),
     ('Mapa borde a borde · 60 % pantalla', section(gmap('60svh'), width='full')),
     ('Mapa con margen lateral', section(gmap('300px'), width='padded')),
     ('Seccion centrada y limitada', section(
-        '<div class="qa-pad">' + title('CENTRADO Y LIMITADO', 'm-sp-title m-track-normal')
+        '<div class="qa-pad">' + title('Centrado y limitado', 'm-sp-title m-track-normal')
         + '</div>', width='boxed')),
     ('Alto de seccion · 35 % pantalla', section(
-        '<div class="qa-dark qa-pad0">' + title('ALTO AL 35 %', 'm-sp-title m-track-normal')
+        '<div class="qa-dark qa-pad0">' + title('Alto al 35 %', 'm-sp-title m-track-normal')
         + '</div>', skin='light', mh='35svh')),
     ('Alto de seccion · 260 px', section(
-        '<div class="qa-pad0">' + title('ALTO DE 260 PX', 'm-sp-title m-track-normal')
+        '<div class="qa-pad0">' + title('Alto de 260 px', 'm-sp-title m-track-normal')
         + '</div>', mh='260px')),
 ]
 
@@ -185,7 +185,7 @@ EXTRA = """
  .m-site-header.is-transparent{position:fixed;top:0;left:0;right:0;z-index:950}
  .m-site-header .m-header-inner{display:flex;align-items:center;justify-content:space-between;gap:24px;padding-block:16px}
  .m-site-header .m-nav-list{display:flex;gap:26px;list-style:none;margin:0;padding:0}
- .m-site-header .m-nav-list a{text-decoration:none;font:700 11px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase}
+ .m-site-header .m-nav-list a{text-decoration:none;font:700 11px/1 var(--font-heading);letter-spacing:.14em}
  .m-site-header .m-logo-text{font:800 18px/1 var(--font-heading);letter-spacing:.12em}
  .qa-ph{display:grid;place-items:center;width:100%;height:100%;font:600 12px/1 var(--font-body);
    letter-spacing:.14em;color:#6d6459;background:repeating-linear-gradient(45deg,#e8d9bb 0 14px,#f2e6cc 14px 28px)}
@@ -232,7 +232,7 @@ def build(inline: bool) -> str:
 <div class="m-page" id="contenido"><main>{body}</main></div>
 <footer class="m-site-footer is-reveal-curtain" data-header-skin="dark">
   <div class="m-container qa-foot"><span>PRIVACIDAD</span><span>TERMINOS</span></div>
-  {wordmark('MIEL HONESTA')}
+  {wordmark('Miel honesta')}
   <div class="m-container qa-foot"><span>&copy; 2026 MIEL HONESTA</span></div>
 </footer>
 {tail}

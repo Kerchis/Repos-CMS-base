@@ -81,7 +81,7 @@ class BrandCatalog {
 				'icon'        => 'heading',
 				'defaults'    => [
 					'eyebrow'   => '',
-					'text'      => 'TITULAR DISPLAY',
+					'text'      => 'Titular display',
 					'tag'       => 'h2',
 					'size'      => 'xl',
 					'tracking'  => 'wide',
@@ -111,9 +111,9 @@ class BrandCatalog {
 				'icon'        => 'marquee',
 				'defaults'    => [
 					'items'     => [
-						[ 'text' => 'HECHO CON CUIDADO', 'url' => '' ],
-						[ 'text' => 'TRAZABILIDAD REAL', 'url' => '' ],
-						[ 'text' => 'ORIGEN VERIFICADO', 'url' => '' ],
+						[ 'text' => 'Hecho con cuidado', 'url' => '' ],
+						[ 'text' => 'Trazabilidad real', 'url' => '' ],
+						[ 'text' => 'Origen verificado', 'url' => '' ],
 					],
 					'separator' => 'dot',
 					'iconId'    => 0,
@@ -153,7 +153,7 @@ class BrandCatalog {
 				'icon'        => 'loader',
 				'defaults'    => [
 					'label'    => 'CARGANDO…',
-					'claim'    => 'BIENVENIDO.',
+					'claim'    => 'Bienvenido.',
 					'imageId'  => 0,
 					'duration' => 1600,
 					'once'     => true,
@@ -186,12 +186,12 @@ class BrandCatalog {
 				'defaults'    => [
 					'variant'     => 'center',
 					'eyebrow'     => '',
-					'title'       => 'TITULAR PRINCIPAL',
-					'subtitle'    => 'SUBTÍTULO DE APOYO.',
+					'title'       => 'Titular principal',
+					'subtitle'    => 'Subtítulo de apoyo.',
 					'subtitle2'   => '',
 					'text'        => '',
 					'buttons'     => [
-						[ 'text' => 'EMPEZAR', 'url' => '#', 'variant' => 'primary' ],
+						[ 'text' => 'Empezar', 'url' => '#', 'variant' => 'primary' ],
 					],
 					'imageId'     => 0,
 					'mobileImageId' => 0,
@@ -237,7 +237,7 @@ class BrandCatalog {
 				'icon'        => 'split',
 				'defaults'    => [
 					'eyebrow'   => '',
-					'title'     => 'TITULAR DE SECCIÓN',
+					'title'     => 'Titular de sección',
 					'titleTag'  => 'h2',
 					'text'      => '',
 					'linkText'  => '',
@@ -274,7 +274,7 @@ class BrandCatalog {
 				'icon'        => 'cta',
 				'defaults'    => [
 					'eyebrow'   => '',
-					'title'     => 'UN TITULAR QUE INVITA A ACTUAR',
+					'title'     => 'Un titular que invita a actuar',
 					'text'      => '',
 					'buttonText'=> 'IR',
 					'buttonUrl' => '#',
@@ -327,7 +327,7 @@ class BrandCatalog {
 				'icon'        => 'rail',
 				'defaults'    => [
 					'eyebrow'   => '',
-					'title'     => 'DESTACADOS',
+					'title'     => 'Destacados',
 					'titleTag'  => 'h2',
 					'tracking'  => 'normal',
 					'align'     => 'center',
@@ -341,9 +341,9 @@ class BrandCatalog {
 					'arrows'    => true,
 					'theme'     => 'cream',
 					'items'     => [
-						[ 'title' => 'PRODUCTO UNO', 'linkText' => 'Ver más', 'url' => '#', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'badge' => '' ],
-						[ 'title' => 'PRODUCTO DOS', 'linkText' => 'Ver más', 'url' => '#', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'badge' => '' ],
-						[ 'title' => 'PRODUCTO TRES', 'linkText' => 'Ver más', 'url' => '#', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'badge' => '' ],
+						[ 'title' => 'Producto uno', 'linkText' => 'Ver más', 'url' => '#', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'badge' => '' ],
+						[ 'title' => 'Producto dos', 'linkText' => 'Ver más', 'url' => '#', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'badge' => '' ],
+						[ 'title' => 'Producto tres', 'linkText' => 'Ver más', 'url' => '#', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'badge' => '' ],
 					],
 				],
 				'fields'      => array_merge(
@@ -366,7 +366,7 @@ class BrandCatalog {
 				'icon'        => 'grid',
 				'defaults'    => [
 					'eyebrow'   => '',
-					'title'     => 'COLECCIÓN',
+					'title'     => 'Colección',
 					'titleTag'  => 'h2',
 					'tracking'  => 'normal',
 					'align'     => 'center',
@@ -379,9 +379,9 @@ class BrandCatalog {
 					'ratio'     => 'portrait',
 					'theme'     => 'cream',
 					'items'     => [
-						[ 'category' => 'CATEGORÍA', 'title' => 'TÍTULO DE LA TARJETA', 'url' => '#', 'imageId' => 0, 'alt' => '', 'text' => '', 'linkText' => '', 'badge' => '' ],
-						[ 'category' => 'CATEGORÍA', 'title' => 'TÍTULO DE LA TARJETA', 'url' => '#', 'imageId' => 0, 'alt' => '', 'text' => '', 'linkText' => '', 'badge' => '' ],
-						[ 'category' => 'CATEGORÍA', 'title' => 'TÍTULO DE LA TARJETA', 'url' => '#', 'imageId' => 0, 'alt' => '', 'text' => '', 'linkText' => '', 'badge' => '' ],
+						[ 'category' => 'Categoría', 'title' => 'Título de la tarjeta', 'url' => '#', 'imageId' => 0, 'alt' => '', 'text' => '', 'linkText' => '', 'badge' => '' ],
+						[ 'category' => 'Categoría', 'title' => 'Título de la tarjeta', 'url' => '#', 'imageId' => 0, 'alt' => '', 'text' => '', 'linkText' => '', 'badge' => '' ],
+						[ 'category' => 'Categoría', 'title' => 'Título de la tarjeta', 'url' => '#', 'imageId' => 0, 'alt' => '', 'text' => '', 'linkText' => '', 'badge' => '' ],
 					],
 				],
 				'fields'      => array_merge(
@@ -402,7 +402,7 @@ class BrandCatalog {
 				'category'    => 'content',
 				'icon'        => 'filter',
 				'defaults'    => [
-					'title'       => 'ENCUENTRA LO QUE BUSCAS',
+					'title'       => 'Encuentra lo que buscas',
 					'titleTag'    => 'h2',
 					'text'        => '',
 					'align'       => 'center',
@@ -417,7 +417,7 @@ class BrandCatalog {
 					'emptyLabel'  => 'No hay resultados.',
 					'theme'       => 'cream',
 					'items'       => [
-						[ 'category' => 'CATEGORÍA', 'title' => 'ELEMENTO', 'url' => '#', 'imageId' => 0, 'alt' => '', 'text' => '', 'linkText' => '', 'badge' => '' ],
+						[ 'category' => 'Categoría', 'title' => 'Elemento', 'url' => '#', 'imageId' => 0, 'alt' => '', 'text' => '', 'linkText' => '', 'badge' => '' ],
 					],
 				],
 				'fields'      => array_merge(
@@ -448,7 +448,7 @@ class BrandCatalog {
 				'icon'        => 'quote',
 				'defaults'    => [
 					'eyebrow'   => '',
-					'title'     => 'RESEÑAS',
+					'title'     => 'Reseñas',
 					'titleTag'  => 'h2',
 					'tracking'  => 'wide',
 					'align'     => 'center',
@@ -539,8 +539,8 @@ class BrandCatalog {
 					'mobile'     => 1,
 					'theme'      => 'cream',
 					'items'      => [
-						[ 'title' => 'PRIMER PUNTO', 'text' => 'Descripción del primer punto.', 'imageId' => 0, 'alt' => '' ],
-						[ 'title' => 'SEGUNDO PUNTO', 'text' => 'Descripción del segundo punto.', 'imageId' => 0, 'alt' => '' ],
+						[ 'title' => 'Primer punto', 'text' => 'Descripción del primer punto.', 'imageId' => 0, 'alt' => '' ],
+						[ 'title' => 'Segundo punto', 'text' => 'Descripción del segundo punto.', 'imageId' => 0, 'alt' => '' ],
 					],
 				],
 				'fields'      => array_merge(
@@ -589,8 +589,8 @@ class BrandCatalog {
 					'align'    => 'left',
 					'theme'    => 'cream',
 					'items'    => [
-						[ 'label' => 'ANTETÍTULO', 'title' => 'AFIRMACIÓN DESTACADA', 'url' => '' ],
-						[ 'label' => 'ANTETÍTULO', 'title' => 'OTRA AFIRMACIÓN DESTACADA', 'url' => '' ],
+						[ 'label' => 'Antetítulo', 'title' => 'Afirmación destacada', 'url' => '' ],
+						[ 'label' => 'Antetítulo', 'title' => 'Otra afirmación destacada', 'url' => '' ],
 					],
 				],
 				'fields'      => [
@@ -653,7 +653,7 @@ class BrandCatalog {
 				'icon'        => 'trace',
 				'defaults'    => [
 					'eyebrow'     => '',
-					'title'       => 'SIGUE EL RECORRIDO',
+					'title'       => 'Sigue el recorrido',
 					'titleTag'    => 'h2',
 					'text'        => '',
 					'placeholder' => 'Código de lote',
@@ -665,10 +665,10 @@ class BrandCatalog {
 					'theme'       => 'forest',
 					'align'       => 'center',
 					'steps'       => [
-						[ 'title' => 'ORIGEN', 'text' => 'De dónde procede.', 'meta' => '', 'imageId' => 0, 'alt' => '' ],
-						[ 'title' => 'PRODUCCIÓN', 'text' => 'Cómo se elabora.', 'meta' => '', 'imageId' => 0, 'alt' => '' ],
-						[ 'title' => 'ENVASADO', 'text' => 'Dónde se envasa.', 'meta' => '', 'imageId' => 0, 'alt' => '' ],
-						[ 'title' => 'TU CASA', 'text' => 'Y llega hasta ti.', 'meta' => '', 'imageId' => 0, 'alt' => '' ],
+						[ 'title' => 'Origen', 'text' => 'De dónde procede.', 'meta' => '', 'imageId' => 0, 'alt' => '' ],
+						[ 'title' => 'Producción', 'text' => 'Cómo se elabora.', 'meta' => '', 'imageId' => 0, 'alt' => '' ],
+						[ 'title' => 'Envasado', 'text' => 'Dónde se envasa.', 'meta' => '', 'imageId' => 0, 'alt' => '' ],
+						[ 'title' => 'Tu casa', 'text' => 'Y llega hasta ti.', 'meta' => '', 'imageId' => 0, 'alt' => '' ],
 					],
 				],
 				'fields'      => [
@@ -708,7 +708,7 @@ class BrandCatalog {
 				'category'    => 'other',
 				'icon'        => 'logos',
 				'defaults'    => [
-					'title'   => 'DISPONIBLE EN',
+					'title'   => 'Disponible en',
 					'titleTag'=> 'h2',
 					'tracking'=> 'wide',
 					'theme'   => 'cream',
@@ -792,7 +792,7 @@ class BrandCatalog {
 				'icon'        => 'split',
 				'defaults'    => [
 					'eyebrow'     => '',
-					'title'       => 'TITULAR A DOS MITADES',
+					'title'       => 'Titular a dos mitades',
 					'titleTag'    => 'h2',
 					'subtitle'    => '',
 					'text'        => '',
@@ -947,7 +947,7 @@ class BrandCatalog {
 				'category'    => 'text',
 				'icon'        => 'type',
 				'defaults'    => [
-					'text'         => 'NOMBRE DE MARCA',
+					'text'         => 'Nombre de marca',
 					'tag'          => 'p',
 					'url'          => '',
 					'fit'          => 'fill',
