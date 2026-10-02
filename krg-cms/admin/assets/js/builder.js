@@ -428,6 +428,13 @@
       if (saved?.checksum) state.doc.checksum = saved.checksum;
       if (saved?.previewUrl) state.doc.previewUrl = saved.previewUrl;
       if (state.dirtyGen === gen) {
+        // El lienzo solo repintaba el CSS en vivo: los cambios de contenido
+        // no se veian hasta recargar a mano. Tras guardar se refresca el
+        // marco, conservando el scroll y la seleccion.
+        clearTimeout(state.frameTimer);
+        state.frameTimer = setTimeout(function () {
+          if (!state.dirty && !state.saving) reloadFrame();
+        }, 250);
         state.dirty = false;
         state.saveTries = 0;
         state.save = "Guardado (borrador)";
@@ -2759,6 +2766,14 @@
     };
     const sav = root.querySelector("#save");
     if (sav) sav.onclick = () => saveDraft();
+    // Red de seguridad: recarga el lienzo a mano, por si algo queda atrás.
+    const rfr = root.querySelector("#refresh");
+    if (rfr) {
+      rfr.onclick = async () => {
+        if (state.dirty) await saveDraft();
+        reloadFrame();
+      };
+    }
     const prev = root.querySelector("#preview");
     if (prev) prev.onclick = () => window.open(state.doc.previewUrl, "_blank");
     bindSplit();
@@ -2878,6 +2893,7 @@
           <button class="m-btn ghost" id="redo" title="Ctrl+Y">Rehacer</button>
           <button class="m-btn ghost" id="history">Historial</button>
           <span class="b-status">${esc(state.save)}</span>
+          <button class="m-btn ghost" id="refresh" title="Vuelve a cargar la vista del lienzo">Actualizar vista</button>
           <button class="m-btn ghost" id="save" title="Ctrl+S">Guardar</button>
           <button class="m-btn ghost" id="preview">Preview</button>
           <button class="m-btn" id="publish">Publicar</button>

@@ -1915,16 +1915,57 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
   margin: 0;
   font-family: var(--font-heading);
   font-weight: 700;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
   font-size: clamp(16px, 1.5vw, 21px);
   line-height: 1.35;
 }
+
+/* Las mayusculas son opcional, no obligatorio: el texto sale como se
+   escribe salvo que se active «Forzar mayusculas». */
+.m-rev.is-upper .m-rev-text,
+.m-rev.is-upper .m-rev-meta,
+.m-rev-dialog.is-upper .m-rev-dialog-text,
+.m-rev-dialog.is-upper .m-rev-dialog-meta { text-transform: uppercase; letter-spacing: 0.2em; }
+.m-rev.is-upper .m-rev-text,
+.m-rev-dialog.is-upper .m-rev-dialog-text { letter-spacing: 0.04em; }
+
+/* Recorte de las resenas largas a un numero de lineas. */
+.m-rev-text[style*="--m-rev-clamp"] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--m-rev-clamp, 6);
+  line-clamp: var(--m-rev-clamp, 6);
+  overflow: hidden;
+}
+
+.m-rev-more {
+  /* La tarjeta es una rejilla: sin justify-self el enlace ocuparia todo
+     el ancho y el subrayado cruzaria la tarjeta entera. */
+  justify-self: start;
+  align-self: start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--color-primary);
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-underline-offset: 5px;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+.m-rev-more:hover { text-decoration-thickness: 2px; }
+.m-rev-more:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.is-theme-forest .m-rev-more,
+.is-theme-dark .m-rev-more { color: inherit; }
 .m-rev-meta {
   font-family: var(--font-heading);
   font-size: 11px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  letter-spacing: 0.14em;
   font-weight: 700;
   color: var(--color-primary);
 }
@@ -2752,6 +2793,106 @@ body.m-curtain-on .m-page::after {
 .m-curtain-above[style*="--m-curtain-bg"] {
   background-color: var(--m-curtain-bg);
 }
+
+/* ------------------------------------------------------------------ */
+/* Ventana de resena completa                                          */
+/* Un unico <dialog> reutilizado, con el texto integro y su ficha.     */
+/* ------------------------------------------------------------------ */
+.m-rev-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(82svh, 760px);
+  padding: 0;
+  border: 1px solid var(--color-border, #e1d3b6);
+  border-radius: clamp(14px, 2vw, 22px);
+  background: var(--color-background, #fff);
+  color: var(--color-text, #000);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.m-rev-dialog::backdrop {
+  background: rgba(14, 17, 16, 0.58);
+  backdrop-filter: blur(3px);
+}
+
+.m-rev-dialog-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 16px);
+  max-height: inherit;
+  padding: clamp(28px, 4.4vw, 52px);
+  overflow-y: auto;
+}
+
+/* Comilla decorativa: marca el tono editorial sin robar protagonismo. */
+.m-rev-dialog-inner::before {
+  content: "\201C";
+  position: absolute;
+  top: clamp(-18px, -1vw, -6px);
+  left: clamp(14px, 2.6vw, 30px);
+  font-family: var(--font-heading);
+  font-size: clamp(90px, 13vw, 150px);
+  line-height: 1;
+  color: var(--color-primary, #3f5e58);
+  opacity: 0.14;
+  pointer-events: none;
+}
+
+.m-rev-dialog .m-rev-stars { position: relative; font-size: 16px; }
+
+.m-rev-dialog-text {
+  position: relative;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-size: clamp(17px, 1.8vw, 23px);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.m-rev-dialog-meta {
+  margin: 0;
+  padding-top: var(--spacing-md, 16px);
+  border-top: 1px solid var(--color-border, #e1d3b6);
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--color-primary, #3f5e58);
+}
+
+.m-rev-dialog-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border, #e1d3b6);
+  border-radius: 999px;
+  background: var(--color-background, #fff);
+  color: inherit;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+.m-rev-dialog-close:hover {
+  background: var(--color-text, #000);
+  color: var(--color-background, #fff);
+  border-color: var(--color-text, #000);
+}
+.m-rev-dialog-close:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .m-rev-dialog[open] { animation: m-rev-pop 220ms var(--m-ease, cubic-bezier(.2,.7,.3,1)); }
+  @keyframes m-rev-pop {
+    from { opacity: 0; transform: translateY(14px) scale(0.985); }
+    to   { opacity: 1; transform: none; }
+  }
+}
 </style>
 <style>
  body{background:var(--color-background);color:var(--color-text);font-family:var(--font-body);margin:0}
@@ -2780,8 +2921,8 @@ body.m-curtain-on .m-page::after {
   <li><a href="#b4">Cortina</a></li><li><a href="#b6">Logotipo</a></li></ul></nav>
   <a class="m-btn m-btn-primary" href="#b6">CONTACTO</a></div>
 </header>
-<nav class="qa-nav"><a href="#b0">Panel partido · imagen derecha</a><a href="#b1">Panel partido · imagen izquierda</a><a href="#b2">Panel partido · altura 420 px</a><a href="#b3">Panel partido · altura 45 %</a><a href="#b4">Seccion con cortina</a><a href="#b5">Seccion que la tapa</a><a href="#b6">Logotipo tipografico</a><a href="#b7">Mapa borde a borde · 420 px</a><a href="#b8">Mapa borde a borde · 60 % pantalla</a><a href="#b9">Mapa con margen lateral</a><a href="#b10">Seccion centrada y limitada</a><a href="#b11">Alto de seccion · 35 % pantalla</a><a href="#b12">Alto de seccion · 260 px</a></nav>
-<div class="m-page" id="contenido"><main><a id="b0"></a><section class="m-c-section is-full is-w-full" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-sp is-media-right is-ratio-half is-h-screen"><div class="m-sp-grid"><div class="m-sp-copy is-theme-cream is-align-center"><div class="m-sp-copy-inner"><p class="m-eyebrow">DESDE 1920</p><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">PLANTAS | CAFE |</span><span class="m-line">GASTRONOMIA</span></h2><p class="m-sp-sub m-track-wide">SABOR QUE PUEDES RASTREAR.</p><div class="m-btn-row"><a class="m-btn m-btn-primary m-sp-btn" href="#">VER MAS<span class="m-btn-arrow" aria-hidden="true">&#8594;</span></a></div></div></div><div class="m-sp-media is-theme-surface is-fit-cover"><ul class="m-sp-track" data-sp-track><li class="m-sp-slide"><span class="qa-ph">FOTOGRAFIA</span></li></ul></div></div></div></div></div></div></section><a id="b1"></a><section class="m-c-section is-full is-w-full" data-header-skin="light"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-sp is-media-left is-ratio-half is-h-screen"><div class="m-sp-grid"><div class="m-sp-media is-theme-surface is-fit-cover"><ul class="m-sp-track" data-sp-track><li class="m-sp-slide"><span class="qa-ph">FOTOGRAFIA</span></li></ul></div><div class="m-sp-copy is-theme-forest is-align-center"><div class="m-sp-copy-inner"><p class="m-eyebrow">LADO DE LA IMAGEN</p><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">EL MISMO BLOQUE,</span><span class="m-line">DADO LA VUELTA</span></h2><p class="m-sp-sub m-track-wide">SOLO CAMBIA UN SELECTOR.</p><div class="m-btn-row"><a class="m-btn m-btn-primary m-sp-btn" href="#">VER MAS<span class="m-btn-arrow" aria-hidden="true">&#8594;</span></a></div></div></div></div></div></div></div></div></section><a id="b2"></a><section class="m-c-section is-full is-w-full" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-sp is-media-right is-ratio-half is-h-custom" style="--m-sp-h:420px"><div class="m-sp-grid"><div class="m-sp-copy is-theme-cream is-align-center"><div class="m-sp-copy-inner"><p class="m-eyebrow">A MEDIDA</p><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">ALTURA EN PIXELES</span></h2><p class="m-sp-sub m-track-wide">420 PX EXACTOS.</p><div class="m-btn-row"><a class="m-btn m-btn-primary m-sp-btn" href="#">VER MAS<span class="m-btn-arrow" aria-hidden="true">&#8594;</span></a></div></div></div><div class="m-sp-media is-theme-surface is-fit-cover"><ul class="m-sp-track" data-sp-track><li class="m-sp-slide"><span class="qa-ph">FOTOGRAFIA</span></li></ul></div></div></div></div></div></div></section><a id="b3"></a><section class="m-c-section is-full is-w-full" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-sp is-media-left is-ratio-half is-h-custom" style="--m-sp-h:45svh"><div class="m-sp-grid"><div class="m-sp-media is-theme-surface is-fit-cover"><ul class="m-sp-track" data-sp-track><li class="m-sp-slide"><span class="qa-ph">FOTOGRAFIA</span></li></ul></div><div class="m-sp-copy is-theme-surface is-align-center"><div class="m-sp-copy-inner"><p class="m-eyebrow">A MEDIDA</p><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">ALTURA EN PORCENTAJE</span></h2><p class="m-sp-sub m-track-wide">45 % DE LA PANTALLA.</p><div class="m-btn-row"><a class="m-btn m-btn-primary m-sp-btn" href="#">VER MAS<span class="m-btn-arrow" aria-hidden="true">&#8594;</span></a></div></div></div></div></div></div></div></div></section><a id="b4"></a><section class="m-c-section is-full is-w-full is-curtain" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="qa-pad"><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">ESTA SECCION SE QUEDA QUIETA</span></h2><p class="m-sp-sub m-track-wide">La siguiente se desliza por encima.</p></div></div></div></div></section><a id="b5"></a><section class="m-c-section is-full is-w-full" data-header-skin="light"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="qa-pad qa-dark"><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">Y ESTA LA CUBRE</span></h2></div></div></div></div></section><a id="b6"></a><section class="m-c-section is-full is-w-full" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-wm is-fit-fill is-size-display is-align-center is-shadow-offset is-theme-cream" style="--m-wm-len:12;--m-wm-x:6px;--m-wm-y:6px;--m-wm-shadow:#7FB3C8;"><div class="m-container m-wm-inner"><p class="m-wm-text m-track-wide">MIEL HONESTA</p></div></div></div></div></div></section><a id="b7"></a><section class="m-c-section is-full is-w-full" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-map" style="--m-map-h:420px"><iframe title="Mapa" loading="lazy" src="https://maps.google.com/maps?output=embed&amp;q=Chia,Cundinamarca"></iframe></div></div></div></div></section><a id="b8"></a><section class="m-c-section is-full is-w-full" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-map" style="--m-map-h:60svh"><iframe title="Mapa" loading="lazy" src="https://maps.google.com/maps?output=embed&amp;q=Chia,Cundinamarca"></iframe></div></div></div></div></section><a id="b9"></a><section class="m-c-section is-full is-w-padded" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-map" style="--m-map-h:300px"><iframe title="Mapa" loading="lazy" src="https://maps.google.com/maps?output=embed&amp;q=Chia,Cundinamarca"></iframe></div></div></div></div></section><a id="b10"></a><section class="m-c-section is-boxed is-w-boxed" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="qa-pad"><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">CENTRADO Y LIMITADO</span></h2></div></div></div></div></section><a id="b11"></a><section class="m-c-section is-full is-w-full is-mh-custom is-va-center" style="--m-sec-h:35svh" data-header-skin="light"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="qa-dark qa-pad0"><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">ALTO AL 35 %</span></h2></div></div></div></div></section><a id="b12"></a><section class="m-c-section is-full is-w-full is-mh-custom is-va-center" style="--m-sec-h:260px" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="qa-pad0"><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">ALTO DE 260 PX</span></h2></div></div></div></div></section></main></div>
+<nav class="qa-nav"><a href="#b0">Panel partido · imagen derecha</a><a href="#b1">Panel partido · imagen izquierda</a><a href="#b2">Panel partido · altura 420 px</a><a href="#b3">Panel partido · altura 45 %</a><a href="#b4">Resenas largas con «leer completa»</a><a href="#b5">Resenas en mayusculas (opcional)</a><a href="#b6">Cortina con panel a pantalla completa</a><a href="#b7">La que tapa la cortina alta</a><a href="#b8">Seccion con cortina</a><a href="#b9">Seccion que la tapa</a><a href="#b10">Logotipo tipografico</a><a href="#b11">Mapa borde a borde · 420 px</a><a href="#b12">Mapa borde a borde · 60 % pantalla</a><a href="#b13">Mapa con margen lateral</a><a href="#b14">Seccion centrada y limitada</a><a href="#b15">Alto de seccion · 35 % pantalla</a><a href="#b16">Alto de seccion · 260 px</a></nav>
+<div class="m-page" id="contenido"><main><a id="b0"></a><section class="m-c-section is-full is-w-full" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-sp is-media-right is-ratio-half is-h-screen"><div class="m-sp-grid"><div class="m-sp-copy is-theme-cream is-align-center"><div class="m-sp-copy-inner"><p class="m-eyebrow">DESDE 1920</p><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">PLANTAS | CAFE |</span><span class="m-line">GASTRONOMIA</span></h2><p class="m-sp-sub m-track-wide">SABOR QUE PUEDES RASTREAR.</p><div class="m-btn-row"><a class="m-btn m-btn-primary m-sp-btn" href="#">VER MAS<span class="m-btn-arrow" aria-hidden="true">&#8594;</span></a></div></div></div><div class="m-sp-media is-theme-surface is-fit-cover"><ul class="m-sp-track" data-sp-track><li class="m-sp-slide"><span class="qa-ph">FOTOGRAFIA</span></li></ul></div></div></div></div></div></div></section><a id="b1"></a><section class="m-c-section is-full is-w-full" data-header-skin="light"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-sp is-media-left is-ratio-half is-h-screen"><div class="m-sp-grid"><div class="m-sp-media is-theme-surface is-fit-cover"><ul class="m-sp-track" data-sp-track><li class="m-sp-slide"><span class="qa-ph">FOTOGRAFIA</span></li></ul></div><div class="m-sp-copy is-theme-forest is-align-center"><div class="m-sp-copy-inner"><p class="m-eyebrow">LADO DE LA IMAGEN</p><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">EL MISMO BLOQUE,</span><span class="m-line">DADO LA VUELTA</span></h2><p class="m-sp-sub m-track-wide">SOLO CAMBIA UN SELECTOR.</p><div class="m-btn-row"><a class="m-btn m-btn-primary m-sp-btn" href="#">VER MAS<span class="m-btn-arrow" aria-hidden="true">&#8594;</span></a></div></div></div></div></div></div></div></div></section><a id="b2"></a><section class="m-c-section is-full is-w-full" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-sp is-media-right is-ratio-half is-h-custom" style="--m-sp-h:420px"><div class="m-sp-grid"><div class="m-sp-copy is-theme-cream is-align-center"><div class="m-sp-copy-inner"><p class="m-eyebrow">A MEDIDA</p><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">ALTURA EN PIXELES</span></h2><p class="m-sp-sub m-track-wide">420 PX EXACTOS.</p><div class="m-btn-row"><a class="m-btn m-btn-primary m-sp-btn" href="#">VER MAS<span class="m-btn-arrow" aria-hidden="true">&#8594;</span></a></div></div></div><div class="m-sp-media is-theme-surface is-fit-cover"><ul class="m-sp-track" data-sp-track><li class="m-sp-slide"><span class="qa-ph">FOTOGRAFIA</span></li></ul></div></div></div></div></div></div></section><a id="b3"></a><section class="m-c-section is-full is-w-full" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-sp is-media-left is-ratio-half is-h-custom" style="--m-sp-h:45svh"><div class="m-sp-grid"><div class="m-sp-media is-theme-surface is-fit-cover"><ul class="m-sp-track" data-sp-track><li class="m-sp-slide"><span class="qa-ph">FOTOGRAFIA</span></li></ul></div><div class="m-sp-copy is-theme-surface is-align-center"><div class="m-sp-copy-inner"><p class="m-eyebrow">A MEDIDA</p><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">ALTURA EN PORCENTAJE</span></h2><p class="m-sp-sub m-track-wide">45 % DE LA PANTALLA.</p><div class="m-btn-row"><a class="m-btn m-btn-primary m-sp-btn" href="#">VER MAS<span class="m-btn-arrow" aria-hidden="true">&#8594;</span></a></div></div></div></div></div></div></div></div></section><a id="b4"></a><section class="m-c-section is-full is-w-padded" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-rev is-theme-surface" style="--m-rev-per:2" data-review-slider data-autoplay="0"><div class="m-container"><div class="m-sec-head is-align-center"><h2 class="m-sec-title m-track-wide is-reveal-fade" data-reveal="fade"><span class="m-line">RESENAS DE VERDAD</span></h2></div><div class="m-rev-wrap"><button type="button" class="m-rev-arrow is-prev" data-rev-prev aria-label="Anterior">&#8592;</button><div class="m-rev-viewport"><ul class="m-rev-track" data-rev-track><li class="m-rev-slide" role="group" aria-roledescription="slide"><blockquote class="m-rev-card"><p class="m-rev-stars" aria-label="5 de 5">&#9733;&#9733;&#9733;&#9733;&#9733;</p><p class="m-rev-text" style="--m-rev-clamp:6">Pedi un tarro para probar y termine comprando cuatro. La diferencia se nota desde la primera cucharada: no empalaga, huele a flor de verdad y el frasco trae el lote impreso, asi que pude ver de que apiario salio y en que semana se cosecho. El pedido llego en dos dias, bien embalado y sin una sola gota derramada. Lo use en el pan de la manana, en una vinagreta y hasta en un glaseado para costillas, y en los tres casos quedo mejor que con la miel del supermercado. Volvere a pedir.</p><button type="button" class="m-rev-more" data-rev-more hidden>Leer completa</button><footer class="m-rev-meta">Marcela, Compra verificada</footer></blockquote></li><li class="m-rev-slide" role="group" aria-roledescription="slide"><blockquote class="m-rev-card"><p class="m-rev-stars" aria-label="5 de 5">&#9733;&#9733;&#9733;&#9733;&#9733;</p><p class="m-rev-text" style="--m-rev-clamp:6">Corta, clara y al grano: la mejor que he probado.</p><button type="button" class="m-rev-more" data-rev-more hidden>Leer completa</button><footer class="m-rev-meta">Andres, Amazon</footer></blockquote></li><li class="m-rev-slide" role="group" aria-roledescription="slide"><blockquote class="m-rev-card"><p class="m-rev-stars" aria-label="5 de 5">&#9733;&#9733;&#9733;&#9733;&#9733;</p><p class="m-rev-text" style="--m-rev-clamp:6">Pedi un tarro para probar y termine comprando cuatro. La diferencia se nota desde la primera cucharada: no empalaga, huele a flor de verdad y el frasco trae el lote impreso, asi que pude ver de que apiario salio y en que semana se cosecho. El pedido llego en dos dias, bien embalado y sin una sola gota derramada. Lo use en el pan de la manana, en una vinagreta y hasta en un glaseado para costillas, y en los tres casos quedo mejor que con la miel del supermercado. Volvere a pedir.</p><button type="button" class="m-rev-more" data-rev-more hidden>Leer completa</button><footer class="m-rev-meta">Lucia, Walmart</footer></blockquote></li></ul></div><button type="button" class="m-rev-arrow is-next" data-rev-next aria-label="Siguiente">&#8594;</button></div><div class="m-rev-dots"><button type="button" data-rev-dot="0" aria-label="Ir a 1"></button><button type="button" data-rev-dot="1" aria-label="Ir a 2"></button><button type="button" data-rev-dot="2" aria-label="Ir a 3"></button></div></div></div></div></div></div></section><a id="b5"></a><section class="m-c-section is-full is-w-padded" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-rev is-theme-surface is-upper" style="--m-rev-per:2" data-review-slider data-autoplay="0"><div class="m-container"><div class="m-sec-head is-align-center"><h2 class="m-sec-title m-track-wide is-reveal-fade" data-reveal="fade"><span class="m-line">RESENAS DE VERDAD</span></h2></div><div class="m-rev-wrap"><button type="button" class="m-rev-arrow is-prev" data-rev-prev aria-label="Anterior">&#8592;</button><div class="m-rev-viewport"><ul class="m-rev-track" data-rev-track><li class="m-rev-slide" role="group" aria-roledescription="slide"><blockquote class="m-rev-card"><p class="m-rev-stars" aria-label="5 de 5">&#9733;&#9733;&#9733;&#9733;&#9733;</p><p class="m-rev-text">Se activa a mano, ya no viene impuesto.</p><footer class="m-rev-meta">Tomas, Kroger</footer></blockquote></li><li class="m-rev-slide" role="group" aria-roledescription="slide"><blockquote class="m-rev-card"><p class="m-rev-stars" aria-label="5 de 5">&#9733;&#9733;&#9733;&#9733;&#9733;</p><p class="m-rev-text">Corta, clara y al grano: la mejor que he probado.</p><footer class="m-rev-meta">Ines, Amazon</footer></blockquote></li></ul></div><button type="button" class="m-rev-arrow is-next" data-rev-next aria-label="Siguiente">&#8594;</button></div><div class="m-rev-dots"><button type="button" data-rev-dot="0" aria-label="Ir a 1"></button><button type="button" data-rev-dot="1" aria-label="Ir a 2"></button></div></div></div></div></div></div></section><a id="b6"></a><section class="m-c-section is-full is-w-full is-curtain" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-sp is-media-right is-ratio-half is-h-screen"><div class="m-sp-grid"><div class="m-sp-copy is-theme-cream is-align-center"><div class="m-sp-copy-inner"><p class="m-eyebrow">ANTES NO FUNCIONABA</p><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">CORTINA SOBRE UN PANEL</span><span class="m-line">DE PANTALLA COMPLETA</span></h2><p class="m-sp-sub m-track-wide">DESPLAZA: ESTA SE QUEDA ANCLADA.</p><div class="m-btn-row"><a class="m-btn m-btn-primary m-sp-btn" href="#">VER MAS<span class="m-btn-arrow" aria-hidden="true">&#8594;</span></a></div></div></div><div class="m-sp-media is-theme-surface is-fit-cover"><ul class="m-sp-track" data-sp-track><li class="m-sp-slide"><span class="qa-ph">FOTOGRAFIA</span></li></ul></div></div></div></div></div></div></section><a id="b7"></a><section class="m-c-section is-full is-w-full" data-header-skin="light"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="qa-pad qa-dark"><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">Y ESTA SUBE ENCIMA</span></h2></div></div></div></div></section><a id="b8"></a><section class="m-c-section is-full is-w-full is-curtain" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="qa-pad"><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">ESTA SECCION SE QUEDA QUIETA</span></h2><p class="m-sp-sub m-track-wide">La siguiente se desliza por encima.</p></div></div></div></div></section><a id="b9"></a><section class="m-c-section is-full is-w-full" data-header-skin="light"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="qa-pad qa-dark"><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">Y ESTA LA CUBRE</span></h2></div></div></div></div></section><a id="b10"></a><section class="m-c-section is-full is-w-full" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-wm is-fit-fill is-size-display is-align-center is-shadow-offset is-theme-cream" style="--m-wm-len:12;--m-wm-x:6px;--m-wm-y:6px;--m-wm-shadow:#7FB3C8;"><div class="m-container m-wm-inner"><p class="m-wm-text m-track-wide">MIEL HONESTA</p></div></div></div></div></div></section><a id="b11"></a><section class="m-c-section is-full is-w-full" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-map" style="--m-map-h:420px"><iframe title="Mapa" loading="lazy" src="https://maps.google.com/maps?output=embed&amp;q=Chia,Cundinamarca"></iframe></div></div></div></div></section><a id="b12"></a><section class="m-c-section is-full is-w-full" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-map" style="--m-map-h:60svh"><iframe title="Mapa" loading="lazy" src="https://maps.google.com/maps?output=embed&amp;q=Chia,Cundinamarca"></iframe></div></div></div></div></section><a id="b13"></a><section class="m-c-section is-full is-w-padded" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="m-map" style="--m-map-h:300px"><iframe title="Mapa" loading="lazy" src="https://maps.google.com/maps?output=embed&amp;q=Chia,Cundinamarca"></iframe></div></div></div></div></section><a id="b14"></a><section class="m-c-section is-boxed is-w-boxed" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="qa-pad"><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">CENTRADO Y LIMITADO</span></h2></div></div></div></div></section><a id="b15"></a><section class="m-c-section is-full is-w-full is-mh-custom is-va-center" style="--m-sec-h:35svh" data-header-skin="light"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="qa-dark qa-pad0"><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">ALTO AL 35 %</span></h2></div></div></div></div></section><a id="b16"></a><section class="m-c-section is-full is-w-full is-mh-custom is-va-center" style="--m-sec-h:260px" data-header-skin="dark"><div class="m-container"><div class="m-c-row"><div class="m-c-column"><div class="qa-pad0"><h2 class="m-sp-title m-track-normal is-reveal-fade" data-reveal="fade"><span class="m-line">ALTO DE 260 PX</span></h2></div></div></div></div></section></main></div>
 <footer class="m-site-footer is-reveal-curtain" data-header-skin="dark">
   <div class="m-container qa-foot"><span>PRIVACIDAD</span><span>TERMINOS</span></div>
   <div class="m-wm is-fit-fill is-size-display is-align-center is-shadow-offset is-theme-cream" style="--m-wm-len:12;--m-wm-x:6px;--m-wm-y:6px;--m-wm-shadow:#7FB3C8;"><div class="m-container m-wm-inner"><p class="m-wm-text m-track-wide">MIEL HONESTA</p></div></div>
@@ -3426,9 +3567,114 @@ body.m-curtain-on .m-page::after {
 
         go(0);
         play();
+        initReviewMore(el);
       },
       root
     );
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Reseñas largas: «leer completa» en una ventana                     */
+  /* ---------------------------------------------------------------- */
+
+  var revDialog = null;
+
+  // Un solo diálogo compartido por toda la página: se rellena al abrir.
+  function reviewDialog() {
+    if (revDialog && document.body.contains(revDialog)) return revDialog;
+    var d = document.createElement("dialog");
+    d.className = "m-rev-dialog krg-root";
+    d.setAttribute("aria-label", "Reseña completa");
+    d.innerHTML =
+      '<div class="m-rev-dialog-inner">' +
+      '<button type="button" class="m-rev-dialog-close" data-rev-close aria-label="Cerrar">&#10005;</button>' +
+      '<div class="m-rev-dialog-stars"></div>' +
+      '<p class="m-rev-dialog-text"></p>' +
+      '<p class="m-rev-dialog-meta"></p>' +
+      "</div>";
+    d.addEventListener("click", function (e) {
+      // Clic en el fondo (fuera de la tarjeta) o en la aspa.
+      if (e.target === d || (e.target.closest && e.target.closest("[data-rev-close]"))) close();
+    });
+    d.addEventListener("cancel", function (e) { e.preventDefault(); close(); });
+
+    function close() {
+      if (typeof d.close === "function" && d.open) d.close();
+      else d.removeAttribute("open");
+    }
+
+    document.body.appendChild(d);
+    revDialog = d;
+    return d;
+  }
+
+  function initReviewMore(el) {
+    var cards = el.querySelectorAll(".m-rev-card");
+    if (!cards.length) return;
+    var upper = el.classList.contains("is-upper");
+
+    function sync() {
+      each(
+        ".m-rev-card",
+        function (card) {
+          var text = card.querySelector(".m-rev-text");
+          var btn = card.querySelector("[data-rev-more]");
+          if (!text || !btn) return;
+          // Solo se ofrece «leer completa» donde el texto realmente se corta.
+          var cut = text.scrollHeight - text.clientHeight > 2;
+          btn.hidden = !cut;
+        },
+        el
+      );
+    }
+
+    each(
+      "[data-rev-more]",
+      function (btn) {
+        btn.addEventListener("click", function () {
+          var card = btn.closest(".m-rev-card");
+          if (!card) return;
+          var d = reviewDialog();
+          var stars = card.querySelector(".m-rev-stars");
+          var text = card.querySelector(".m-rev-text");
+          var meta = card.querySelector(".m-rev-meta");
+          var slotStars = d.querySelector(".m-rev-dialog-stars");
+          var slotText = d.querySelector(".m-rev-dialog-text");
+          var slotMeta = d.querySelector(".m-rev-dialog-meta");
+
+          slotStars.innerHTML = stars ? stars.outerHTML : "";
+          slotText.textContent = text ? text.textContent : "";
+          slotMeta.textContent = meta ? meta.textContent : "";
+          slotMeta.hidden = !slotMeta.textContent.trim();
+          d.classList.toggle("is-upper", upper);
+          // El tema de la sección viaja con la ventana para no romper el color.
+          d.className = d.className.replace(/\bis-theme-[a-z-]+/g, "").trim();
+          var theme = (el.className.match(/is-theme-[a-z-]+/) || [])[0];
+          if (theme) d.classList.add(theme);
+
+          d.returnFocus = btn;
+          if (typeof d.showModal === "function") d.showModal();
+          else d.setAttribute("open", "");
+          var close = d.querySelector("[data-rev-close]");
+          if (close) close.focus();
+        });
+      },
+      el
+    );
+
+    // Al cerrarse, el foco vuelve al enlace que la abrió.
+    var d0 = reviewDialog();
+    if (!d0.krgCloseBound) {
+      d0.krgCloseBound = true;
+      d0.addEventListener("close", function () {
+        if (d0.returnFocus && document.body.contains(d0.returnFocus)) d0.returnFocus.focus();
+      });
+    }
+
+    sync();
+    // Las fuentes web cambian la altura: se vuelve a medir cuando cargan.
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(sync).catch(function () {});
+    window.addEventListener("resize", debounce(sync, 180));
   }
 
   /* ---------------------------------------------------------------- */
@@ -3816,9 +4062,16 @@ body.m-curtain-on .m-page::after {
       var vh = window.innerHeight || document.documentElement.clientHeight || 0;
       items.forEach(function (sec) {
         sec.classList.remove("is-curtain-on");
+        sec.style.removeProperty("--m-curtain-top");
         var h = sec.getBoundingClientRect().height;
-        // Una seccion mas alta que la ventana no se puede fijar entera.
-        if (h > 0 && vh > 0 && h <= vh + 1) sec.classList.add("is-curtain-on");
+        if (!(h > 0 && vh > 0)) return;
+        // Una seccion mas alta que la ventana no cabe fijada desde arriba:
+        // se ancla por abajo con un desplazamiento negativo, que es como se
+        // resuelve el sticky alto. Asi la cortina funciona a cualquier alto,
+        // incluido el panel partido a pantalla completa, que con el relleno
+        // de la seccion siempre pasa de 100vh.
+        if (h > vh) sec.style.setProperty("--m-curtain-top", Math.round(vh - h) + "px");
+        sec.classList.add("is-curtain-on");
       });
     }
 

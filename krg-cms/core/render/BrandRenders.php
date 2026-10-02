@@ -699,6 +699,15 @@ class BrandRenders {
 
 		$theme    = self::theme( $props['theme'] ?? 'surface', 'surface' );
 		$per      = max( 1, min( 3, absint( $props['perView'] ?? 2 ) ) );
+		// Mayúsculas: desactivadas por defecto. El texto se respeta tal cual se
+		// escribe; quien quiera versales lo activa aquí.
+		$upper    = ! empty( $props['uppercase'] );
+		// Recorte de las reseñas largas. 0 = sin recorte.
+		$clamp    = max( 0, min( 20, absint( $props['clampLines'] ?? 6 ) ) );
+		$more     = trim( (string) ( $props['moreText'] ?? '' ) );
+		if ( '' === $more ) {
+			$more = __( 'Leer completa', 'meridian' );
+		}
 		$autoplay = ! empty( $props['autoplay'] );
 		$interval = max( 2000, min( 20000, absint( $props['interval'] ?? 6000 ) ) );
 
@@ -717,8 +726,16 @@ class BrandRenders {
 			if ( '' !== $author || '' !== $source ) {
 				$meta = '<footer class="m-rev-meta">' . esc_html( trim( $author . ( '' !== $author && '' !== $source ? ', ' : '' ) . $source ) ) . '</footer>';
 			}
+			$text_attr = $clamp ? ' style="--m-rev-clamp:' . $clamp . '"' : '';
+			// El botón nace oculto: solo lo muestra el JS en las reseñas que de
+			// verdad se cortan, así no aparece en las cortas.
+			$more_btn  = $clamp
+				? '<button type="button" class="m-rev-more" data-rev-more hidden>' . esc_html( $more ) . '</button>'
+				: '';
 			$slides .= '<li class="m-rev-slide" role="group" aria-roledescription="slide">'
-				. '<blockquote class="m-rev-card">' . $stars . '<p class="m-rev-text">' . esc_html( (string) $it['text'] ) . '</p>' . $meta . '</blockquote></li>';
+				. '<blockquote class="m-rev-card">' . $stars
+				. '<p class="m-rev-text"' . $text_attr . '>' . esc_html( (string) $it['text'] ) . '</p>'
+				. $more_btn . $meta . '</blockquote></li>';
 			$dots   .= '<button type="button" class="m-rev-dot' . ( 0 === $i ? ' is-on' : '' ) . '" data-rev-dot="' . $i . '" aria-label="' . esc_attr( sprintf( /* translators: %d index */ __( 'Reseña %d', 'meridian' ), $i + 1 ) ) . '"></button>';
 		}
 
@@ -738,7 +755,7 @@ class BrandRenders {
 			'div',
 			$inner,
 			[
-				'class'          => 'm-rev is-theme-' . $theme,
+				'class'          => 'm-rev is-theme-' . $theme . ( $upper ? ' is-upper' : '' ),
 				'style'          => '--m-rev-per:' . $per . ';' . self::section_style( $props ),
 				'data-review-slider' => '1',
 				'data-autoplay'  => $autoplay ? $interval : '0',

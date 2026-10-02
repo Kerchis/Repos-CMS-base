@@ -761,16 +761,57 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
   margin: 0;
   font-family: var(--font-heading);
   font-weight: 700;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
   font-size: clamp(16px, 1.5vw, 21px);
   line-height: 1.35;
 }
+
+/* Las mayusculas son opcional, no obligatorio: el texto sale como se
+   escribe salvo que se active «Forzar mayusculas». */
+.m-rev.is-upper .m-rev-text,
+.m-rev.is-upper .m-rev-meta,
+.m-rev-dialog.is-upper .m-rev-dialog-text,
+.m-rev-dialog.is-upper .m-rev-dialog-meta { text-transform: uppercase; letter-spacing: 0.2em; }
+.m-rev.is-upper .m-rev-text,
+.m-rev-dialog.is-upper .m-rev-dialog-text { letter-spacing: 0.04em; }
+
+/* Recorte de las resenas largas a un numero de lineas. */
+.m-rev-text[style*="--m-rev-clamp"] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--m-rev-clamp, 6);
+  line-clamp: var(--m-rev-clamp, 6);
+  overflow: hidden;
+}
+
+.m-rev-more {
+  /* La tarjeta es una rejilla: sin justify-self el enlace ocuparia todo
+     el ancho y el subrayado cruzaria la tarjeta entera. */
+  justify-self: start;
+  align-self: start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--color-primary);
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-underline-offset: 5px;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+.m-rev-more:hover { text-decoration-thickness: 2px; }
+.m-rev-more:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.is-theme-forest .m-rev-more,
+.is-theme-dark .m-rev-more { color: inherit; }
 .m-rev-meta {
   font-family: var(--font-heading);
   font-size: 11px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  letter-spacing: 0.14em;
   font-weight: 700;
   color: var(--color-primary);
 }
@@ -1597,4 +1638,104 @@ body.m-curtain-on .m-page::after {
 /* un fondo opaco: si no, la cortina se veria a traves de ella.        */
 .m-curtain-above[style*="--m-curtain-bg"] {
   background-color: var(--m-curtain-bg);
+}
+
+/* ------------------------------------------------------------------ */
+/* Ventana de resena completa                                          */
+/* Un unico <dialog> reutilizado, con el texto integro y su ficha.     */
+/* ------------------------------------------------------------------ */
+.m-rev-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(82svh, 760px);
+  padding: 0;
+  border: 1px solid var(--color-border, #e1d3b6);
+  border-radius: clamp(14px, 2vw, 22px);
+  background: var(--color-background, #fff);
+  color: var(--color-text, #000);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.m-rev-dialog::backdrop {
+  background: rgba(14, 17, 16, 0.58);
+  backdrop-filter: blur(3px);
+}
+
+.m-rev-dialog-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 16px);
+  max-height: inherit;
+  padding: clamp(28px, 4.4vw, 52px);
+  overflow-y: auto;
+}
+
+/* Comilla decorativa: marca el tono editorial sin robar protagonismo. */
+.m-rev-dialog-inner::before {
+  content: "\201C";
+  position: absolute;
+  top: clamp(-18px, -1vw, -6px);
+  left: clamp(14px, 2.6vw, 30px);
+  font-family: var(--font-heading);
+  font-size: clamp(90px, 13vw, 150px);
+  line-height: 1;
+  color: var(--color-primary, #3f5e58);
+  opacity: 0.14;
+  pointer-events: none;
+}
+
+.m-rev-dialog .m-rev-stars { position: relative; font-size: 16px; }
+
+.m-rev-dialog-text {
+  position: relative;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-size: clamp(17px, 1.8vw, 23px);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.m-rev-dialog-meta {
+  margin: 0;
+  padding-top: var(--spacing-md, 16px);
+  border-top: 1px solid var(--color-border, #e1d3b6);
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--color-primary, #3f5e58);
+}
+
+.m-rev-dialog-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border, #e1d3b6);
+  border-radius: 999px;
+  background: var(--color-background, #fff);
+  color: inherit;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+.m-rev-dialog-close:hover {
+  background: var(--color-text, #000);
+  color: var(--color-background, #fff);
+  border-color: var(--color-text, #000);
+}
+.m-rev-dialog-close:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .m-rev-dialog[open] { animation: m-rev-pop 220ms var(--m-ease, cubic-bezier(.2,.7,.3,1)); }
+  @keyframes m-rev-pop {
+    from { opacity: 0; transform: translateY(14px) scale(0.985); }
+    to   { opacity: 1; transform: none; }
+  }
 }

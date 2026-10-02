@@ -75,6 +75,47 @@ def gmap(h='360px'):
             'src="https://maps.google.com/maps?output=embed&amp;q=Chia,Cundinamarca"></iframe></div>')
 
 
+LONG = ('Pedi un tarro para probar y termine comprando cuatro. La diferencia se nota desde '
+        'la primera cucharada: no empalaga, huele a flor de verdad y el frasco trae el lote '
+        'impreso, asi que pude ver de que apiario salio y en que semana se cosecho. El pedido '
+        'llego en dos dias, bien embalado y sin una sola gota derramada. Lo use en el pan de '
+        'la manana, en una vinagreta y hasta en un glaseado para costillas, y en los tres '
+        'casos quedo mejor que con la miel del supermercado. Volvere a pedir.')
+
+SHORT = 'Corta, clara y al grano: la mejor que he probado.'
+
+
+def review(items, upper=False, clamp=6, per=2):
+    """Carrusel de resenas, tal y como lo emite el renderizador."""
+    slides = ''
+    for it in items:
+        stars = ('<p class="m-rev-stars" aria-label="5 de 5">'
+                 + '&#9733;' * 5 + '</p>')
+        style = f' style="--m-rev-clamp:{clamp}"' if clamp else ''
+        more = ('<button type="button" class="m-rev-more" data-rev-more hidden>Leer completa</button>'
+                if clamp else '')
+        slides += ('<li class="m-rev-slide" role="group" aria-roledescription="slide">'
+                   f'<blockquote class="m-rev-card">{stars}'
+                   f'<p class="m-rev-text"{style}>{it["text"]}</p>{more}'
+                   f'<footer class="m-rev-meta">{it["author"]}, {it["source"]}</footer>'
+                   '</blockquote></li>')
+    dots = ''.join(f'<button type="button" data-rev-dot="{i}" aria-label="Ir a {i+1}"></button>'
+                   for i in range(len(items)))
+    cls = 'm-rev is-theme-surface' + (' is-upper' if upper else '')
+    return (f'<div class="{cls}" style="--m-rev-per:{per}" data-review-slider data-autoplay="0">'
+            '<div class="m-container">'
+            '<div class="m-sec-head is-align-center">'
+            '<h2 class="m-sec-title m-track-wide is-reveal-fade" data-reveal="fade">'
+            '<span class="m-line">RESENAS DE VERDAD</span></h2></div>'
+            '<div class="m-rev-wrap">'
+            '<button type="button" class="m-rev-arrow is-prev" data-rev-prev aria-label="Anterior">&#8592;</button>'
+            f'<div class="m-rev-viewport"><ul class="m-rev-track" data-rev-track>{slides}</ul></div>'
+            '<button type="button" class="m-rev-arrow is-next" data-rev-next aria-label="Siguiente">&#8594;</button>'
+            '</div>'
+            f'<div class="m-rev-dots">{dots}</div>'
+            '</div></div>')
+
+
 def section(inner, skin='dark', curtain=False, width='full', mh=None):
     """Reproduce fila + columna, que es como queda una seccion hecha a mano."""
     legacy = 'is-boxed' if width == 'boxed' else 'is-full'
@@ -102,6 +143,21 @@ BLOCKS = [
         'title': 'ALTURA EN PORCENTAJE', 'eyebrow': 'A MEDIDA',
         'sub': '45 % DE LA PANTALLA.', 'height': 'custom', 'heightValue': 45,
         'heightUnit': 'svh', 'mediaSide': 'left', 'theme': 'surface'}))),
+    ('Resenas largas con «leer completa»', section(review([
+        {'text': LONG, 'author': 'Marcela', 'source': 'Compra verificada'},
+        {'text': SHORT, 'author': 'Andres', 'source': 'Amazon'},
+        {'text': LONG, 'author': 'Lucia', 'source': 'Walmart'},
+    ]), skin='dark', width='padded')),
+    ('Resenas en mayusculas (opcional)', section(review([
+        {'text': 'Se activa a mano, ya no viene impuesto.', 'author': 'Tomas', 'source': 'Kroger'},
+        {'text': SHORT, 'author': 'Ines', 'source': 'Amazon'},
+    ], upper=True, clamp=0), skin='dark', width='padded')),
+    ('Cortina con panel a pantalla completa', section(split_panel({
+        'title': 'CORTINA SOBRE UN PANEL\nDE PANTALLA COMPLETA', 'eyebrow': 'ANTES NO FUNCIONABA',
+        'sub': 'DESPLAZA: ESTA SE QUEDA ANCLADA.'}), curtain=True)),
+    ('La que tapa la cortina alta', section(
+        '<div class="qa-pad qa-dark">' + title('Y ESTA SUBE ENCIMA', 'm-sp-title m-track-normal')
+        + '</div>', skin='light')),
     ('Seccion con cortina', section(
         '<div class="qa-pad">' + title('ESTA SECCION SE QUEDA QUIETA', 'm-sp-title m-track-normal')
         + '<p class="m-sp-sub m-track-wide">La siguiente se desliza por encima.</p></div>',

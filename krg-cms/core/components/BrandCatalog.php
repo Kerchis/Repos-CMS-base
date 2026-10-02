@@ -455,12 +455,15 @@ class BrandCatalog {
 					'linkText'  => '',
 					'linkUrl'   => '',
 					'perView'   => 2,
+					'clampLines' => 6,
+					'moreText'   => '',
+					'uppercase'  => false,
 					'autoplay'  => true,
 					'interval'  => 6000,
 					'theme'     => 'surface',
 					'items'     => [
-						[ 'text' => 'UNA RESEÑA BREVE Y CONTUNDENTE.', 'author' => 'NOMBRE', 'source' => 'ORIGEN', 'rating' => 5 ],
-						[ 'text' => 'OTRA RESEÑA BREVE Y CONTUNDENTE.', 'author' => 'NOMBRE', 'source' => 'ORIGEN', 'rating' => 5 ],
+						[ 'text' => 'Una reseña breve y contundente.', 'author' => 'Nombre', 'source' => 'Origen', 'rating' => 5 ],
+						[ 'text' => 'Otra reseña breve y contundente.', 'author' => 'Nombre', 'source' => 'Origen', 'rating' => 5 ],
 					],
 				],
 				'fields'      => array_merge(
@@ -469,6 +472,25 @@ class BrandCatalog {
 						self::f( 'perView', 'number', 'responsive', __( 'Reseñas visibles (desktop)', 'meridian' ), [ 'min' => 1, 'max' => 3 ] ),
 						self::f( 'autoplay', 'toggle', 'design', __( 'Reproducción automática', 'meridian' ) ),
 						self::f( 'interval', 'number', 'design', __( 'Intervalo (ms)', 'meridian' ), [ 'min' => 2000, 'max' => 20000 ] ),
+						self::f(
+							'clampLines',
+							'number',
+							'design',
+							__( 'Líneas antes de recortar', 'meridian' ),
+							[
+								'min'  => 0,
+								'max'  => 20,
+								'help' => __( 'Las reseñas largas se recortan a este número de líneas y aparece un enlace para leerlas enteras en una ventana. 0 las muestra completas.', 'meridian' ),
+							]
+						),
+						self::f( 'moreText', 'text', 'content', __( 'Texto del enlace «leer completa»', 'meridian' ) ),
+						self::f(
+							'uppercase',
+							'toggle',
+							'typography',
+							__( 'Forzar mayúsculas', 'meridian' ),
+							[ 'help' => __( 'Desactivado, el texto sale tal y como lo escribes.', 'meridian' ) ]
+						),
 						self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'surface', 'cream', 'forest', 'light' ] ] ),
 						self::f(
 							'items',

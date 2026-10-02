@@ -189,7 +189,10 @@ Texto monumental que ocupa todo el ancho, con sombra desplazada en color
 | **Ancho a sangre** | Cada sección elige hasta dónde llega su contenido: centrado y limitado, ancho completo con margen, o a sangre literal de borde a borde del dispositivo. Sección → Diseño → Ancho del contenido. «De borde a borde» es el valor por defecto. |
 | **Mapa editable** | El mapa acepta el iframe pegado de Google Maps y su alto se controla en píxeles o en porcentaje de la pantalla. |
 | **Altura a medida** | El panel partido acepta una altura exacta en píxeles o en porcentaje de la pantalla, además de los presets. Es un mínimo: si el texto no cabe, crece. |
-| **Cortina por sección** | Cualquier sección puede quedarse quieta mientras la siguiente se desliza por encima y la tapa. Sección → pestaña **Diseño** → *Animación de entrada* → Cortina. |
+| **Cortina por sección** | Cualquier sección puede quedarse quieta mientras la siguiente se desliza por encima y la tapa. Sección → pestaña **Diseño** → *Animación de entrada* → Cortina. Funciona a cualquier altura: si la sección es más alta que la pantalla se ancla por su borde inferior, así que también sirve en paneles partidos a pantalla completa. |
+| **Reseñas largas** | El carrusel de reseñas recorta los textos largos al número de líneas que elijas (*Diseño → Líneas antes de recortar*) y añade un enlace **Leer completa** que abre la reseña entera en una ventana, con sus estrellas y su firma. Pon 0 para no recortar nada. |
+| **Mayúsculas en reseñas** | Vienen desactivadas: el texto sale tal y como lo escribes. Si las quieres, *Tipografía → Forzar mayúsculas*. |
+| **Vista previa en vivo** | El lienzo del constructor se recarga solo en cuanto se guarda el cambio, conservando el scroll y el elemento seleccionado. El botón **Actualizar vista** de la barra superior lo fuerza a mano. |
 | **Alto y cabecera por sección** | En el mismo panel: alto mínimo (pantalla completa, etc.), alineación vertical y color de la cabecera al pasar por encima. |
 | **Presets propios** | Apariencia → Presets → Crear un preset: guarda la paleta y tipografías actuales con nombre. Se pueden borrar; los que trae el tema no. |
 | **Colores del CMS** | Apariencia → Colores del CMS: reskin del propio panel (12 colores), con vista previa en vivo, propuesta a partir de la paleta del sitio y restablecer. |

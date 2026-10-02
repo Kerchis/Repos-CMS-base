@@ -249,9 +249,114 @@
 
         go(0);
         play();
+        initReviewMore(el);
       },
       root
     );
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Reseñas largas: «leer completa» en una ventana                     */
+  /* ---------------------------------------------------------------- */
+
+  var revDialog = null;
+
+  // Un solo diálogo compartido por toda la página: se rellena al abrir.
+  function reviewDialog() {
+    if (revDialog && document.body.contains(revDialog)) return revDialog;
+    var d = document.createElement("dialog");
+    d.className = "m-rev-dialog krg-root";
+    d.setAttribute("aria-label", "Reseña completa");
+    d.innerHTML =
+      '<div class="m-rev-dialog-inner">' +
+      '<button type="button" class="m-rev-dialog-close" data-rev-close aria-label="Cerrar">&#10005;</button>' +
+      '<div class="m-rev-dialog-stars"></div>' +
+      '<p class="m-rev-dialog-text"></p>' +
+      '<p class="m-rev-dialog-meta"></p>' +
+      "</div>";
+    d.addEventListener("click", function (e) {
+      // Clic en el fondo (fuera de la tarjeta) o en la aspa.
+      if (e.target === d || (e.target.closest && e.target.closest("[data-rev-close]"))) close();
+    });
+    d.addEventListener("cancel", function (e) { e.preventDefault(); close(); });
+
+    function close() {
+      if (typeof d.close === "function" && d.open) d.close();
+      else d.removeAttribute("open");
+    }
+
+    document.body.appendChild(d);
+    revDialog = d;
+    return d;
+  }
+
+  function initReviewMore(el) {
+    var cards = el.querySelectorAll(".m-rev-card");
+    if (!cards.length) return;
+    var upper = el.classList.contains("is-upper");
+
+    function sync() {
+      each(
+        ".m-rev-card",
+        function (card) {
+          var text = card.querySelector(".m-rev-text");
+          var btn = card.querySelector("[data-rev-more]");
+          if (!text || !btn) return;
+          // Solo se ofrece «leer completa» donde el texto realmente se corta.
+          var cut = text.scrollHeight - text.clientHeight > 2;
+          btn.hidden = !cut;
+        },
+        el
+      );
+    }
+
+    each(
+      "[data-rev-more]",
+      function (btn) {
+        btn.addEventListener("click", function () {
+          var card = btn.closest(".m-rev-card");
+          if (!card) return;
+          var d = reviewDialog();
+          var stars = card.querySelector(".m-rev-stars");
+          var text = card.querySelector(".m-rev-text");
+          var meta = card.querySelector(".m-rev-meta");
+          var slotStars = d.querySelector(".m-rev-dialog-stars");
+          var slotText = d.querySelector(".m-rev-dialog-text");
+          var slotMeta = d.querySelector(".m-rev-dialog-meta");
+
+          slotStars.innerHTML = stars ? stars.outerHTML : "";
+          slotText.textContent = text ? text.textContent : "";
+          slotMeta.textContent = meta ? meta.textContent : "";
+          slotMeta.hidden = !slotMeta.textContent.trim();
+          d.classList.toggle("is-upper", upper);
+          // El tema de la sección viaja con la ventana para no romper el color.
+          d.className = d.className.replace(/\bis-theme-[a-z-]+/g, "").trim();
+          var theme = (el.className.match(/is-theme-[a-z-]+/) || [])[0];
+          if (theme) d.classList.add(theme);
+
+          d.returnFocus = btn;
+          if (typeof d.showModal === "function") d.showModal();
+          else d.setAttribute("open", "");
+          var close = d.querySelector("[data-rev-close]");
+          if (close) close.focus();
+        });
+      },
+      el
+    );
+
+    // Al cerrarse, el foco vuelve al enlace que la abrió.
+    var d0 = reviewDialog();
+    if (!d0.krgCloseBound) {
+      d0.krgCloseBound = true;
+      d0.addEventListener("close", function () {
+        if (d0.returnFocus && document.body.contains(d0.returnFocus)) d0.returnFocus.focus();
+      });
+    }
+
+    sync();
+    // Las fuentes web cambian la altura: se vuelve a medir cuando cargan.
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(sync).catch(function () {});
+    window.addEventListener("resize", debounce(sync, 180));
   }
 
   /* ---------------------------------------------------------------- */
@@ -639,9 +744,16 @@
       var vh = window.innerHeight || document.documentElement.clientHeight || 0;
       items.forEach(function (sec) {
         sec.classList.remove("is-curtain-on");
+        sec.style.removeProperty("--m-curtain-top");
         var h = sec.getBoundingClientRect().height;
-        // Una seccion mas alta que la ventana no se puede fijar entera.
-        if (h > 0 && vh > 0 && h <= vh + 1) sec.classList.add("is-curtain-on");
+        if (!(h > 0 && vh > 0)) return;
+        // Una seccion mas alta que la ventana no cabe fijada desde arriba:
+        // se ancla por abajo con un desplazamiento negativo, que es como se
+        // resuelve el sticky alto. Asi la cortina funciona a cualquier alto,
+        // incluido el panel partido a pantalla completa, que con el relleno
+        // de la seccion siempre pasa de 100vh.
+        if (h > vh) sec.style.setProperty("--m-curtain-top", Math.round(vh - h) + "px");
+        sec.classList.add("is-curtain-on");
       });
     }
 
