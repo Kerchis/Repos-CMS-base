@@ -251,7 +251,7 @@ class BrandRenders {
 			)
 		);
 		if ( ! $items ) {
-			return $ctx->isPreview
+			return $ctx->isCanvas
 				? ComponentRenders::wrap( $node, $ctx, 'div', '<p class="m-muted">' . esc_html__( 'Añade textos a la marquesina.', 'meridian' ) . '</p>', [ 'class' => 'm-marquee is-empty' ] )
 				: '';
 		}
@@ -530,7 +530,7 @@ class BrandRenders {
 		$arrows = ! empty( $props['arrows'] ) && 'rail' === $layout;
 
 		if ( ! $items ) {
-			return $ctx->isPreview
+			return $ctx->isCanvas
 				? ComponentRenders::wrap( $node, $ctx, 'div', '<div class="m-container"><p class="m-muted">' . esc_html__( 'Añade productos a este carril.', 'meridian' ) . '</p></div>', [ 'class' => 'm-rail is-empty' ] )
 				: '';
 		}
@@ -584,7 +584,7 @@ class BrandRenders {
 			$cards .= '<li class="m-cg-item">' . self::card( $ctx, $it, $style, $ratio ) . '</li>';
 		}
 		if ( '' === $cards ) {
-			if ( ! $ctx->isPreview ) {
+			if ( ! $ctx->isCanvas ) {
 				return '';
 			}
 			$cards = '<li class="m-cg-item"><p class="m-muted">' . esc_html__( 'Añade tarjetas a esta colección.', 'meridian' ) . '</p></li>';
@@ -692,7 +692,7 @@ class BrandRenders {
 			array_filter( $items, static fn( $i ) => is_array( $i ) && '' !== trim( (string) ( $i['text'] ?? '' ) ) )
 		);
 		if ( ! $items ) {
-			return $ctx->isPreview
+			return $ctx->isCanvas
 				? ComponentRenders::wrap( $node, $ctx, 'div', '<div class="m-container"><p class="m-muted">' . esc_html__( 'Añade reseñas.', 'meridian' ) . '</p></div>', [ 'class' => 'm-rev is-empty' ] )
 				: '';
 		}
@@ -771,7 +771,7 @@ class BrandRenders {
 		$items = is_array( $props['items'] ?? null ) ? $props['items'] : [];
 		$items = array_values( array_filter( $items, 'is_array' ) );
 		if ( ! $items ) {
-			return $ctx->isPreview
+			return $ctx->isCanvas
 				? ComponentRenders::wrap( $node, $ctx, 'div', '<div class="m-container"><p class="m-muted">' . esc_html__( 'Añade elementos a la lista.', 'meridian' ) . '</p></div>', [ 'class' => 'm-nl is-empty' ] )
 				: '';
 		}
@@ -830,7 +830,7 @@ class BrandRenders {
 		$items = is_array( $props['items'] ?? null ) ? $props['items'] : [];
 		$items = array_values( array_filter( $items, 'is_array' ) );
 		if ( ! $items ) {
-			return $ctx->isPreview
+			return $ctx->isCanvas
 				? ComponentRenders::wrap( $node, $ctx, 'div', '<div class="m-container"><p class="m-muted">' . esc_html__( 'Añade hitos.', 'meridian' ) . '</p></div>', [ 'class' => 'm-sl is-empty' ] )
 				: '';
 		}
@@ -1009,7 +1009,7 @@ class BrandRenders {
 		$rows = is_array( $props['rows'] ?? null ) ? $props['rows'] : [];
 		$rows = array_values( array_filter( $rows, 'is_array' ) );
 		if ( ! $rows ) {
-			return $ctx->isPreview
+			return $ctx->isCanvas
 				? ComponentRenders::wrap( $node, $ctx, 'div', '<p class="m-muted">' . esc_html__( 'Añade filas a la tabla.', 'meridian' ) . '</p>', [ 'class' => 'm-it is-empty' ] )
 				: '';
 		}
@@ -1141,7 +1141,7 @@ class BrandRenders {
 				. '<ul class="m-sp-track" data-sp-track>' . $slides . '</ul>'
 				. $nav . $dots_html
 				. '</div>';
-		} elseif ( $ctx->isPreview ) {
+		} elseif ( $ctx->isCanvas ) {
 			$media_panel = '<div class="m-sp-media is-theme-' . $mtheme . ' is-empty"><p class="m-muted">'
 				. esc_html__( 'Añade una o varias imágenes.', 'meridian' ) . '</p></div>';
 		}
@@ -1173,7 +1173,7 @@ class BrandRenders {
 	public static function wordmark( array $node, array $props, string $children, RenderContext $ctx ): string {
 		$text = trim( (string) ( $props['text'] ?? '' ) );
 		if ( '' === $text ) {
-			return $ctx->isPreview
+			return $ctx->isCanvas
 				? ComponentRenders::wrap( $node, $ctx, 'div', '<p class="m-muted">' . esc_html__( 'Escribe el texto del logotipo.', 'meridian' ) . '</p>', [ 'class' => 'm-wm is-empty' ] )
 				: '';
 		}
@@ -1337,7 +1337,7 @@ class BrandRenders {
 			)
 		);
 		if ( ! $items ) {
-			return $ctx->isPreview
+			return $ctx->isCanvas
 				? ComponentRenders::wrap( $node, $ctx, 'div', '<div class="m-container"><p class="m-muted">' . esc_html__( 'Añade platos a la carta.', 'meridian' ) . '</p></div>', [ 'class' => 'm-carta is-empty' ] )
 				: '';
 		}
@@ -1665,7 +1665,7 @@ class BrandRenders {
 			. '</div></div>';
 
 		if ( '' === $media && '' === $contact && '' === $nav && '' === $bottom ) {
-			return $ctx->isPreview
+			return $ctx->isCanvas
 				? ComponentRenders::wrap( $node, $ctx, 'div', '<div class="m-container"><p class="m-muted">' . esc_html__( 'Añade contenido al pie partido.', 'meridian' ) . '</p></div>', [ 'class' => 'm-fs is-empty' ] )
 				: '';
 		}

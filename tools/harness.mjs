@@ -55,7 +55,7 @@ export function pagina(nombre, markup, { canvas = false } = {}) {
   .m-sp-media .qa-ph{position:absolute;inset:0}
   header.stub{height:76px;background:var(--color-primary);position:sticky;top:0;z-index:5}
 </style>
-</head><body class="krg-root${canvas ? ' krg-preview' : ''}"><header class="stub"></header><main class="m-page">
+</head><body class="krg-root${canvas ? ' krg-preview krg-canvas' : ''}"><header class="stub"></header><main class="m-page">
 ${markup}
 </main></body></html>`;
 

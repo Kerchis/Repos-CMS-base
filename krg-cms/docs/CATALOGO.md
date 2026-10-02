@@ -310,6 +310,31 @@ partido, reseñas, CTA, acordeón, hitos y colección filtrable).
 - **Repeaters en la región Pie**: el editor de cabecera/pie ya sabe pintar y
   guardar listas repetibles, así que bloques como «Pie partido» se editan
   enteros desde ahí.
+- **«Preview» es la web, no el editor.** La pestaña abría la página con el
+  andamiaje del constructor encima: contornos de puntos en cada columna,
+  avisos de «añade contenido» en los bloques sin datos, los bloques apagados
+  con el interruptor pintados en gris, y un guion que capturaba todos los
+  clics —así que ningún enlace ni botón funcionaba—. Eso vivía en la marca
+  «previsualización», que también usa el lienzo. Ahora cuelga de la marca
+  «lienzo» (`krgcms_canvas=1`, clase `krg-canvas` en el body): el lienzo
+  sigue igual y «Preview» sale byte a byte como la verá quien visite el
+  sitio, con la única diferencia de que lee el borrador.
+- **El constructor adopta lo que el servidor guardó.** La respuesta del
+  guardado trae el documento ya saneado; antes solo se aprovechaba la firma,
+  así que si el servidor recortaba o descartaba algo el editor seguía con su
+  copia y el lienzo lo seguía pintando igual (lo repinta encima con
+  `paintLiveCss`). La diferencia solo aparecía al abrir «Preview». Ahora el
+  documento del editor se sustituye por el guardado, y cualquier diferencia
+  se ve al instante y en el sitio donde se edita.
+- **Bloques de datos sin datos no ocupan.** Una rejilla de blog sin entradas
+  publicadas, un listado de categorías vacío o un carrusel sin reseñas
+  imprimían un contenedor vacío que se llevaba el alto y el relleno de la
+  sección: una franja de fondo sin nada. Ahora no imprimen nada, la fila y la
+  columna que los sujetaban desaparecen con ellos y la sección se da por
+  vacía (0 px). En el lienzo sí avisan de que les faltan datos.
+- **Aviso de PHP al guardar**: cada nodo sin `animEasing` provocaba un
+  `Undefined array key`. En una instalación con los avisos a la vista eso
+  ensucia la respuesta de la API y tira el guardado.
 - **Reskin del panel**: paleta del sistema en todo el admin y el constructor.
   Los colores que estaban escritos a mano en el CSS del constructor pasaron a
   variables, así que ahora cambian con el tema.

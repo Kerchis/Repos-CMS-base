@@ -24,8 +24,15 @@ class RenderContext {
 	public ?int $postId = null;
 	public array $document = [];
 
+	/**
+	 * Marca de seleccion para el lienzo del constructor.
+	 *
+	 * Solo la usan el guion y el CSS del editor. En la pestana «Preview»
+	 * sobra: alli la pagina tiene que salir igual que en la web publica,
+	 * byte a byte.
+	 */
 	public function preview_attrs( string $id ): string {
-		if ( ! $this->isPreview ) {
+		if ( ! $this->isCanvas ) {
 			return '';
 		}
 		return ' data-krg-id="' . esc_attr( $id ) . '"';

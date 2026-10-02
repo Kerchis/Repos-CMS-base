@@ -25,7 +25,11 @@ class NodeRenderer {
 			}
 		}
 
-		if ( array_key_exists( 'visible', $node ) && ! $node['visible'] && ! $ctx->isPreview ) {
+		// Lo apagado con el interruptor de visibilidad solo se pinta en el
+		// lienzo del constructor, que es donde hay que poder verlo para
+		// volver a encenderlo. En la web publica y en la pestana «Preview»
+		// —que es la web publica— no existe.
+		if ( array_key_exists( 'visible', $node ) && ! $node['visible'] && ! $ctx->isCanvas ) {
 			return '';
 		}
 

@@ -82,7 +82,11 @@ class Sanitizer {
 			'animation'    => in_array( sanitize_key( (string) ( $node['animation'] ?? 'none' ) ), [ 'none', 'fade', 'slide', 'zoom', 'bounce', 'flip', 'rise', 'stagger' ], true ) ? sanitize_key( (string) ( $node['animation'] ?? 'none' ) ) : 'none',
 			'animDuration' => max( 0, min( 3000, absint( $node['animDuration'] ?? 600 ) ) ),
 			'animDelay'    => max( 0, min( 3000, absint( $node['animDelay'] ?? 0 ) ) ),
-			'animEasing'   => in_array( (string) ( $node['animEasing'] ?? 'ease' ), [ 'ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out' ], true ) ? (string) $node['animEasing'] : 'ease',
+			// Leer la clave dos veces, y la segunda sin valor por defecto,
+			// soltaba un aviso de PHP en cada nodo que llegaba sin ella.
+			// En una instalacion con los avisos a la vista eso ensucia la
+			// respuesta de la API y el guardado se cae.
+			'animEasing'   => in_array( (string) ( $node['animEasing'] ?? 'ease' ), [ 'ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out' ], true ) ? (string) ( $node['animEasing'] ?? 'ease' ) : 'ease',
 			'filters'      => self::filters( $node['filters'] ?? [] ),
 			'customCss'    => self::custom_css_fields( $node['customCss'] ?? [] ),
 			'props'        => [],

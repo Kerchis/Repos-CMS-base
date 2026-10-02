@@ -61,7 +61,7 @@
       "[data-preloader]",
       function (el) {
         if (!once(el, "krgPreloader")) return;
-        if (document.body.classList.contains("krg-preview")) return;
+        if (document.body.classList.contains("krg-canvas")) return;
 
         var duration = parseInt(el.getAttribute("data-duration") || "1600", 10);
         var onlyOnce = el.getAttribute("data-once") === "1";

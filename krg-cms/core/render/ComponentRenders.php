@@ -315,6 +315,9 @@ class ComponentRenders {
 	}
 
 	public static function row( array $node, array $props, string $children, RenderContext $ctx ): string {
+		if ( self::is_void( $node, $children, $ctx ) ) {
+			return '';
+		}
 		$va = sanitize_html_class( (string) ( $props['vAlign'] ?? 'start' ) );
 		if ( ! in_array( $va, [ 'start', 'center', 'end', 'stretch' ], true ) ) {
 			$va = 'start';
@@ -322,9 +325,37 @@ class ComponentRenders {
 		return self::wrap( $node, $ctx, 'div', $children, [ 'class' => 'm-row m-valign-' . $va ] );
 	}
 
+	/**
+	 * ¿Este andamio se quedó sin nada que sujetar?
+	 *
+	 * Una fila o una columna que declara modulos pero cuyo marcado sale
+	 * vacio no pinta: el modulo decidio no imprimir nada (una rejilla de
+	 * blog sin entradas, una carta sin platos). Devolver cadena vacia hace
+	 * que la seccion de arriba se vea a si misma vacia y no reserve ni un
+	 * pixel, que es la regla del sistema.
+	 *
+	 * No vale para el andamio sin modulos: una columna vacia con su ancho
+	 * es un hueco colocado a proposito en la rejilla, y en el lienzo del
+	 * constructor todo se conserva para poder seleccionarlo.
+	 */
+	private static function is_void( array $node, string $children, RenderContext $ctx ): bool {
+		if ( $ctx->isCanvas || '' !== trim( $children ) ) {
+			return false;
+		}
+		return self::has_content( $node, false );
+	}
+
 	public static function column( array $node, array $props, string $children, RenderContext $ctx ): string {
-		if ( $ctx->isPreview && trim( $children ) === '' ) {
+		if ( $ctx->isCanvas && trim( $children ) === '' ) {
 			$children = '<div class="m-col-empty">' . esc_html__( 'Grupo vacío — selecciona esta columna y añade un módulo.', 'meridian' ) . '</div>';
+		}
+		// Una columna que lleva modulos dentro pero no ha pintado nada
+		// —una rejilla de blog sin entradas, un carrusel sin resenas— no
+		// deja rastro: asi la seccion que la contiene puede darse por
+		// vacia y no reservar espacio. Una columna sin modulos si se
+		// conserva: es un hueco puesto a proposito en la rejilla.
+		if ( self::is_void( $node, $children, $ctx ) ) {
+			return '';
 		}
 		$cv    = sanitize_html_class( (string) ( $props['contentVAlign'] ?? 'start' ) );
 		$ch    = sanitize_html_class( (string) ( $props['contentHAlign'] ?? 'start' ) );
@@ -797,13 +828,21 @@ class ComponentRenders {
 				'post_status'    => 'publish',
 			]
 		);
-		$inner = '<div class="m-grid">';
+		$cards = '';
 		foreach ( $q->posts as $p ) {
-			$inner .= self::post_card( $p );
+			$cards .= self::post_card( $p );
 		}
-		$inner .= '</div>';
 		wp_reset_postdata();
-		return self::wrap( $node, $ctx, 'div', $inner );
+		// Sin entradas no hay rejilla: una rejilla vacia seguia ocupando
+		// el alto de la seccion con su relleno y se veia como una franja
+		// de fondo sin nada. En el lienzo si se avisa, para saber que el
+		// bloque esta puesto y le faltan entradas.
+		if ( '' === $cards ) {
+			return $ctx->isCanvas
+				? self::wrap( $node, $ctx, 'div', '<p class="m-muted">' . esc_html__( 'Todavía no hay entradas publicadas.', 'meridian' ) . '</p>', [ 'class' => 'is-empty' ] )
+				: '';
+		}
+		return self::wrap( $node, $ctx, 'div', '<div class="m-grid">' . $cards . '</div>' );
 	}
 
 	public static function recent_posts( array $node, array $props, string $children, RenderContext $ctx ): string {
@@ -833,7 +872,12 @@ class ComponentRenders {
 	}
 
 	public static function categories( array $node, array $props, string $children, RenderContext $ctx ): string {
-		$cats  = get_categories( [ 'hide_empty' => true ] );
+		$cats = get_categories( [ 'hide_empty' => true ] );
+		if ( ! $cats ) {
+			return $ctx->isCanvas
+				? self::wrap( $node, $ctx, 'div', '<p class="m-muted">' . esc_html__( 'Todavía no hay categorías con entradas.', 'meridian' ) . '</p>', [ 'class' => 'is-empty' ] )
+				: '';
+		}
 		$inner = '<ul class="m-cat-list">';
 		foreach ( $cats as $c ) {
 			$inner .= '<li><a href="' . esc_url( get_category_link( $c ) ) . '">' . esc_html( $c->name ) . '</a></li>';

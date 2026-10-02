@@ -18,7 +18,11 @@ const VACIAS_REALES = ['t1-vacia', 't2-vacia90', 't3-vacia400', 't3b-filavacia']
 // Tiene un modulo, pero escondido en los tres tamanos: fuera del
 // frontend, y en el lienzo intacta, porque alli hay que poder editarla.
 const OCULTA = 't3c-oculta';
-const VACIAS = [...VACIAS_REALES, OCULTA];
+// Lleva modulos de verdad, pero sin datos que pintar (un carrusel sin
+// resenas, una rejilla de blog sin entradas): fuera del frontend, y en el
+// lienzo presente y con su aviso.
+const SIN_DATOS = 't9-sindatos';
+const VACIAS = [...VACIAS_REALES, OCULTA, SIN_DATOS];
 const CON_CONTENIDO = ['t4-titulo', 't7-mapa', 't8-contenido90', 't5-imagen', 't6-mixto'];
 const VENTANAS = [
   ['escritorio', 1440, 1197],
@@ -93,6 +97,9 @@ for (const [etiqueta, W, H] of VENTANAS) {
   const altosVacias = VACIAS_REALES.map((v) => lienzo.filas.find((f) => f.id === v)?.alto);
   comprueba('en el lienzo las vacias miden 120px', altosVacias.every((a) => a === 120),
     altosVacias.join('/'));
+  const altoSinDatos = lienzo.filas.find((f) => f.id === SIN_DATOS)?.alto;
+  comprueba('en el lienzo el modulo sin datos avisa y ocupa',
+    (altoSinDatos ?? 0) > 0, `${altoSinDatos}px`);
   const altoOculta = lienzo.filas.find((f) => f.id === OCULTA)?.alto;
   comprueba('en el lienzo la seccion con contenido oculto conserva su alto',
     Math.abs((altoOculta ?? 0) - H) <= 1, `${altoOculta}px vs ${H}px`);

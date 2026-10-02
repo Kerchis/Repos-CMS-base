@@ -405,6 +405,30 @@
     }
   }
 
+  // El servidor devuelve el documento tal y como ha quedado guardado, ya
+  // pasado por el saneador. Hasta ahora solo se aprovechaban la firma y la
+  // URL de previsualizacion, asi que el editor seguia trabajando con una
+  // version que ya no existia en la base de datos: si el servidor recortaba
+  // o descartaba algo, el lienzo lo seguia pintando igual —paintLiveCss lo
+  // vuelve a aplicar encima del marcado del servidor— y la diferencia solo
+  // salia a la luz al abrir «Preview». Adoptar la respuesta hace que el
+  // constructor muestre siempre lo que de verdad se ha guardado.
+  function adoptSaved(saved) {
+    if (!saved || !Array.isArray(saved.sections) || !state.doc) return false;
+    const antes = JSON.stringify(state.doc.sections);
+    const urls = { previewUrl: state.doc.previewUrl, publicUrl: state.doc.publicUrl };
+    state.doc = Object.assign({}, saved);
+    if (!state.doc.previewUrl) state.doc.previewUrl = urls.previewUrl;
+    if (!state.doc.publicUrl) state.doc.publicUrl = urls.publicUrl;
+    const cambio = antes !== JSON.stringify(state.doc.sections);
+    // Repintar solo si no se esta escribiendo: reconstruir el inspector con
+    // el foco dentro de un campo le roba el cursor a quien escribe.
+    const foco = document.activeElement;
+    const escribiendo = foco && /^(INPUT|TEXTAREA|SELECT)$/.test(foco.tagName) && root.contains(foco);
+    if (cambio && !escribiendo) render();
+    return cambio;
+  }
+
   async function saveDraft() {
     if (!state.doc) return;
     if (state.saving) {
@@ -444,6 +468,7 @@
         state.dirty = false;
         state.saveTries = 0;
         state.save = "Guardado (borrador)";
+        adoptSaved(saved);
         const sig = treeSig(state.doc.sections);
         if (state.frameSig && sig !== state.frameSig) {
           state.frameSig = sig;

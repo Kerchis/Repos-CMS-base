@@ -92,6 +92,12 @@ add_filter( 'body_class', static function ( $classes ) {
 	if ( \Meridian\Render\Preview::is_preview() ) {
 		$classes[] = 'krg-preview';
 	}
+	// El andamiaje del editor —contornos, avisos de hueco vacio, la
+	// seleccion al hacer clic— solo se pinta en el lienzo del
+	// constructor. La pestana «Preview» es la pagina publica.
+	if ( \Meridian\Render\Preview::is_canvas() ) {
+		$classes[] = 'krg-canvas';
+	}
 	return $classes;
 } );
 add_filter(

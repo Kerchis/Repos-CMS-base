@@ -144,6 +144,30 @@ datos, nunca por clases de estilo:
 Todo respeta `prefers-reduced-motion` (los estados finales se aplican de golpe)
 y se salta en el preview del constructor cuando mostraría un overlay.
 
+### 3.2 Tres contextos de render
+
+El mismo render sirve tres situaciones y la diferencia está en dos marcas de
+`RenderContext`:
+
+| Contexto | URL | `isPreview` | `isCanvas` | Qué cambia |
+| --- | --- | --- | --- | --- |
+| Web pública | la normal | `false` | `false` | lo publicado |
+| Pestaña «Preview» | `?krgcms_preview=1` | `true` | `false` | **idéntica a la pública**, solo que lee el borrador y lleva `noindex` |
+| Lienzo del constructor | `…&krgcms_canvas=1` | `true` | `true` | andamiaje de edición |
+
+Todo el andamiaje —secciones vacías impresas con su banda de 120 px, avisos
+de «añade contenido», contornos de las columnas, bloques apagados con el
+interruptor, atributos `data-krg-id`/`data-krg-chrome`, el guion `preview.js`
+que captura los clics para seleccionar y la clase `krg-canvas` del body—
+depende de `isCanvas`. Nada de eso puede colgar de `isPreview`: «Preview» es
+la web pública y sus enlaces tienen que funcionar.
+
+El lienzo, además, no es un render puro: `paintLiveCss()` del constructor
+vuelve a aplicar encima las clases de alto, ancho y alineación de cada
+sección y los estilos por nodo, para que editar se vea al instante sin ir al
+servidor. Por eso el lienzo nunca debe ser la referencia de qué se publicó:
+si lienzo y «Preview» no coinciden, manda «Preview».
+
 ---
 
 ## 4. Secciones y páginas

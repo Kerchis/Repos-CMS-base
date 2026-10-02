@@ -393,7 +393,7 @@ a.m-mq-item:hover { text-decoration: underline; }
 .m-pl-bar span { display: block; height: 100%; width: 0; background: var(--color-primary); transition: width 120ms linear; }
 .m-pl-mark { display: grid; place-items: center; }
 .m-pl-img { width: clamp(64px, 14vw, 130px); height: auto; }
-body.krg-preview .m-preloader { position: relative; min-height: 320px; }
+body.krg-canvas .m-preloader { position: relative; min-height: 320px; }
 
 /* ------------------------------------------------------------------ */
 /* 3.4 brand-hero                                                      */
@@ -1632,8 +1632,8 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 
 /* En el constructor conserva una banda baja: una seccion colapsada a
    cero no se puede ni seleccionar ni usar como destino al soltar. */
-body.krg-preview .m-c-section.is-no-content { min-height: 120px; }
-body.krg-preview .m-c-section.is-no-content > .m-container { min-height: 120px; }
+body.krg-canvas .m-c-section.is-no-content { min-height: 120px; }
+body.krg-canvas .m-c-section.is-no-content > .m-container { min-height: 120px; }
 
 /* ------------------------------------------------------------------ */
 /* Animación de revelado por scroll (la del pie de la referencia)      */

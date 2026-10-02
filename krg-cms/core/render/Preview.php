@@ -23,9 +23,17 @@ class Preview {
 	 * ¿Esto es el lienzo del constructor, y no una previsualización normal?
 	 *
 	 * El constructor carga la misma URL de previsualización dentro de su
-	 * iframe, pero ahí sí hace falta ver —y poder seleccionar— una sección
-	 * recién creada que todavía está vacía. En la web pública, y también en
-	 * la pestaña «Preview», una sección vacía no se imprime.
+	 * iframe, pero ahí hace falta ver y poder tocar lo que todavía no se
+	 * ve en la web: una sección recién creada y vacía, un bloque apagado
+	 * con el interruptor, un carrusel al que aún no le has puesto reseñas.
+	 * Todo ese andamiaje —avisos de «añade contenido», contornos de las
+	 * columnas, el guion que captura los clics para seleccionar— cuelga de
+	 * esta marca y de la clase `krg-canvas` del body.
+	 *
+	 * La pestaña «Preview» NO es el lienzo: abre la página tal y como la
+	 * verá quien visite el sitio, con la única diferencia de que lee el
+	 * borrador en vez de lo publicado. Si algo se ve distinto entre el
+	 * lienzo y «Preview», lo que manda es «Preview».
 	 *
 	 * Es sólo una marca de presentación: no abre ningún dato. Exige estar
 	 * en modo previsualización, que ya pasa por `guard()` con permiso y

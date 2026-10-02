@@ -49,7 +49,11 @@ class PublicAssets {
 			]
 		);
 
-		if ( \Meridian\Render\Preview::is_preview() ) {
+		// El guion de seleccion se queda en el lienzo del constructor.
+		// Captura todos los clics para poder elegir bloques, asi que en
+		// la pestana «Preview» dejaba la pagina muerta: ni enlaces ni
+		// botones. Y «Preview» tiene que comportarse como la web.
+		if ( \Meridian\Render\Preview::is_canvas() ) {
 			wp_enqueue_script( 'krg-preview', MERIDIAN_URI . '/assets/js/preview.js', [], MERIDIAN_VERSION, true );
 		}
 

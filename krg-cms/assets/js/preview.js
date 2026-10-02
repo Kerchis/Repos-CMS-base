@@ -1,5 +1,5 @@
 (() => {
-  document.body.classList.add("krg-preview");
+  document.body.classList.add("krg-preview", "krg-canvas");
   const notify = (type, payload) => {
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ source: "krg", type, ...payload }, "*");

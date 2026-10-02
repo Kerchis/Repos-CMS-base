@@ -61,7 +61,7 @@ if ( $show_header ) {
 	}
 	$name     = $identity['siteName'] ?: get_bloginfo( 'name' );
 	$logo_href = \Meridian\Navigation\Menus::logo_href( $h );
-	$chrome = \Meridian\Render\Preview::is_preview() ? ' data-krg-chrome="header"' : '';
+	$chrome = \Meridian\Render\Preview::is_canvas() ? ' data-krg-chrome="header"' : '';
 	$dist   = ( $h['distribute'] ?? '' ) === 'x' ? ' is-dist-x' : ( ( $h['distribute'] ?? '' ) === 'y' ? ' is-dist-y' : '' );
 	$nav_d  = \Meridian\Navigation\Menus::nav_mode( $h['navModeDesktop'] ?? 'bar', 'bar' );
 	$nav_t  = \Meridian\Navigation\Menus::nav_mode( $h['navModeTablet'] ?? 'bar', 'bar' );

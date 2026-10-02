@@ -13,7 +13,7 @@ if ( $show_footer ) {
 	$f        = \Meridian\Navigation\Menus::footer();
 	$identity = \Meridian\Navigation\Menus::identity();
 	$name     = $identity['siteName'] ?: get_bloginfo( 'name' );
-	$chrome = \Meridian\Render\Preview::is_preview() ? ' data-krg-chrome="footer"' : '';
+	$chrome = \Meridian\Render\Preview::is_canvas() ? ' data-krg-chrome="footer"' : '';
 	// Revelado del pie. 'curtain' lo descubre el contenido al deslizarse por encima.
 	$f_reveal  = sanitize_key( (string) ( $f['reveal'] ?? 'stagger' ) );
 	$f_curtain = 'curtain' === $f_reveal;

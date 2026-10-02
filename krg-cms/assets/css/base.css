@@ -454,4 +454,4 @@ h1,h2,h3,h4,h5,h6, .m-role-h1, .m-role-h2, .m-role-h3 {
 
 .m-hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 .is-hidden { opacity: 0.45; outline: 1px dashed var(--color-border); }
-body:not(.krg-preview) .is-hidden { display: none; }
+body:not(.krg-canvas) .is-hidden { display: none; }

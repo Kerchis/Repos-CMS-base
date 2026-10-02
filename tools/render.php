@@ -90,7 +90,7 @@ function do_action( ...$a ) {}
 function add_action( ...$a ) {}
 function add_filter( ...$a ) {}
 function get_option( $k, $d = false ) {
-	return $d;
+	return $GLOBALS['krg_options'][ $k ] ?? $d;
 }
 function wp_unique_id( $p = '' ) {
 	static $i = 0;
@@ -137,18 +137,47 @@ function sanitize_hex_color( $c ) {
 	return preg_match( '/^#([0-9a-f]{3}|[0-9a-f]{6})$/i', $c ) ? $c : null;
 }
 
+/* Consultas: el banco no tiene base de datos, asi que no hay entradas.
+   Es justo el caso que interesa medir —una rejilla de blog sin nada que
+   mostrar no debe reservar espacio en la web publica. */
+class WP_Query {
+	public array $posts = [];
+	public function __construct( $args = [] ) {}
+	public function have_posts() { return false; }
+}
+function wp_reset_postdata() {}
+function get_categories( $a = [] ) { return []; }
+function get_category_link( $c ) { return 'https://ejemplo.test/categoria/'; }
+function wp_get_post_categories( $id ) { return []; }
+function get_the_post_thumbnail( ...$a ) { return ''; }
+function get_the_date( $f = '', $p = null ) { return '1 de enero'; }
+function get_the_title( $p = null ) { return 'Entrada'; }
+function get_the_excerpt( $p = null ) { return ''; }
+
 /* ---------------------------------------------------------------- */
 /* Carga de las clases que hacen falta                               */
 /* ---------------------------------------------------------------- */
 
+// Lo que falte del minimo de WordPress, con guardas: aqui ya hay media
+// docena de funciones definidas arriba y el fichero compartido solo
+// rellena los huecos.
+require_once __DIR__ . '/wp-shim.php';
+
 $base = dirname( __DIR__ ) . '/krg-cms';
+require_once $base . '/core/constants.php';
 foreach (
 	[
 		'/core/render/RenderContext.php',
 		'/core/design/Contrast.php',
+		'/core/design/TokenRepository.php',
 		'/core/design/TokenCompiler.php',
+		'/core/security/UrlValidator.php',
+		'/core/components/Catalog.php',
+		'/core/components/BrandCatalog.php',
+		'/core/components/Registry.php',
 		'/core/render/ComponentRenders.php',
 		'/core/render/BrandRenders.php',
+		'/core/render/NodeRenderer.php',
 	] as $f
 ) {
 	if ( file_exists( $base . $f ) ) {
@@ -159,11 +188,18 @@ foreach (
 use Meridian\Render\ComponentRenders;
 use Meridian\Render\RenderContext;
 
+\Meridian\Components\Registry::boot();
+
 $ctx            = new RenderContext();
 $ctx->isPreview = false;
 
-// Con KRG_CANVAS=1 el banco de pruebas rinde como el lienzo del
-// constructor: las secciones vacias si se imprimen.
+// Tres contextos, como en el tema:
+//   (sin nada)      la web publica
+//   KRG_PREVIEW=1   la pestana «Preview»: el borrador, pero sin andamiaje
+//   KRG_CANVAS=1    el lienzo del constructor: con andamiaje
+if ( '1' === getenv( 'KRG_PREVIEW' ) ) {
+	$ctx->isPreview = true;
+}
 if ( '1' === getenv( 'KRG_CANVAS' ) ) {
 	$ctx->isPreview = true;
 	$ctx->isCanvas  = true;
@@ -202,6 +238,23 @@ function fila( string $markup, RenderContext $ctx, int $columnas = 1 ): string {
 	}
 	$row = node( 'row', [], 'r1' );
 	return ComponentRenders::row( $row, $row['props'], $celdas, $ctx );
+}
+
+/**
+ * Fila y columna reales, con los nodos de los modulos colgando del arbol.
+ *
+ * `fila()` solo envuelve marcado; esto ademas declara que modulos hay
+ * dentro, que es lo que mira el motor para decidir si una seccion esta
+ * vacia. Hace falta para medir el caso «el modulo esta puesto pero no
+ * pinta nada».
+ */
+function fila_con_nodos( array $modulos, string $markup, RenderContext $ctx ): string {
+	$col             = node( 'column', [ 'span' => 12 ], 'cn1' );
+	$col['children'] = $modulos;
+	$celda           = ComponentRenders::column( $col, $col['props'], $markup, $ctx );
+	$row             = node( 'row', [], 'rn1' );
+	$row['children'] = [ $col ];
+	return ComponentRenders::row( $row, $row['props'], $celda, $ctx );
 }
 
 /** Seccion de mapa tal y como la monta el constructor, con alto propio. */
@@ -576,6 +629,19 @@ $cases = [
 			'minHeightUnit'  => 'vh',
 			'heightMode'     => 'exact',
 		];
+		// Modulos de verdad que, sin datos, no imprimen nada.
+		$resenas  = node( 'review-slider', [ 'items' => [] ], 'rv0' );
+		$blog     = node( 'blog-grid', [ 'count' => 3 ], 'bg0' );
+		$sindatos = node( 'row', [], 'rn1' );
+		$sindatos['children'] = [ node( 'column', [ 'span' => 12 ], 'cn1' ) ];
+		$sindatos['children'][0]['children'] = [ $resenas, $blog ];
+		$m_sindatos = fila_con_nodos(
+			[ $resenas, $blog ],
+			\Meridian\Render\BrandRenders::review_slider( $resenas, $resenas['props'], '', $ctx )
+				. ComponentRenders::blog_grid( $blog, $blog['props'], '', $ctx ),
+			$ctx
+		);
+
 		$alto400 = [
 			'width'          => 'full',
 			'minHeight'      => 'custom',
@@ -604,7 +670,24 @@ $cases = [
 			// 6: texto + imagen.
 			. $sec( 't6-mixto', [ 'width' => 'full' ], $mixto, $m_mixto )
 			// 3c: solo contenido escondido en los tres tamanos.
-			. $sec( 't3c-oculta', [ 'width' => 'full', 'minHeight' => 'screen' ], [ $oculto ], $m_oculto );
+			. $sec( 't3c-oculta', [ 'width' => 'full', 'minHeight' => 'screen' ], [ $oculto ], $m_oculto )
+			// 9: los modulos estan puestos, pero no tienen datos que pintar
+			// (un carrusel sin resenas y una rejilla de blog sin entradas).
+			. $sec( 't9-sindatos', [ 'width' => 'full', 'minHeight' => 'tall' ], [ $sindatos ], $m_sindatos );
+	},
+
+	// Un bloque apagado con el interruptor de visibilidad. Pasa por el
+	// renderizador de nodos de verdad, que es quien decide si se imprime.
+	'apagado'              => function () use ( $ctx ) {
+		$h            = node( 'heading', [ 'text' => 'Apagado' ], 'hap' );
+		$h['visible'] = false;
+		$col             = node( 'column', [ 'span' => 12 ], 'cap' );
+		$col['children'] = [ $h ];
+		$row             = node( 'row', [], 'rap' );
+		$row['children'] = [ $col ];
+		$sec             = node( 'section', [ 'width' => 'full' ], 'sap' );
+		$sec['children'] = [ $row ];
+		return \Meridian\Render\NodeRenderer::render( $sec, $ctx );
 	},
 
 	// 9 y 10: la misma seccion, con y sin contenido.

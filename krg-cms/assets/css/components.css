@@ -236,7 +236,7 @@
   padding: 12px;
   text-align: center;
 }
-body.krg-preview .m-col {
+body.krg-canvas .m-col {
   outline: 1px dashed color-mix(in srgb, var(--color-border, #d8d2ca) 80%, transparent);
   outline-offset: 4px;
   min-height: 48px;
@@ -675,15 +675,15 @@ body.krg-preview .m-col {
 }
 
 /* Preview chrome */
-body.krg-preview [data-krg-id],
-body.krg-preview [data-krg-chrome] { cursor: pointer; }
-body.krg-preview [data-krg-id].is-selected,
-body.krg-preview [data-krg-chrome].is-selected {
+body.krg-canvas [data-krg-id],
+body.krg-canvas [data-krg-chrome] { cursor: pointer; }
+body.krg-canvas [data-krg-id].is-selected,
+body.krg-canvas [data-krg-chrome].is-selected {
   outline: 2px solid var(--color-primary);
   outline-offset: 4px;
 }
-body.krg-preview [data-krg-id].is-hovered,
-body.krg-preview [data-krg-chrome].is-hovered {
+body.krg-canvas [data-krg-id].is-hovered,
+body.krg-canvas [data-krg-chrome].is-hovered {
   outline: 1px dashed var(--color-tertiary);
   outline-offset: 4px;
 }

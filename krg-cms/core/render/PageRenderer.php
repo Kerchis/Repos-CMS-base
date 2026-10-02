@@ -88,7 +88,7 @@ class PageRenderer {
 
 		$html = '';
 		foreach ( $doc['sections'] ?? [] as $section ) {
-			if ( array_key_exists( 'visible', $section ) && ! $section['visible'] && ! $preview ) {
+			if ( array_key_exists( 'visible', $section ) && ! $section['visible'] && ! $ctx->isCanvas ) {
 				continue;
 			}
 			$html .= NodeRenderer::render( $section, $ctx );
