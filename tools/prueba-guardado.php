@@ -288,5 +288,96 @@ foreach (
 	}
 }
 
+// Lo nuevo de «Avanzado»: posicion, transformacion y atributos. Son los
+// tres sitios donde el usuario escribe texto libre que acaba en la web,
+// asi que lo que importa no es solo que se guarde: es que lo que no
+// esta permitido no se guarde.
+echo "\nAvanzado: posicion, transformacion y atributos\n";
+$av  = \Meridian\Security\Sanitizer::node(
+	[
+		'id'     => 'nAv',
+		'type'   => 'heading',
+		'props'  => [ 'text' => 'Hola' ],
+		'styles' => [
+			'desktop' => [
+				'position'         => 'relative',
+				'top'              => '12px',
+				'z-index'          => '5',
+				'transform'        => 'rotate(-3deg) scale(1.05)',
+				'transform-origin' => 'top left',
+			],
+		],
+		'attrs'  => [
+			'data-gtm'   => 'cta-principal',
+			'aria-label' => 'Reserva tu mesa',
+			'title'      => 'Reservar',
+			'onclick'    => 'alert(1)',
+			'style'      => 'color:red',
+			'href'       => 'javascript:alert(1)',
+			'data-x'     => 'javascript:alert(1)',
+		],
+	],
+	0
+);
+$avSt = $av['styles']['desktop'] ?? [];
+foreach (
+	[
+		[ 'position', 'relative' ],
+		[ 'top', '12px' ],
+		[ 'z-index', '5' ],
+		[ 'transform', 'rotate(-3deg) scale(1.05)' ],
+		[ 'transform-origin', 'top left' ],
+	] as [ $prop, $esperado ]
+) {
+	$val = $avSt[ $prop ] ?? '«no existe»';
+	if ( $esperado === $val ) {
+		++$ok;
+		echo "  OK    estilo $prop = $esperado\n";
+	} else {
+		++$fallos;
+		echo "  FALLA estilo $prop llega como " . var_export( $val, true ) . "\n";
+	}
+}
+// Una transformacion con `url(` no es una transformacion.
+$mala = \Meridian\Security\Sanitizer::node(
+	[ 'id' => 'nMal', 'type' => 'heading', 'styles' => [ 'desktop' => [ 'transform' => 'url(javascript:alert(1))', 'position' => 'cualquiera' ] ] ],
+	0
+);
+foreach ( [ 'transform', 'position' ] as $prop ) {
+	if ( ! isset( $mala['styles']['desktop'][ $prop ] ) ) {
+		++$ok;
+		echo "  OK    estilo $prop con basura no se guarda\n";
+	} else {
+		++$fallos;
+		echo "  FALLA estilo $prop guarda " . var_export( $mala['styles']['desktop'][ $prop ], true ) . "\n";
+	}
+}
+$attrs = $av['attrs'] ?? [];
+foreach (
+	[
+		[ 'data-gtm', 'cta-principal' ],
+		[ 'aria-label', 'Reserva tu mesa' ],
+		[ 'title', 'Reservar' ],
+	] as [ $k, $esperado ]
+) {
+	$val = $attrs[ $k ] ?? '«no existe»';
+	if ( $esperado === $val ) {
+		++$ok;
+		echo "  OK    atributo $k = $esperado\n";
+	} else {
+		++$fallos;
+		echo "  FALLA atributo $k llega como " . var_export( $val, true ) . "\n";
+	}
+}
+foreach ( [ 'onclick', 'style', 'href', 'data-x' ] as $k ) {
+	if ( ! isset( $attrs[ $k ] ) ) {
+		++$ok;
+		echo "  OK    atributo $k rechazado\n";
+	} else {
+		++$fallos;
+		echo "  FALLA atributo $k se ha colado con " . var_export( $attrs[ $k ], true ) . "\n";
+	}
+}
+
 echo "\n" . ( $fallos ? "HAY $fallos FALLOS" : 'TODO SOBREVIVE AL GUARDADO (' . $ok . ' comprobaciones)' ) . "\n";
 exit( $fallos ? 1 : 0 );

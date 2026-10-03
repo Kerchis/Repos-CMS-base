@@ -69,6 +69,7 @@ const html = `<!doctype html><meta charset="utf-8"><title>panel</title>
 <body><div id="krg-builder"></div>
 <script>window.KrgAdmin={pageId:1,rest:${JSON.stringify(REST)},nonce:'n',admin:'/wp-admin/admin.php?'};</script>
 <script src="file://${JS}/app.js"></script>
+<script src="file://${JS}/builder-core.js"></script>
 <script src="file://${JS}/builder.js"></script>`;
 
 const dir = mkdtempSync(join(tmpdir(), 'krg-panel-'));
@@ -120,6 +121,22 @@ async function seleccionar(id) {
   }, id);
   await page.click('[data-insp-tab="design"]');
   await page.waitForTimeout(150);
+  await abrirTodos();
+}
+
+/**
+ * Abre todos los grupos plegados del inspector.
+ *
+ * El panel nuevo nace con los grupos cerrados menos el primero, asi que
+ * una persona pulsa el titulo antes de escribir. El banco hace lo mismo:
+ * si esto deja de abrirlos, los controles no se ven y las pruebas de
+ * abajo fallan, que es exactamente lo que queremos que pase.
+ */
+async function abrirTodos() {
+  await page.evaluate(() => {
+    document.querySelectorAll('.b-insp .b-group:not(.is-open) > .acc-h').forEach((b) => b.click());
+  });
+  await page.waitForTimeout(60);
 }
 
 /** Escribe en una casilla de Relleno/Margen como lo haria una persona. */
@@ -178,7 +195,8 @@ await page.waitForSelector('.b-insp [data-paint-child]');
 ok(true, 'el aviso de «lo tapa un bloque» aparece al poner el color');
 // Y sobrevive a perder el foco: el `change` del campo no puede borrar el
 // boton entre el mousedown y el click de quien lo esta pulsando.
-await page.click('.b-insp h5');
+// Pulsar en la cabecera del elemento: quita el foco sin tocar nada.
+await page.click('.b-insp .b-sel-name');
 ok(await page.locator('.b-insp [data-paint-child]').count() === 1,
   'el botón sigue ahí después de que el campo pierda el foco');
 await page.click('.b-insp [data-paint-child]');

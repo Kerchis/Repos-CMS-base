@@ -90,6 +90,7 @@ const html = `<!doctype html><meta charset="utf-8">
 <body><div id="krg-builder"></div>
 <script>window.KrgAdmin={pageId:1,rest:${JSON.stringify(REST)},nonce:'n',admin:'/wp-admin/admin.php?'};</script>
 <script>${leer(`${JS_DIR}/app.js`)}</script>
+<script>${leer(`${JS_DIR}/builder-core.js`)}</script>
 <script>${leer(`${JS_DIR}/builder.js`)}</script>`;
 
 const browser = await chromium.launch({
@@ -154,6 +155,19 @@ async function seleccionar(id) {
   await page.evaluate((nid) => document.querySelector(`[data-sel="${nid}"]`).click(), id);
   await page.click('[data-insp-tab="design"]');
   await page.waitForTimeout(150);
+  await abrirTodos();
+}
+
+/**
+ * Abre los grupos plegados del inspector, como haria una persona antes
+ * de escribir en ellos. El panel nuevo nace con todo cerrado menos el
+ * primer grupo de cada pestaña.
+ */
+async function abrirTodos() {
+  await page.evaluate(() => {
+    document.querySelectorAll('.b-insp .b-group:not(.is-open) > .acc-h').forEach((b) => b.click());
+  });
+  await page.waitForTimeout(60);
 }
 async function esperarGuardado() {
   await page.waitForFunction(() => !document.querySelector('.b-status') ||
@@ -292,6 +306,7 @@ comprueba(m['padding-top'] === '37px', `getComputedStyle(.m-n-cta1).paddingTop =
 console.log('\nPRUEBA 8 — el diagnóstico de estilos dice la verdad cuando todo va bien');
 await seleccionar('secA');
 await page.click('.b-insp [data-insp-tab="advanced"]');
+await abrirTodos();
 await page.click('.b-insp [data-diag]');
 let informe = await page.inputValue('.b-insp .b-diag');
 comprueba(/Elementos con \.m-n-secA en el lienzo: 1/.test(informe), 'cuenta el elemento en el lienzo');

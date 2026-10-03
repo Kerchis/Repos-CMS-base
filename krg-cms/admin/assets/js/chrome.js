@@ -430,13 +430,81 @@
     return `<label>${esc(label)} ${inner}</label>`;
   }
 
-  function inspector() {
-    return state.region === "footer" ? footerFields() : headerFields();
+  /* ------------------------------------------------------------------
+   * Inspector de cabecera y pie
+   * ------------------------------------------------------------------
+   * Mismo motor que el constructor de páginas: `KrgBuilderCore` guarda
+   * los controles, decide qué grupos ve cada elemento y pinta las tres
+   * pestañas con sus acordeones. Aquí solo viven los controles que son
+   * propios de la cabecera y del pie (logo, menú, vidrio, copyright…),
+   * que es exactamente lo que dice el encargo: un único motor, y la
+   * navegación añade lo suyo.
+   *
+   * Los atributos `data-h*` y `data-f*` no cambian: son el contrato con
+   * `bindInspector()` y con el guardado.
+   * ------------------------------------------------------------------ */
+  const CORE = window.KrgBuilderCore;
+
+  /* --- Cabecera ----------------------------------------------------- */
+
+  function hBodyContent() {
+    const h = state.header || {};
+    return `${field("Texto CTA", `<input data-h="ctaText" value="${esc(h.ctaText || "")}">`)}
+      ${field("URL CTA", `<input data-h="ctaUrl" value="${esc(h.ctaUrl || "")}">`)}
+      ${field("Menú", `<select data-h="menuSlug">${(state.menus || []).map((m) => `<option value="${esc(m.slug)}" ${h.menuSlug === m.slug ? "selected" : ""}>${esc(m.name || m.slug)}</option>`).join("")}</select>`)}
+      ${field("Logo escritorio", `${h.logoSrc ? `<img src="${esc(h.logoSrc)}" alt="" style="max-height:36px;width:auto;display:block;margin-bottom:6px">` : ""}<button type="button" class="m-btn ghost" data-media="logoId">Elegir logo</button>`)}
+      ${field("Logo móvil / tablet", `${h.logoMobileSrc ? `<img src="${esc(h.logoMobileSrc)}" alt="" style="max-height:36px;width:auto;display:block;margin-bottom:6px">` : ""}<button type="button" class="m-btn ghost" data-media="logoMobile">Elegir logo</button>`)}
+      ${field("Clic en el logo", `<select data-h="logoLink">
+        <option value="home" ${(h.logoLink || "home") === "home" ? "selected" : ""}>Inicio del sitio</option>
+        <option value="section" ${h.logoLink === "section" ? "selected" : ""}>Sección de la página (#id)</option>
+        <option value="url" ${h.logoLink === "url" ? "selected" : ""}>URL externa</option>
+      </select>`)}
+      ${h.logoLink === "section" || h.logoLink === "url" ? field(h.logoLink === "section" ? "ID de sección" : "URL del logo", `<input data-h="logoUrl" placeholder="${h.logoLink === "section" ? "#servicios" : "https://"}" value="${esc(h.logoUrl || "")}">`) : ""}`;
   }
 
-  function headerFields() {
+  function hBodyAlign() {
     const h = state.header || {};
-    const tab = state.inspTab || "content";
+    const ah = h.align || "left";
+    const av = h.vAlign || "center";
+    const dist = h.distribute || "none";
+    const abtn = (key, val, cur, icon, title) => `<button type="button" class="b-align-btn${cur === val ? " is-on" : ""}" data-h-set="${key}" data-v="${val}" title="${title}">${ALIGN_ICONS[icon]}</button>`;
+    return `<p class="m-muted">Alinear objetos</p>
+      <div class="b-align">
+        ${abtn("align", "left", ah, "hStart", "Izquierda")}
+        ${abtn("align", "center", ah, "hCenter", "Centro horizontal")}
+        ${abtn("align", "right", ah, "hEnd", "Derecha")}
+        ${abtn("vAlign", "start", av, "vStart", "Arriba")}
+        ${abtn("vAlign", "center", av, "vCenter", "Centro vertical")}
+        ${abtn("vAlign", "end", av, "vEnd", "Abajo")}
+      </div>
+      <p class="m-muted">Distribuir objetos</p>
+      <div class="b-align">
+        ${abtn("distribute", "x", dist, "distX", "Distribuir horizontal")}
+        ${abtn("distribute", "y", dist, "distY", "Distribuir vertical")}
+      </div>`;
+  }
+
+  function hBodyNavMode() {
+    const h = state.header || {};
+    const nbtn = (key, val, fallback, lab) => `<button type="button" class="${(h[key] || fallback) === val ? "is-on" : ""}" data-h-set="${key}" data-v="${val}">${lab}</button>`;
+    return `<p class="m-muted">Escritorio</p>
+      <div class="b-seg">${nbtn("navModeDesktop", "bar", "bar", "Barra (escritorio)")}${nbtn("navModeDesktop", "drawer", "bar", "Hamburguesa (móvil)")}</div>
+      <p class="m-muted">Tablet</p>
+      <div class="b-seg">${nbtn("navModeTablet", "bar", "bar", "Barra (escritorio)")}${nbtn("navModeTablet", "drawer", "bar", "Hamburguesa (móvil)")}</div>
+      <p class="m-muted">Móvil</p>
+      <div class="b-seg">${nbtn("navModeMobile", "bar", "drawer", "Barra (escritorio)")}${nbtn("navModeMobile", "drawer", "drawer", "Hamburguesa (móvil)")}</div>`;
+  }
+
+  function hBodyColors() {
+    const h = state.header || {};
+    return `${window.KrgUi.colorField("Fondo", h.background || "", 'data-h="background"')}
+      ${window.KrgUi.colorField("Color texto", h.color || "", 'data-h="color"')}
+      ${window.KrgUi.colorField("Color de texto hover", h.navHoverFg || "", 'data-h="navHoverFg"')}
+      ${window.KrgUi.colorField("Fondo hover", h.navHoverBg || "", 'data-h="navHoverBg"')}`;
+  }
+
+  function hBodyLogo() {
+    const h = state.header || {};
     const lw = (key, label, fallback) => {
       const v = Number(h[key] ?? fallback);
       return `<label>${label}
@@ -444,123 +512,365 @@
         <span data-logo-w-lab>${v} px</span>
       </label>`;
     };
-    let body = "";
-    if (tab === "content") {
-      body = `<div class="acc"><h5>Contenido</h5>
-        ${field("Texto CTA", `<input data-h="ctaText" value="${esc(h.ctaText || "")}">`)}
-        ${field("URL CTA", `<input data-h="ctaUrl" value="${esc(h.ctaUrl || "")}">`)}
-        ${field("Menú", `<select data-h="menuSlug">${(state.menus || []).map((m) => `<option value="${esc(m.slug)}" ${h.menuSlug === m.slug ? "selected" : ""}>${esc(m.name || m.slug)}</option>`).join("")}</select>`)}
-        ${field("Logo escritorio", `${h.logoSrc ? `<img src="${esc(h.logoSrc)}" alt="" style="max-height:36px;width:auto;display:block;margin-bottom:6px">` : ""}<button type="button" class="m-btn ghost" data-media="logoId">Elegir logo</button>`)}
-        ${field("Logo móvil / tablet", `${h.logoMobileSrc ? `<img src="${esc(h.logoMobileSrc)}" alt="" style="max-height:36px;width:auto;display:block;margin-bottom:6px">` : ""}<button type="button" class="m-btn ghost" data-media="logoMobile">Elegir logo</button>`)}
-        ${field("Clic en el logo", `<select data-h="logoLink">
-          <option value="home" ${(h.logoLink || "home") === "home" ? "selected" : ""}>Inicio del sitio</option>
-          <option value="section" ${h.logoLink === "section" ? "selected" : ""}>Sección de la página (#id)</option>
-          <option value="url" ${h.logoLink === "url" ? "selected" : ""}>URL externa</option>
-        </select>`)}
-        ${h.logoLink === "section" || h.logoLink === "url" ? field(h.logoLink === "section" ? "ID de sección" : "URL del logo", `<input data-h="logoUrl" placeholder="${h.logoLink === "section" ? "#servicios" : "https://"}" value="${esc(h.logoUrl || "")}">`) : ""}
-      </div>`;
-    } else if (tab === "design") {
-      const ah = h.align || "left";
-      const av = h.vAlign || "center";
-      const dist = h.distribute || "none";
-      const abtn = (key, val, cur, icon, title) => `<button type="button" class="b-align-btn${cur === val ? " is-on" : ""}" data-h-set="${key}" data-v="${val}" title="${title}">${ALIGN_ICONS[icon]}</button>`;
-      const nbtn = (key, val, fallback, lab) => `<button type="button" class="${(h[key] || fallback) === val ? "is-on" : ""}" data-h-set="${key}" data-v="${val}">${lab}</button>`;
-      body = `<div class="acc"><h5>Alinear</h5>
-        <p class="m-muted">Alinear objetos</p>
-        <div class="b-align">
-          ${abtn("align", "left", ah, "hStart", "Izquierda")}
-          ${abtn("align", "center", ah, "hCenter", "Centro horizontal")}
-          ${abtn("align", "right", ah, "hEnd", "Derecha")}
-          ${abtn("vAlign", "start", av, "vStart", "Arriba")}
-          ${abtn("vAlign", "center", av, "vCenter", "Centro vertical")}
-          ${abtn("vAlign", "end", av, "vEnd", "Abajo")}
-        </div>
-        <p class="m-muted">Distribuir objetos</p>
-        <div class="b-align">
-          ${abtn("distribute", "x", dist, "distX", "Distribuir horizontal")}
-          ${abtn("distribute", "y", dist, "distY", "Distribuir vertical")}
-        </div>
-      </div>
-      <div class="acc"><h5>Tipo de menú</h5>
-        <p class="m-muted">Barra horizontal o botón Menú (hamburguesa), independiente en cada tamaño.</p>
-        <p class="m-muted">Escritorio</p>
-        <div class="b-seg">${nbtn("navModeDesktop", "bar", "bar", "Barra (escritorio)")}${nbtn("navModeDesktop", "drawer", "bar", "Hamburguesa (móvil)")}</div>
-        <p class="m-muted">Tablet</p>
-        <div class="b-seg">${nbtn("navModeTablet", "bar", "bar", "Barra (escritorio)")}${nbtn("navModeTablet", "drawer", "bar", "Hamburguesa (móvil)")}</div>
-        <p class="m-muted">Móvil</p>
-        <div class="b-seg">${nbtn("navModeMobile", "bar", "drawer", "Barra (escritorio)")}${nbtn("navModeMobile", "drawer", "drawer", "Hamburguesa (móvil)")}</div>
-      </div>
-      <div class="acc"><h5>Colores</h5>
-        ${window.KrgUi.colorField("Fondo", h.background || "", 'data-h="background"')}
-        ${window.KrgUi.colorField("Color texto", h.color || "", 'data-h="color"')}
-        ${window.KrgUi.colorField("Color de texto hover", h.navHoverFg || "", 'data-h="navHoverFg"')}
-        ${window.KrgUi.colorField("Fondo hover", h.navHoverBg || "", 'data-h="navHoverBg"')}
-      </div>
-      <div class="acc"><h5>Escala del logo</h5>
-        <p class="m-muted">Una medida por cada vista del preview.</p>
-        ${lw("logoWidth", "Escritorio", 140)}
-        ${lw("logoWidthTablet", "Tablet", h.logoWidth || 140)}
-        ${lw("logoWidthMobile", "Móvil", Math.min(h.logoWidth || 140, 120))}
-        ${field("Radio del logo", `<select data-h="logoRadius">
-          ${[["none","Ninguno"],["sm","S"],["md","M"],["lg","L"],["full","Círculo"]].map(([v,l]) => `<option value="${v}" ${(h.logoRadius || "none") === v ? "selected" : ""}>${l}</option>`).join("")}
-        </select>`)}
-      </div>
-      <div class="acc"><h5>Medidas</h5>
-        ${field("Alto (px)", `<input type="number" data-h-num="height" value="${h.height || 72}">`)}
-        ${field("Padding Y", `<input type="number" data-h-num="paddingY" value="${h.paddingY || 12}">`)}
-      </div>
-      <div class="acc"><h5>Vidrio</h5>
-        <label>Transparente / vidrio <input type="checkbox" data-h-bool="transparent" ${h.transparent ? "checked" : ""}></label>
-        ${h.transparent ? `
-          ${window.KrgUi.colorField("Color del vidrio", h.transColor || "#ffffff", 'data-h="transColor"')}
-          <label>Opacidad del color (%)
-            <input type="range" min="0" max="100" data-h-num="transOpacity" value="${Number(h.transOpacity ?? 20)}">
-            <span data-op-lab>${Number(h.transOpacity ?? 20)}%</span>
-          </label>
-          <label>Desenfoque
-            <input type="range" min="0" max="40" data-h-num="transBlur" value="${Number(h.transBlur ?? 20)}">
-            <span data-blur-lab>${Number(h.transBlur ?? 20)} px</span>
-          </label>
-          <label>Modo de fusión
-            <select data-h="transBlend">
-              ${BLENDS.map((b) => `<option value="${b.v}" ${(h.transBlend || "normal") === b.v ? "selected" : ""}>${esc(b.l)}</option>`).join("")}
-            </select>
-          </label>
-        ` : ""}
-      </div>
-      <div class="acc"><h5>Animación</h5>
-        <div class="b-seg">${FOOTER_ANIMS.map((a) => `<button type="button" class="${(h.animation || "none") === a.v ? "is-on" : ""}" data-h-anim="${a.v}">${a.l}</button>`).join("")}</div>
-        <label>Duración (ms) <input type="number" data-h-num="animDuration" min="0" max="3000" value="${h.animDuration ?? 600}"></label>
-        <label>Retardo (ms) <input type="number" data-h-num="animDelay" min="0" max="3000" value="${h.animDelay ?? 0}"></label>
-      </div>`;
-    } else {
-      body = `<div class="acc"><h5>Color adaptativo</h5>
-        ${field("Según la sección de debajo", `<select data-h="adaptive">${[
-          ["off", "Desactivado"],
-          ["text", "Solo el color del texto"],
-          ["full", "Texto y fondo"],
-        ].map(([v, l]) => `<option value="${v}" ${(h.adaptive || "off") === v ? "selected" : ""}>${l}</option>`).join("")}</select>`)}
-        <p class="m-muted">La cabecera toma el color que declara cada sección en Diseño → «Color de la cabecera sobre esta sección».</p>
-      </div>
-      <div class="acc"><h5>Avanzado</h5>
-        <label>Sticky <input type="checkbox" data-h-bool="sticky" ${h.sticky !== false ? "checked" : ""}></label>
-        ${field("Identificador CSS", `<input data-h="htmlId" value="${esc(h.htmlId || "")}" placeholder="cabecera">`)}
-        ${field("Clase CSS", `<input data-h="htmlClass" value="${esc(h.htmlClass || "")}" placeholder="mi-header">`)}
-      </div>`;
-    }
-    return `<div class="acc"><h5>Header</h5>
-      <p class="m-muted">Pestañas como en las páginas. El preview se puede ensanchar con las manijas naranjas.</p>
-    </div>${tabsHtml()}${body}`;
+    return `${lw("logoWidth", "Escritorio", 140)}
+      ${lw("logoWidthTablet", "Tablet", h.logoWidth || 140)}
+      ${lw("logoWidthMobile", "Móvil", Math.min(h.logoWidth || 140, 120))}
+      ${field("Radio del logo", `<select data-h="logoRadius">
+        ${[["none", "Ninguno"], ["sm", "S"], ["md", "M"], ["lg", "L"], ["full", "Círculo"]].map(([v, l]) => `<option value="${v}" ${(h.logoRadius || "none") === v ? "selected" : ""}>${l}</option>`).join("")}
+      </select>`)}`;
   }
 
-  function tabsHtml() {
-    const tab = state.inspTab || "content";
-    return `<div class="b-tabs">
-      <button type="button" data-insp-tab="content" class="${tab === "content" ? "is-on" : ""}">Contenido</button>
-      <button type="button" data-insp-tab="design" class="${tab === "design" ? "is-on" : ""}">Diseño</button>
-      <button type="button" data-insp-tab="advanced" class="${tab === "advanced" ? "is-on" : ""}">Avanzado</button>
-    </div>`;
+  function hBodySize() {
+    const h = state.header || {};
+    return `${field("Alto (px)", `<input type="number" data-h-num="height" value="${h.height || 72}">`)}
+      ${field("Padding Y", `<input type="number" data-h-num="paddingY" value="${h.paddingY || 12}">`)}`;
   }
+
+  function hBodyGlass() {
+    const h = state.header || {};
+    return `<label>Transparente / vidrio <input type="checkbox" data-h-bool="transparent" ${h.transparent ? "checked" : ""}></label>
+      ${h.transparent ? `
+        ${window.KrgUi.colorField("Color del vidrio", h.transColor || "#ffffff", 'data-h="transColor"')}
+        <label>Opacidad del color (%)
+          <input type="range" min="0" max="100" data-h-num="transOpacity" value="${Number(h.transOpacity ?? 20)}">
+          <span data-op-lab>${Number(h.transOpacity ?? 20)}%</span>
+        </label>
+        <label>Desenfoque
+          <input type="range" min="0" max="40" data-h-num="transBlur" value="${Number(h.transBlur ?? 20)}">
+          <span data-blur-lab>${Number(h.transBlur ?? 20)} px</span>
+        </label>
+        <label>Modo de fusión
+          <select data-h="transBlend">
+            ${BLENDS.map((b) => `<option value="${b.v}" ${(h.transBlend || "normal") === b.v ? "selected" : ""}>${esc(b.l)}</option>`).join("")}
+          </select>
+        </label>
+      ` : ""}`;
+  }
+
+  function hBodyAnim() {
+    const h = state.header || {};
+    return `<div class="b-seg">${FOOTER_ANIMS.map((a) => `<button type="button" class="${(h.animation || "none") === a.v ? "is-on" : ""}" data-h-anim="${a.v}">${a.l}</button>`).join("")}</div>
+      <label>Duración (ms) <input type="number" data-h-num="animDuration" min="0" max="3000" value="${h.animDuration ?? 600}"></label>
+      <label>Retardo (ms) <input type="number" data-h-num="animDelay" min="0" max="3000" value="${h.animDelay ?? 0}"></label>`;
+  }
+
+  function hBodyAdaptive() {
+    const h = state.header || {};
+    return `${field("Según la sección de debajo", `<select data-h="adaptive">${[
+      ["off", "Desactivado"],
+      ["text", "Solo el color del texto"],
+      ["full", "Texto y fondo"],
+    ].map(([v, l]) => `<option value="${v}" ${(h.adaptive || "off") === v ? "selected" : ""}>${l}</option>`).join("")}</select>`)}`;
+  }
+
+  function hBodyAdvanced() {
+    const h = state.header || {};
+    return `<label>Sticky <input type="checkbox" data-h-bool="sticky" ${h.sticky !== false ? "checked" : ""}></label>
+      ${field("Identificador CSS", `<input data-h="htmlId" value="${esc(h.htmlId || "")}" placeholder="cabecera">`)}
+      ${field("Clase CSS", `<input data-h="htmlClass" value="${esc(h.htmlClass || "")}" placeholder="mi-header">`)}`;
+  }
+
+  /* --- Pie (ajustes generales) -------------------------------------- */
+
+  function fBodyAlign() {
+    const f = state.footer || {};
+    const ah = f.align || "left";
+    const av = f.vAlign || "start";
+    const dist = f.distribute || "none";
+    const abtn = (key, val, cur, icon, title) => `<button type="button" class="b-align-btn${cur === val ? " is-on" : ""}" data-f-set="${key}" data-v="${val}" title="${title}">${ALIGN_ICONS[icon]}</button>`;
+    return `<p class="m-muted">Alinear el contenido del pie</p>
+      <div class="b-align">
+        ${abtn("align", "left", ah, "hStart", "Izquierda")}
+        ${abtn("align", "center", ah, "hCenter", "Centro horizontal")}
+        ${abtn("align", "right", ah, "hEnd", "Derecha")}
+        ${abtn("vAlign", "start", av, "vStart", "Arriba")}
+        ${abtn("vAlign", "center", av, "vCenter", "Centro vertical")}
+        ${abtn("vAlign", "end", av, "vEnd", "Abajo")}
+      </div>
+      <p class="m-muted">Distribuir objetos</p>
+      <div class="b-align">
+        ${abtn("distribute", "x", dist, "distX", "Distribuir horizontal")}
+        ${abtn("distribute", "y", dist, "distY", "Distribuir vertical")}
+      </div>`;
+  }
+
+  function fBodyContent() {
+    const f = state.footer || {};
+    const social = (f.social || []).map((s) => `${s.label || ""}|${s.url || ""}`).join("\\n");
+    return `${field("Texto", `<textarea data-f="text">${esc(f.text || "")}</textarea>`)}
+      ${field("Columna extra (título)", `<input data-f="extraTitle" value="${esc(f.extraTitle || "")}">`)}
+      ${field("Columna extra (texto)", `<textarea data-f="extraText">${esc(f.extraText || "")}</textarea>`)}
+      ${field("Redes (Nombre|URL)", `<textarea data-f="social">${esc(social)}</textarea>`)}
+      ${field("Menú", `<select data-f="menuSlug">${(state.menus || []).map((m) => `<option value="${esc(m.slug)}" ${f.menuSlug === m.slug ? "selected" : ""}>${esc(m.name || m.slug)}</option>`).join("")}</select>`)}
+      ${field("Logo", `<input data-f-num="logoId" value="${f.logoId || 0}"><button type="button" class="m-btn ghost" data-fmedia="logoId">Biblioteca</button>`)}
+      <label>Mostrar buscador <input type="checkbox" data-f-bool="showSearch" ${f.showSearch ? "checked" : ""}></label>
+      <label>Mostrar columnas clásicas <input type="checkbox" data-f-bool="showClassic" ${f.showClassic !== false ? "checked" : ""}></label>
+      <p class="m-muted">Las secciones nuevas se añaden a la izquierda y se pintan debajo de estas columnas.</p>`;
+  }
+
+  function fBodyCopyright() {
+    const f = state.footer || {};
+    const cal = f.copyrightAlign || "left";
+    const w = String(f.copyrightWeight || "");
+    const sty = f.copyrightStyle || "normal";
+    const segA = (val, lab) => `<button type="button" class="${cal === val ? "is-on" : ""}" data-f-set="copyrightAlign" data-v="${val}">${lab}</button>`;
+    return `${field("Texto", `<input data-f="copyright" value="${esc(f.copyright || "")}">`)}
+      ${field("Enlace", `<input data-f="copyrightUrl" value="${esc(f.copyrightUrl || "")}" placeholder="https:// o #seccion">`)}
+      <label>Abrir en pestaña nueva <input type="checkbox" data-f-bool="copyrightNewTab" ${f.copyrightNewTab ? "checked" : ""}></label>
+      <p class="m-muted">Alineación del copyright</p>
+      <div class="b-seg">${segA("left", "Izquierda")}${segA("center", "Centro")}${segA("right", "Derecha")}</div>
+      ${window.KrgUi.fontFamilyField("Familia", f.copyrightFont || "", 'data-f="copyrightFont"')}
+      ${field("Peso", `<select data-f="copyrightWeight">
+        ${[["", "Heredar"], ["300", "Light"], ["400", "Regular"], ["500", "Medium"], ["600", "Semibold"], ["700", "Bold"]].map(([v, l]) => `<option value="${v}" ${w === v ? "selected" : ""}>${l}</option>`).join("")}
+      </select>`)}
+      ${field("Estilo", `<select data-f="copyrightStyle">
+        <option value="normal" ${sty === "normal" ? "selected" : ""}>Normal</option>
+        <option value="italic" ${sty === "italic" ? "selected" : ""}>Cursiva</option>
+      </select>`)}
+      ${field("Tamaño (px)", `<input type="number" min="10" max="48" data-f-num="copyrightSize" value="${f.copyrightSize || 13}">`)}
+      ${window.KrgUi.colorField("Color", f.copyrightColor || "", 'data-f="copyrightColor"')}
+      ${window.KrgUi.colorField("Fondo", f.copyrightBg || "", 'data-f="copyrightBg"')}`;
+  }
+
+  function fBodyReveal() {
+    const f = state.footer || {};
+    return `${field("Revelado al hacer scroll", `<select data-f="reveal">${[
+      ["curtain", "Cortina (el contenido lo descubre)"],
+      ["stagger", "Escalonada (por bloques)"],
+      ["rise", "Aparecer entero"],
+      ["none", "Sin animación"],
+    ].map(([v, l]) => `<option value="${v}" ${(f.reveal || "stagger") === v ? "selected" : ""}>${l}</option>`).join("")}</select>`)}
+      <p class="m-muted">Cortina: el pie se queda quieto al fondo y el contenido de la página se desliza por encima, descubriéndolo poco a poco al llegar al final. Es el efecto de la referencia. Se desactiva solo si el pie no cabe en la pantalla.</p>`;
+  }
+
+  function fBodyColors() {
+    const f = state.footer || {};
+    return `${window.KrgUi.colorField("Fondo", f.background || "", 'data-f="background"')}
+      ${window.KrgUi.colorField("Color de texto", f.color || "", 'data-f="color"')}
+      ${window.KrgUi.colorField("Color de enlaces", f.linkColor || "", 'data-f="linkColor"')}
+      ${window.KrgUi.colorField("Color de títulos", f.headingColor || "", 'data-f="headingColor"')}
+      ${window.KrgUi.colorField("Texto de enlace al pasar", f.linkHoverFg || "", 'data-f="linkHoverFg"')}
+      ${window.KrgUi.colorField("Fondo de enlace al pasar", f.linkHoverBg || "", 'data-f="linkHoverBg"')}`;
+  }
+
+  function fBodySize() {
+    const f = state.footer || {};
+    return `${field("Columnas clásicas", `<input type="number" min="1" max="4" data-f-num="columns" value="${f.columns || 3}">`)}
+      ${field("Padding Y (px)", `<input type="number" data-f-num="paddingY" value="${f.paddingY || 64}">`)}`;
+  }
+
+  function fBodyAdvanced() {
+    const f = state.footer || {};
+    return `${field("Identificador CSS", `<input data-f="htmlId" value="${esc(f.htmlId || "")}" placeholder="pie-sitio">`)}
+      ${field("Clase CSS", `<input data-f="htmlClass" value="${esc(f.htmlClass || "")}" placeholder="mi-footer">`)}`;
+  }
+
+  /* --- Bloques dentro del pie --------------------------------------- */
+
+  const F_LAYOUT_TYPES = ["section", "row", "column"];
+
+  function fnBodyBasics(ctx) {
+    const node = ctx.node;
+    if (!F_LAYOUT_TYPES.includes(node.type)) return "";
+    let row = node.type === "row" ? node : (node.children || []).find((c) => c.type === "row");
+    if (node.type === "column") row = null;
+    const current = row ? (row.props?.layout || "") : (node.props?.layout || "");
+    return `${field("Nombre interno", `<input data-fnode="name" value="${esc(node.name || "")}">`)}
+      ${node.type === "column" ? `
+        ${field("Ancho desktop (1–12)", `<input type="number" min="1" max="12" data-fprop="span" value="${node.props.span ?? 12}">`)}
+        ${field("Ancho tablet (1–12)", `<input type="number" min="1" max="12" data-fprop="spanTablet" value="${node.props.spanTablet ?? 12}">`)}
+        ${field("Ancho móvil (1–12)", `<input type="number" min="1" max="12" data-fprop="spanMobile" value="${node.props.spanMobile ?? 12}">`)}
+        <p class="m-muted">Selecciona esta columna y añade módulos (logo, texto, menú) desde la paleta.</p>
+      ` : ""}
+      ${node.type === "row" || node.type === "section" ? `
+        <p class="m-muted">Disposición de columnas</p>
+        <div class="b-seg">${FOOTER_LAYOUTS.map((l) => `<button type="button" class="${current === l.id ? "is-on" : ""}" data-flayout="${l.id}">${l.label}</button>`).join("")}</div>
+        ${node.type === "row" ? field("Separación (px)", `<input type="number" min="0" max="80" data-fprop="gap" value="${node.props.gap ?? 24}">`) : ""}
+      ` : ""}`;
+  }
+
+  function fnBodyContent(ctx) {
+    const node = ctx.node;
+    if (F_LAYOUT_TYPES.includes(node.type)) return "";
+    const list = (ctx.def.fields || []).filter((f) => (f.group || "content") === "content");
+    if (!list.length) return "<p class='m-muted'>Sin campos de contenido.</p>";
+    return list.map((f) => nodeField(node, f)).join("");
+  }
+
+  function fnBodyDesign(ctx) {
+    const node = ctx.node;
+    const st = (node.styles && node.styles[state.bp]) || {};
+    const list = (ctx.def.fields || []).filter((f) => ["design", "colors", "spacing", "typography"].includes(f.group));
+    return `${window.KrgUi.colorField("Fondo del bloque", st.background || "", 'data-fstyle="background"')}
+      ${window.KrgUi.colorField("Color de texto", st.color || "", 'data-fstyle="color"')}
+      ${field("Relleno", `<input data-fstyle="padding" value="${esc(st.padding || "")}" placeholder="24px">`)}
+      ${node.type === "image" ? `
+        <p class="m-muted">Radio</p>
+        <div class="b-seg">${[["none", "Ninguno"], ["sm", "S"], ["md", "M"], ["lg", "L"], ["full", "Círculo"]].map(([v, l]) => `<button type="button" class="${(node.props.radius || "none") === v ? "is-on" : ""}" data-fprop-set="radius" data-v="${v}">${l}</button>`).join("")}</div>
+        <label>Escala (%)
+          <input type="range" min="10" max="200" data-fprop="scale" value="${Number(node.props.scale ?? 100)}">
+          <span>${Number(node.props.scale ?? 100)}</span>
+        </label>
+        ${field("Ancho", `<input data-fstyle="width" value="${esc(st.width || "")}" placeholder="180px">`)}
+        ${field("Alto", `<input data-fstyle="height" value="${esc(st.height || "")}" placeholder="auto">`)}
+        ${field("Máximo ancho", `<input data-fstyle="max-width" value="${esc(st["max-width"] || "")}" placeholder="180px">`)}
+      ` : ""}
+      ${list.map((f) => nodeField(node, f)).join("")}`;
+  }
+
+  function fnBodyAlign(ctx) {
+    const node = ctx.node;
+    const p = node.props || {};
+    const isCol = node.type === "column";
+    const isRow = node.type === "row";
+    const hKey = isCol ? "contentHAlign" : "alignH";
+    const vKey = isRow ? "vAlign" : isCol ? "contentVAlign" : "alignV";
+    const h = p[hKey] || "start";
+    const v = p[vKey] || "start";
+    const dist = p.distribute || "none";
+    const btn = (key, val, cur, icon, title) => `<button type="button" class="b-align-btn${cur === val ? " is-on" : ""}" data-fprop-set="${key}" data-v="${val}" title="${title}">${ALIGN_ICONS[icon]}</button>`;
+    return `<p class="m-muted">Alinear objetos</p>
+      <div class="b-align">
+        ${btn(hKey, "start", h, "hStart", "Izquierda")}
+        ${btn(hKey, "center", h, "hCenter", "Centro horizontal")}
+        ${btn(hKey, "end", h, "hEnd", "Derecha")}
+        ${btn(vKey, "start", v, "vStart", "Arriba")}
+        ${btn(vKey, "center", v, "vCenter", "Centro vertical")}
+        ${btn(vKey, "end", v, "vEnd", "Abajo")}
+      </div>
+      <p class="m-muted">Distribuir objetos</p>
+      <div class="b-align">
+        ${btn("distribute", "x", dist, "distX", "Distribuir horizontal")}
+        ${btn("distribute", "y", dist, "distY", "Distribuir vertical")}
+      </div>`;
+  }
+
+  function fnBodyNavMode(ctx) {
+    const node = ctx.node;
+    if (node.type !== "menu") return "";
+    const p = node.props || {};
+    const row = (key, label, fallback) => {
+      const cur = p[key] || fallback;
+      return `<p class="m-muted">${label}</p>
+        <div class="b-seg">
+          <button type="button" class="${cur === "bar" ? "is-on" : ""}" data-fprop-set="${key}" data-v="bar">Barra (escritorio)</button>
+          <button type="button" class="${cur === "drawer" ? "is-on" : ""}" data-fprop-set="${key}" data-v="drawer">Hamburguesa (móvil)</button>
+        </div>`;
+    };
+    return `${row("navModeDesktop", "Escritorio", "bar")}
+      ${row("navModeTablet", "Tablet", "bar")}
+      ${row("navModeMobile", "Móvil", "drawer")}`;
+  }
+
+  function fnBodyAnim(ctx) {
+    const node = ctx.node;
+    const cur = node.animation || "none";
+    return `<div class="b-seg">${FOOTER_ANIMS.map((a) => `<button type="button" class="${cur === a.v ? "is-on" : ""}" data-fanim="${a.v}">${a.l}</button>`).join("")}</div>
+      <label>Duración (ms) <input type="number" data-fnode="animDuration" min="0" max="3000" value="${esc(node.animDuration ?? 600)}"></label>
+      <label>Retardo (ms) <input type="number" data-fnode="animDelay" min="0" max="3000" value="${esc(node.animDelay ?? 0)}"></label>`;
+  }
+
+  function fnBodyAdvanced(ctx) {
+    const node = ctx.node;
+    return `${field("Identificador CSS", `<input data-fnode="htmlId" value="${esc(node.htmlId || "")}">`)}
+      ${field("Clase CSS", `<input data-fnode="htmlClass" value="${esc(node.htmlClass || "")}">`)}
+      <label>Visible <input type="checkbox" data-fnode-bool="visible" ${node.visible !== false ? "checked" : ""}></label>`;
+  }
+
+  /* --- Registro y esquemas ------------------------------------------ */
+
+  let registrado = false;
+  function registrarControles() {
+    if (registrado || !CORE) return;
+    registrado = true;
+    const R = (id, label, body, hint) => CORE.registerControl(id, { label: label, body: body, hint: hint });
+
+    R("h.content", "Contenido", hBodyContent);
+    R("h.align", "Alinear", hBodyAlign);
+    R("h.navMode", "Tipo de menú", hBodyNavMode, "Barra horizontal o botón Menú (hamburguesa), independiente en cada tamaño.");
+    R("h.colors", "Colores", hBodyColors);
+    R("h.logo", "Escala del logo", hBodyLogo, "Una medida por cada vista del preview.");
+    R("h.size", "Medidas", hBodySize);
+    R("h.glass", "Vidrio", hBodyGlass);
+    R("h.anim", "Animación", hBodyAnim);
+    R("h.adaptive", "Color adaptativo", hBodyAdaptive, "La cabecera toma el color que declara cada sección en Diseño → «Color de la cabecera sobre esta sección».");
+    R("h.advanced", "Avanzado", hBodyAdvanced);
+
+    R("f.align", "Alinear", fBodyAlign);
+    R("f.content", "Contenido del pie", fBodyContent);
+    R("f.copyright", "Copyright", fBodyCopyright, "Se edita aparte del resto del pie: texto, enlace, tipografía y color.");
+    R("f.reveal", "Animación de entrada", fBodyReveal);
+    R("f.colors", "Colores", fBodyColors);
+    R("f.size", "Medidas", fBodySize);
+    R("f.advanced", "Avanzado", fBodyAdvanced);
+
+    R("fn.basics", "Disposición", fnBodyBasics);
+    R("fn.content", "Contenido", fnBodyContent);
+    R("fn.design", "Diseño", fnBodyDesign);
+    R("fn.align", "Alinear", fnBodyAlign);
+    R("fn.navMode", "Tipo de menú", fnBodyNavMode);
+    R("fn.anim", "Animación", fnBodyAnim);
+    R("fn.advanced", "Avanzado", fnBodyAdvanced);
+
+    CORE.setSchema("chrome-header", {
+      content: ["h.content"],
+      design: ["h.align", "h.navMode", "h.colors", "h.logo", "h.size", "h.glass", "h.anim"],
+      advanced: ["h.adaptive", "h.advanced"],
+    });
+    CORE.setSchema("chrome-footer", {
+      content: ["f.align", "f.content", "f.copyright"],
+      design: ["f.align", "f.reveal", "f.colors", "f.copyright", "f.size"],
+      advanced: ["f.advanced"],
+    });
+    CORE.setSchema("chrome-node", {
+      content: ["fn.basics", "fn.content", "fn.align"],
+      design: ["fn.design", "fn.align", "fn.navMode", "fn.anim"],
+      advanced: ["fn.advanced", "fn.anim"],
+    });
+  }
+
+  const F_KIND_LABEL = {
+    section: "Sección", row: "Fila", column: "Columna",
+  };
+
+  function inspector() {
+    registrarControles();
+    const tab = state.inspTab || "content";
+    if (state.region === "footer") {
+      const hit = state.fSel ? findF(fSections(), state.fSel) : null;
+      if (hit) {
+        const node = hit.node;
+        const def = defOf(node.type) || {};
+        return CORE.render({
+          kind: "chrome-node",
+          type: node.type,
+          kindLabel: F_KIND_LABEL[node.type] || "Módulo",
+          title: node.name || def.name || node.type,
+          subtitle: node.type,
+          tab: tab,
+          actions: '<button type="button" class="m-btn ghost" data-froot>← Ajustes del pie</button>',
+          node: node,
+          def: def,
+        });
+      }
+      return CORE.render({
+        kind: "chrome-footer",
+        kindLabel: "Pie",
+        title: "Pie de página",
+        subtitle: "Añade secciones a la izquierda",
+        tab: tab,
+      });
+    }
+    return CORE.render({
+      kind: "chrome-header",
+      kindLabel: "Cabecera",
+      title: "Cabecera del sitio",
+      subtitle: "El preview se ensancha con las manijas naranjas",
+      tab: tab,
+    });
+  }
+
+
   function defOf(slug) {
     return (state.registry || []).find((c) => c.slug === slug) || {};
   }
@@ -688,59 +998,6 @@
       c.props.spanMobile = 12;
     });
   }
-  function alignBar(node) {
-    const p = node.props || {};
-    const isCol = node.type === "column";
-    const isRow = node.type === "row";
-    const hKey = isCol ? "contentHAlign" : "alignH";
-    const vKey = isRow ? "vAlign" : isCol ? "contentVAlign" : "alignV";
-    const h = p[hKey] || "start";
-    const v = p[vKey] || "start";
-    const dist = p.distribute || "none";
-    const btn = (key, val, cur, icon, title) => `<button type="button" class="b-align-btn${cur === val ? " is-on" : ""}" data-fprop-set="${key}" data-v="${val}" title="${title}">${ALIGN_ICONS[icon]}</button>`;
-    return `<div class="acc"><h5>Alinear</h5>
-      <p class="m-muted">Alinear objetos</p>
-      <div class="b-align">
-        ${btn(hKey, "start", h, "hStart", "Izquierda")}
-        ${btn(hKey, "center", h, "hCenter", "Centro horizontal")}
-        ${btn(hKey, "end", h, "hEnd", "Derecha")}
-        ${btn(vKey, "start", v, "vStart", "Arriba")}
-        ${btn(vKey, "center", v, "vCenter", "Centro vertical")}
-        ${btn(vKey, "end", v, "vEnd", "Abajo")}
-      </div>
-      <p class="m-muted">Distribuir objetos</p>
-      <div class="b-align">
-        ${btn("distribute", "x", dist, "distX", "Distribuir horizontal")}
-        ${btn("distribute", "y", dist, "distY", "Distribuir vertical")}
-      </div>
-    </div>`;
-  }
-  function chromeNavMode(node) {
-    if (node.type !== "menu") return "";
-    const p = node.props || {};
-    const row = (key, label, fallback) => {
-      const cur = p[key] || fallback;
-      return `<p class="m-muted">${label}</p>
-        <div class="b-seg">
-          <button type="button" class="${cur === "bar" ? "is-on" : ""}" data-fprop-set="${key}" data-v="bar">Barra (escritorio)</button>
-          <button type="button" class="${cur === "drawer" ? "is-on" : ""}" data-fprop-set="${key}" data-v="drawer">Hamburguesa (móvil)</button>
-        </div>`;
-    };
-    return `<div class="acc"><h5>Tipo de menú</h5>
-      <p class="m-muted">Barra horizontal o botón Menú, en cada tamaño.</p>
-      ${row("navModeDesktop", "Escritorio", "bar")}
-      ${row("navModeTablet", "Tablet", "bar")}
-      ${row("navModeMobile", "Móvil", "drawer")}
-    </div>`;
-  }
-  function animBar(node) {
-    const cur = node.animation || "none";
-    return `<div class="acc"><h5>Animación</h5>
-      <div class="b-seg">${FOOTER_ANIMS.map((a) => `<button type="button" class="${cur === a.v ? "is-on" : ""}" data-fanim="${a.v}">${a.l}</button>`).join("")}</div>
-      <label>Duración (ms) <input type="number" data-fnode="animDuration" min="0" max="3000" value="${esc(node.animDuration ?? 600)}"></label>
-      <label>Retardo (ms) <input type="number" data-fnode="animDelay" min="0" max="3000" value="${esc(node.animDelay ?? 0)}"></label>
-    </div>`;
-  }
   function moveInList(list, i, dir) {
     const j = i + dir;
     if (j < 0 || j >= list.length) return;
@@ -849,182 +1106,6 @@
       };
     });
   }
-  function footerFields() {
-    const hit = state.fSel ? findF(fSections(), state.fSel) : null;
-    if (hit) return footerNodeFields(hit.node);
-    return footerChromeFields();
-  }
-  function footerChromeAlign() {
-    const f = state.footer || {};
-    const ah = f.align || "left";
-    const av = f.vAlign || "start";
-    const dist = f.distribute || "none";
-    const abtn = (key, val, cur, icon, title) => `<button type="button" class="b-align-btn${cur === val ? " is-on" : ""}" data-f-set="${key}" data-v="${val}" title="${title}">${ALIGN_ICONS[icon]}</button>`;
-    return `<div class="acc"><h5>Alinear</h5>
-      <p class="m-muted">Alinear el contenido del pie</p>
-      <div class="b-align">
-        ${abtn("align", "left", ah, "hStart", "Izquierda")}
-        ${abtn("align", "center", ah, "hCenter", "Centro horizontal")}
-        ${abtn("align", "right", ah, "hEnd", "Derecha")}
-        ${abtn("vAlign", "start", av, "vStart", "Arriba")}
-        ${abtn("vAlign", "center", av, "vCenter", "Centro vertical")}
-        ${abtn("vAlign", "end", av, "vEnd", "Abajo")}
-      </div>
-      <p class="m-muted">Distribuir objetos</p>
-      <div class="b-align">
-        ${abtn("distribute", "x", dist, "distX", "Distribuir horizontal")}
-        ${abtn("distribute", "y", dist, "distY", "Distribuir vertical")}
-      </div>
-    </div>`;
-  }
-  function copyrightFields() {
-    const f = state.footer || {};
-    const cal = f.copyrightAlign || "left";
-    const w = String(f.copyrightWeight || "");
-    const sty = f.copyrightStyle || "normal";
-    const segA = (val, lab) => `<button type="button" class="${cal === val ? "is-on" : ""}" data-f-set="copyrightAlign" data-v="${val}">${lab}</button>`;
-    return `<div class="acc"><h5>Copyright</h5>
-      <p class="m-muted">Se edita aparte del resto del pie: texto, enlace, tipografía y color.</p>
-      ${field("Texto", `<input data-f="copyright" value="${esc(f.copyright || "")}">`)}
-      ${field("Enlace", `<input data-f="copyrightUrl" value="${esc(f.copyrightUrl || "")}" placeholder="https:// o #seccion">`)}
-      <label>Abrir en pestaña nueva <input type="checkbox" data-f-bool="copyrightNewTab" ${f.copyrightNewTab ? "checked" : ""}></label>
-      <p class="m-muted">Alineación del copyright</p>
-      <div class="b-seg">${segA("left", "Izquierda")}${segA("center", "Centro")}${segA("right", "Derecha")}</div>
-      ${window.KrgUi.fontFamilyField("Familia", f.copyrightFont || "", 'data-f="copyrightFont"')}
-      ${field("Peso", `<select data-f="copyrightWeight">
-        ${[["","Heredar"],["300","Light"],["400","Regular"],["500","Medium"],["600","Semibold"],["700","Bold"]].map(([v,l]) => `<option value="${v}" ${w === v ? "selected" : ""}>${l}</option>`).join("")}
-      </select>`)}
-      ${field("Estilo", `<select data-f="copyrightStyle">
-        <option value="normal" ${sty === "normal" ? "selected" : ""}>Normal</option>
-        <option value="italic" ${sty === "italic" ? "selected" : ""}>Cursiva</option>
-      </select>`)}
-      ${field("Tamaño (px)", `<input type="number" min="10" max="48" data-f-num="copyrightSize" value="${f.copyrightSize || 13}">`)}
-      ${window.KrgUi.colorField("Color", f.copyrightColor || "", 'data-f="copyrightColor"')}
-      ${window.KrgUi.colorField("Fondo", f.copyrightBg || "", 'data-f="copyrightBg"')}
-    </div>`;
-  }
-  function footerChromeFields() {
-    const f = state.footer || {};
-    const social = (f.social || []).map((s) => `${s.label || ""}|${s.url || ""}`).join("\\n");
-    const tab = state.inspTab || "content";
-    let body = "";
-    if (tab === "content") {
-      body = `
-        ${footerChromeAlign()}
-        <div class="acc"><h5>Contenido del pie</h5>
-          ${field("Texto", `<textarea data-f="text">${esc(f.text || "")}</textarea>`)}
-          ${field("Columna extra (título)", `<input data-f="extraTitle" value="${esc(f.extraTitle || "")}">`)}
-          ${field("Columna extra (texto)", `<textarea data-f="extraText">${esc(f.extraText || "")}</textarea>`)}
-          ${field("Redes (Nombre|URL)", `<textarea data-f="social">${esc(social)}</textarea>`)}
-          ${field("Menú", `<select data-f="menuSlug">${(state.menus || []).map((m) => `<option value="${esc(m.slug)}" ${f.menuSlug === m.slug ? "selected" : ""}>${esc(m.name || m.slug)}</option>`).join("")}</select>`)}
-          ${field("Logo", `<input data-f-num="logoId" value="${f.logoId || 0}"><button type="button" class="m-btn ghost" data-fmedia="logoId">Biblioteca</button>`)}
-          <label>Mostrar buscador <input type="checkbox" data-f-bool="showSearch" ${f.showSearch ? "checked" : ""}></label>
-          <label>Mostrar columnas clásicas <input type="checkbox" data-f-bool="showClassic" ${f.showClassic !== false ? "checked" : ""}></label>
-          <p class="m-muted">Las secciones nuevas se añaden a la izquierda y se pintan debajo de estas columnas.</p>
-        </div>
-        ${copyrightFields()}`;
-    } else if (tab === "design") {
-      body = `
-        ${footerChromeAlign()}
-        <div class="acc"><h5>Animación de entrada</h5>
-          ${field("Revelado al hacer scroll", `<select data-f="reveal">${[
-            ["curtain", "Cortina (el contenido lo descubre)"],
-            ["stagger", "Escalonada (por bloques)"],
-            ["rise", "Aparecer entero"],
-            ["none", "Sin animación"],
-          ].map(([v, l]) => `<option value="${v}" ${(f.reveal || "stagger") === v ? "selected" : ""}>${l}</option>`).join("")}</select>`)}
-          <p class="m-muted">Cortina: el pie se queda quieto al fondo y el contenido de la página se desliza por encima, descubriéndolo poco a poco al llegar al final. Es el efecto de la referencia. Se desactiva solo si el pie no cabe en la pantalla.</p>
-        </div>
-        <div class="acc"><h5>Colores</h5>
-          ${window.KrgUi.colorField("Fondo", f.background || "", 'data-f="background"')}
-          ${window.KrgUi.colorField("Color de texto", f.color || "", 'data-f="color"')}
-          ${window.KrgUi.colorField("Color de enlaces", f.linkColor || "", 'data-f="linkColor"')}
-          ${window.KrgUi.colorField("Color de títulos", f.headingColor || "", 'data-f="headingColor"')}
-          ${window.KrgUi.colorField("Texto de enlace al pasar", f.linkHoverFg || "", 'data-f="linkHoverFg"')}
-          ${window.KrgUi.colorField("Fondo de enlace al pasar", f.linkHoverBg || "", 'data-f="linkHoverBg"')}
-        </div>
-        ${copyrightFields()}
-        <div class="acc"><h5>Medidas</h5>
-          ${field("Columnas clásicas", `<input type="number" min="1" max="4" data-f-num="columns" value="${f.columns || 3}">`)}
-          ${field("Padding Y (px)", `<input type="number" data-f-num="paddingY" value="${f.paddingY || 64}">`)}
-        </div>`;
-    } else {
-      body = `
-        <div class="acc"><h5>Avanzado</h5>
-          ${field("Identificador CSS", `<input data-f="htmlId" value="${esc(f.htmlId || "")}" placeholder="pie-sitio">`)}
-          ${field("Clase CSS", `<input data-f="htmlClass" value="${esc(f.htmlClass || "")}" placeholder="mi-footer">`)}
-        </div>`;
-    }
-    return `<div class="acc"><h5>Footer</h5><p class="m-muted">Pestañas como en las páginas. Añade secciones a la izquierda.</p></div>${tabsHtml()}${body}`;
-  }
-  function footerNodeFields(node) {
-    const def = defOf(node.type);
-    const tab = state.inspTab || "content";
-    const fields = def.fields || [];
-    const st = (node.styles && node.styles[state.bp]) || {};
-    node.props = node.props || {};
-    const layoutTypes = ["section", "row", "column"];
-    let body = "";
-    if (tab === "content") {
-      if (layoutTypes.includes(node.type)) {
-        let row = node.type === "row" ? node : (node.children || []).find((c) => c.type === "row");
-        if (node.type === "column") row = null;
-        const current = row ? (row.props?.layout || "") : (node.props?.layout || "");
-        body = `<div class="acc"><h5>${esc(node.name || def.name || node.type)}</h5>
-          ${field("Nombre interno", `<input data-fnode="name" value="${esc(node.name || "")}">`)}
-          ${node.type === "column" ? `
-            ${field("Ancho desktop (1–12)", `<input type="number" min="1" max="12" data-fprop="span" value="${node.props.span ?? 12}">`)}
-            ${field("Ancho tablet (1–12)", `<input type="number" min="1" max="12" data-fprop="spanTablet" value="${node.props.spanTablet ?? 12}">`)}
-            ${field("Ancho móvil (1–12)", `<input type="number" min="1" max="12" data-fprop="spanMobile" value="${node.props.spanMobile ?? 12}">`)}
-            <p class="m-muted">Selecciona esta columna y añade módulos (logo, texto, menú) desde la paleta.</p>
-          ` : ""}
-          ${node.type === "row" || node.type === "section" ? `
-            <p class="m-muted">Disposición de columnas</p>
-            <div class="b-seg">${FOOTER_LAYOUTS.map((l) => `<button type="button" class="${current === l.id ? "is-on" : ""}" data-flayout="${l.id}">${l.label}</button>`).join("")}</div>
-            ${node.type === "row" ? field("Separación (px)", `<input type="number" min="0" max="80" data-fprop="gap" value="${node.props.gap ?? 24}">`) : ""}
-          ` : ""}
-        </div>
-        ${alignBar(node)}`;
-      } else {
-        const list = fields.filter((f) => (f.group || "content") === "content");
-        body = `<div class="acc"><h5>${esc(node.name || def.name || node.type)}</h5>
-          ${list.map((f) => nodeField(node, f)).join("") || "<p class='m-muted'>Sin campos de contenido.</p>"}
-        </div>`;
-      }
-    } else if (tab === "design") {
-      const list = fields.filter((f) => ["design", "colors", "spacing", "typography"].includes(f.group));
-      body = `<div class="acc"><h5>Diseño</h5>
-        ${window.KrgUi.colorField("Fondo del bloque", st.background || "", 'data-fstyle="background"')}
-        ${window.KrgUi.colorField("Color de texto", st.color || "", 'data-fstyle="color"')}
-        ${field("Relleno", `<input data-fstyle="padding" value="${esc(st.padding || "")}" placeholder="24px">`)}
-        ${node.type === "image" ? `
-          <p class="m-muted">Radio</p>
-          <div class="b-seg">${[["none","Ninguno"],["sm","S"],["md","M"],["lg","L"],["full","Círculo"]].map(([v,l]) => `<button type="button" class="${(node.props.radius || "none") === v ? "is-on" : ""}" data-fprop-set="radius" data-v="${v}">${l}</button>`).join("")}</div>
-          <label>Escala (%)
-            <input type="range" min="10" max="200" data-fprop="scale" value="${Number(node.props.scale ?? 100)}">
-            <span>${Number(node.props.scale ?? 100)}</span>
-          </label>
-          ${field("Ancho", `<input data-fstyle="width" value="${esc(st.width || "")}" placeholder="180px">`)}
-          ${field("Alto", `<input data-fstyle="height" value="${esc(st.height || "")}" placeholder="auto">`)}
-          ${field("Máximo ancho", `<input data-fstyle="max-width" value="${esc(st["max-width"] || "")}" placeholder="180px">`)}
-        ` : ""}
-        ${list.map((f) => nodeField(node, f)).join("")}
-      </div>
-      ${alignBar(node)}
-      ${chromeNavMode(node)}
-      ${animBar(node)}`;
-    } else {
-      body = `<div class="acc"><h5>Avanzado</h5>
-        ${field("Identificador CSS", `<input data-fnode="htmlId" value="${esc(node.htmlId || "")}">`)}
-        ${field("Clase CSS", `<input data-fnode="htmlClass" value="${esc(node.htmlClass || "")}">`)}
-        <label>Visible <input type="checkbox" data-fnode-bool="visible" ${node.visible !== false ? "checked" : ""}></label>
-      </div>
-      ${animBar(node)}`;
-    }
-    return `<div class="acc"><h5>${esc(node.type)}</h5>
-      <button type="button" class="m-btn ghost" data-froot>← Ajustes del pie</button>
-    </div>${tabsHtml()}${body}`;
-  }
   function nodeField(node, f) {
     const v = node.props?.[f.key];
     const attr = `data-fprop="${esc(f.key)}"`;
@@ -1118,6 +1199,8 @@
   function bindInspector() {
     const box = root.querySelector(".b-insp");
     if (!box) return;
+    // Los acordeones los lleva el mismo nucleo que en las paginas.
+    CORE.bindGroups(box);
     const bind = (sel, fn) => box.querySelectorAll(sel).forEach(fn);
     bind("[data-h]", (inp) => {
       const go = () => {

@@ -24,6 +24,8 @@ bash tools/devenv.sh     # PHP 8.3 estático + Chromium + playwright-core en .to
 | `tools/prueba-guardado.php` | Camino de guardado: pasa nodos por el saneador de verdad y comprueba qué propiedades sobreviven. |
 | `tools/prueba-estilos.mjs` | Contrato de «lo que escribes en el panel manda»: documento real → saneador → compilador de CSS → navegador, y se lee el color, el relleno y la posición calculados. |
 | `tools/prueba-panel.mjs` | El tramo anterior: el panel del constructor de verdad en Chromium con la API simulada. Teclea en «Relleno» y «Margen», elige color con el cuadrito, lo quita con la ✕, recarga y comprueba el cuerpo de cada POST (35). |
+| `tools/prueba-inspector.mjs` | El inspector nuevo: cabecera del elemento, tres pestañas, grupos plegables con memoria, ajustes contextuales y la cadena completa (escribir → estado → POST → recargar) de tipografía, borde, sombra, posición, transformación, atributos y CSS personalizado (77). |
+| `tools/prueba-chrome.mjs` | La pantalla de cabecera y pie sobre el mismo núcleo que las páginas: mismos acordeones, y lo que se toca llega a `/header` y `/footer` (31). |
 | `tools/prueba-lienzo.mjs` | El tramo que faltaba: el constructor entero con su iframe de verdad. Teclea en el panel y lee el color que **se ve** dentro del lienzo (33). |
 | `tools/prueba-caja.mjs` | Contrato de fondo, relleno y margen: seis tipos de sección × tres tamaños × web pública / «Preview» / lienzo, herencia hacia abajo, sección vacía con relleno, cero `!important` y comparación letra por letra entre el PHP y el editor (72). |
 | `tools/caja-php.php` | Escribe las declaraciones de caja de un estado JSON. Lo usa `prueba-caja.mjs` para comparar los dos emisores. |
@@ -46,6 +48,8 @@ node tools/prueba-preview.mjs
 node tools/prueba-vacias.mjs
 node tools/prueba-estilos.mjs
 node tools/prueba-panel.mjs
+node tools/prueba-inspector.mjs
+node tools/prueba-chrome.mjs
 node tools/prueba-lienzo.mjs
 node tools/prueba-caja.mjs
 ```

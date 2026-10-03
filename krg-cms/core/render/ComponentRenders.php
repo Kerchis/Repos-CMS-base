@@ -22,6 +22,32 @@ class ComponentRenders {
 		return self::generic( $node, $props, $children, $ctx );
 	}
 
+	/**
+	 * Añade los atributos que el usuario escribio en «Avanzado».
+	 *
+	 * Van despues de los del bloque pero sin pisarlos: si un modulo ya
+	 * decidio su `role` o su `data-anim-in`, manda el modulo. El filtro
+	 * de que se puede escribir esta en el guardado
+	 * (`Sanitizer::html_attrs()`), no aqui: esto solo imprime.
+	 */
+	public static function with_user_attrs( array $node, array $attrs ): array {
+		$propios = is_array( $node['attrs'] ?? null ) ? $node['attrs'] : [];
+		foreach ( $propios as $k => $v ) {
+			$k = strtolower( (string) $k );
+			if ( '' === $k || isset( $attrs[ $k ] ) || in_array( $k, [ 'class', 'id', 'style' ], true ) ) {
+				continue;
+			}
+			// Cinturon y tirantes: el guardado ya rechaza los manejadores
+			// de eventos, pero un documento viejo o importado a mano no
+			// ha pasado por el. Un `onclick` no se imprime nunca.
+			if ( 0 === strpos( $k, 'on' ) ) {
+				continue;
+			}
+			$attrs[ $k ] = (string) $v;
+		}
+		return $attrs;
+	}
+
 	public static function wrap( array $node, RenderContext $ctx, string $tag, string $inner, array $attrs = [] ): string {
 		$class = $ctx->node_class( $node );
 		if ( ! empty( $attrs['class'] ) ) {
@@ -67,6 +93,7 @@ class ComponentRenders {
 		if ( '' !== $own ) {
 			$attrs['style'] = trim( trim( (string) ( $attrs['style'] ?? '' ), ';' ) . ';' . $own, ';' );
 		}
+		$attrs = self::with_user_attrs( $node, $attrs );
 		$extra = '';
 		foreach ( $attrs as $k => $v ) {
 			if ( $v === '' || $v === null ) {

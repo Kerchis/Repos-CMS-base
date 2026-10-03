@@ -270,6 +270,73 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   text-transform: uppercase;
   color: var(--m-muted);
 }
+
+/* Grupos plegables del inspector.
+   ------------------------------------------------------------------
+   Un panel con treinta controles abiertos a la vez no se lee. Cada
+   grupo es un boton y un cuerpo: el boton siempre se ve, el cuerpo
+   aparece al pulsarlo y la preferencia se recuerda. El cuerpo se
+   oculta con el atributo `hidden`, no con `display:none` en una clase,
+   para que lo de dentro tampoco sea enfocable con el tabulador. */
+.b-insp .b-group { padding: 0; }
+.b-insp .acc-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 11px 12px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--m-muted);
+  text-align: left;
+  cursor: pointer;
+}
+.b-insp .acc-h:hover { color: var(--m-ink); background: var(--m-surface-soft); }
+.b-insp .acc-h:focus-visible { outline: 2px solid var(--m-brown); outline-offset: -2px; }
+.b-insp .b-group.is-open > .acc-h { color: var(--m-ink); }
+.b-insp .acc-x {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 0.15s ease;
+}
+.b-insp .b-group.is-open > .acc-h .acc-x { transform: rotate(-135deg) translate(-2px, -2px); }
+.b-insp .acc-b { padding: 0 12px 12px; }
+.b-insp .acc-b > :last-child { margin-bottom: 0; }
+
+/* Cabecera: qué hay seleccionado. Antes solo aparecía el nombre del
+   tipo, y en un árbol con diez secciones no se sabía cuál era. */
+.b-sel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  background: var(--m-surface-soft);
+}
+.b-sel-kind {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--m-muted);
+  width: 100%;
+}
+.b-sel-name { font-size: 15px; line-height: 1.2; }
+.b-sel-sub { font-size: 11px; color: var(--m-muted); }
+.b-insp .b-tabs { margin: 12px; }
+.b-insp .b-groups { display: block; }
 .b-insp label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; margin-bottom: 8px; }
 .b-insp input, .b-insp textarea, .b-insp select {
   font: inherit;

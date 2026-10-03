@@ -41,6 +41,11 @@
     // del documento: no se guarda ni ensucia la página.
     treeClosed: new Set(),
   };
+  // Asa de solo lectura sobre el estado. La usan el diagnostico de
+  // estilos y los bancos de pruebas para mirar el documento que el
+  // constructor tiene cargado de verdad, no el que creen que tiene.
+  // No se escribe nunca desde fuera.
+  window.KrgBuilderState = state;
   const PRESETS = {
     desktop: { w: 1280, h: 800 },
     tablet: { w: 768, h: 1024 },
@@ -56,17 +61,6 @@
     return "n_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   };
   const defOf = (slug) => state.registry.find((c) => c.slug === slug);
-  const groups = {
-    content: "Contenido",
-    layout: "Disposición",
-    design: "Diseño",
-    typography: "Tipografía",
-    colors: "Colores",
-    spacing: "Espaciado",
-    responsive: "Responsive",
-    advanced: "Avanzado",
-  };
-
   function findNode(list, nid, parent = null) {
     for (let i = 0; i < (list || []).length; i++) {
       const n = list[i];
@@ -1181,7 +1175,22 @@
     const attr = parent ? `data-parent-prop="${key}"` : `data-prop-set="${key}"`;
     return `<button type="button" class="b-align-btn${on}" ${attr} data-v="${val}" title="${esc(title)}">${ALIGN_ICONS[icon]}</button>`;
   }
-  function panelAlign(node) {
+  /* ================================================================
+     INSPECTOR — cuerpos de los grupos
+     ----------------------------------------------------------------
+     Cada funcion devuelve SOLO lo de dentro de un grupo. El titulo, el
+     plegado y el orden los pone el nucleo (builder-core.js) a partir
+     del esquema de mas abajo. Antes cada una de estas cosas venia
+     envuelta en su `<div class="acc">` dentro de siete funciones
+     `inspector()` distintas, y por eso un bloque tenia sombra y otro
+     no segun en cual de las siete hubiera caido.
+
+     Regla al tocar esto: los atributos `data-*` son el contrato con
+     `bindInspector()`, con el guardado y con los bancos. Se pueden
+     mover de grupo, pero no renombrar.
+     ================================================================ */
+
+  function bodyAlign(node) {
     const p = node.props || {};
     const isCol = node.type === "column";
     const isRow = node.type === "row";
@@ -1195,8 +1204,7 @@
       const hit = findNode(state.doc.sections, node.id);
       dist = hit?.parent?.props?.distribute || "none";
     }
-    return `<div class="acc"><h5>Alinear</h5>
-      <p class="m-muted">Alinear objetos</p>
+    return `<p class="m-muted">Alinear objetos</p>
       <div class="b-align">
         ${alignBtn(hKey, "start", h, "hStart", "Izquierda")}
         ${alignBtn(hKey, "center", h, "hCenter", "Centro horizontal")}
@@ -1209,8 +1217,723 @@
       <div class="b-align">
         ${alignBtn("distribute", "x", distSelf ? dist : "", "distX", "Distribuir horizontal", !distSelf)}
         ${alignBtn("distribute", "y", distSelf ? dist : "", "distY", "Distribuir vertical", !distSelf)}
+      </div>`;
+  }
+
+  function bodySpacing(st) {
+    const otros = { desktop: "tablet y móvil", tablet: "móvil", mobile: "" }[state.bp];
+    return `${boxControl("padding", "Relleno", st)}
+      ${boxControl("margin", "Margen", st)}
+      <p class="m-muted">En blanco no es cero: es «lo que traiga el bloque». Escribe 0 para pegarlo del todo.${otros ? ` Lo que pongas aquí vale también en ${otros} mientras no les pongas un valor propio.` : ""}</p>`;
+  }
+
+  function bodySize(st) {
+    return `${rangeControl("Ancho", "width", st, 10, 100, "%")}
+      ${rangeControl("Ancho máximo", "max-width", st, 10, 100, "%")}
+      ${rangeControl("Alto", "height", st, 0, 1200, "px")}
+      ${rangeControl("Alto mínimo", "min-height", st, 0, 1200, "px")}
+      <p class="m-muted">Vacío = lo que ocupe el contenido. Los valores son de ${state.bp}.</p>`;
+  }
+
+  function bodyBorder(st) {
+    return `<div class="b-box-grid">
+        <label>Sup. izq. <input type="number" data-side="border-top-left-radius" value="${esc(String(st["border-top-left-radius"] || "").replace(/px$/i, ""))}" placeholder="auto"></label>
+        <label>Sup. der. <input type="number" data-side="border-top-right-radius" value="${esc(String(st["border-top-right-radius"] || "").replace(/px$/i, ""))}" placeholder="auto"></label>
+        <label>Inf. izq. <input type="number" data-side="border-bottom-left-radius" value="${esc(String(st["border-bottom-left-radius"] || "").replace(/px$/i, ""))}" placeholder="auto"></label>
+        <label>Inf. der. <input type="number" data-side="border-bottom-right-radius" value="${esc(String(st["border-bottom-right-radius"] || "").replace(/px$/i, ""))}" placeholder="auto"></label>
       </div>
-    </div>`;
+      <p class="m-muted">Estilo</p>
+      ${seg("border-style", st["border-style"] || "none", [
+        { v: "none", l: "Ninguno" }, { v: "solid", l: "Sólido" }, { v: "dashed", l: "Guion" }, { v: "dotted", l: "Punto" },
+      ])}
+      ${rangeControl("Grosor", "border-width", st, 0, 20, "px")}
+      ${window.KrgUi.colorField("Color borde", st["border-color"] || "", 'data-style="border-color"')}`;
+  }
+
+  function bodyShadow(st) {
+    return seg("box-shadow", st["box-shadow"] || "", SHADOWS.map((s) => ({ v: s.v, l: s.l })));
+  }
+
+  function bodyFilters(node) {
+    const f = node.filters || { hue: 0, sat: 100, brightness: 100, contrast: 100, invert: 0, sepia: 0 };
+    return [["hue", "Tono", 0, 360, "deg"], ["sat", "Saturación", 0, 200, "%"], ["brightness", "Brillo", 0, 200, "%"], ["contrast", "Contraste", 0, 200, "%"], ["invert", "Invertir", 0, 100, "%"], ["sepia", "Sepia", 0, 100, "%"]].map(([k, lab, min, max, u]) => `
+      <label class="m-pick-label">${lab}
+        <div class="b-range">
+          <input type="range" min="${min}" max="${max}" data-filter="${k}" value="${f[k] ?? min}">
+          <input type="number" min="${min}" max="${max}" data-filter="${k}" value="${f[k] ?? min}">
+          <span class="m-pick-unit">${u}</span>
+        </div>
+      </label>`).join("");
+  }
+
+  function bodyAnim(node) {
+    return `<div class="b-anim">${ANIMS.map((a) => `<button type="button" class="${(node.animation || "none") === a.v ? "is-on" : ""}" data-anim="${a.v}">${a.l}</button>`).join("")}</div>
+      <label>Duración (ms) <input type="number" data-node="animDuration" min="0" max="3000" value="${esc(node.animDuration ?? 600)}"></label>
+      <label>Retardo (ms) <input type="number" data-node="animDelay" min="0" max="3000" value="${esc(node.animDelay ?? 0)}"></label>
+      <label>Curva
+        <select data-node="animEasing">
+          ${["ease", "linear", "ease-in", "ease-out", "ease-in-out"].map((e) => `<option value="${e}" ${(node.animEasing || "ease") === e ? "selected" : ""}>${e}</option>`).join("")}
+        </select>
+      </label>`;
+  }
+
+  function bodyBg(st, node) {
+    return `${window.KrgUi.colorField("Color de fondo", st["background-color"] || "", 'data-style="background-color"')}
+      <div data-bg-note>${bgNoteHtml(node, st["background-color"] || "")}</div>`;
+  }
+
+  function bodyTypography(st) {
+    return `<p class="m-muted">Alineación</p>
+      ${seg("text-align", st["text-align"] || "", [
+        { v: "left", l: "⟸", t: "Izquierda" },
+        { v: "center", l: "≡", t: "Centro" },
+        { v: "right", l: "⟹", t: "Derecha" },
+        { v: "justify", l: "☰", t: "Justificado" },
+      ])}
+      ${window.KrgUi.fontFamilyField("Familia", st["font-family"] || "", 'data-style="font-family"')}
+      <p class="m-muted">Peso</p>
+      ${seg("font-weight", st["font-weight"] || "", [
+        { v: "300", l: "Light" }, { v: "400", l: "Regular" }, { v: "600", l: "Semi" }, { v: "700", l: "Bold" },
+      ])}
+      <p class="m-muted">Estilo</p>
+      ${seg("font-style", st["font-style"] || "", [{ v: "normal", l: "I", t: "Normal" }, { v: "italic", l: "<i>I</i>", t: "Cursiva" }])}
+      <p class="m-muted">Mayúsculas</p>
+      ${seg("text-transform", st["text-transform"] || "", [
+        { v: "none", l: "aa" }, { v: "uppercase", l: "AA" }, { v: "capitalize", l: "Aa" },
+      ])}
+      <p class="m-muted">Decoración</p>
+      ${seg("text-decoration", st["text-decoration"] || "", [
+        { v: "none", l: "Ninguna" }, { v: "underline", l: "Subrayado" }, { v: "line-through", l: "Tachado" },
+      ])}
+      ${window.KrgUi.colorField("Color del texto", st.color || "", 'data-style="color"')}`;
+  }
+
+  function bodyTextSize(st) {
+    return `${rangeControl("Tamaño de fuente", "font-size", st, 10, 96, "px")}
+      ${rangeControl("Interlineado", "line-height", st, 80, 220, "%")}
+      ${rangeControl("Espaciado de letras", "letter-spacing", st, -4, 20, "px")}`;
+  }
+
+  /** Select corto de props, el que usaban los grupos de sección. */
+  function selProp(key, value, opts) {
+    return `<select data-prop="${key}">${opts.map(([v, l]) =>
+      `<option value="${v}" ${String(value) === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+  }
+
+  function bodySectionWidth(node) {
+    const p = node.props || {};
+    const width = (p.width === "bleed" ? "full" : p.width) || (p.fullWidth === false ? "boxed" : "full");
+    return `<label>Hasta dónde llega el contenido
+        ${selProp("width", width, [
+          ["full", "Todo el ancho, de borde a borde"],
+          ["padded", "Todo el ancho, con margen lateral"],
+          ["boxed", "Centrado y limitado"],
+        ])}
+      </label>
+      <p class="m-muted">De borde a borde no deja ningún margen: el contenido llega al filo de la pantalla. Es lo que necesitan los mapas, los vídeos y las fotos a pantalla completa.</p>`;
+  }
+
+  function bodySectionCurtain(node) {
+    const p = node.props || {};
+    return `<label>Revelado al hacer scroll
+        ${selProp("curtain", p.curtain || "off", [
+          ["on", "Cortina (la siguiente sección la tapa)"],
+          ["off", "Sin cortina"],
+        ])}
+      </label>
+      <p class="m-muted">Cortina: la sección se queda quieta y la siguiente se desliza por encima, tapándola. Es el mismo efecto del pie. Se desactiva sola si la sección no cabe en la pantalla, así que va mejor con alto Pantalla completa.</p>`;
+  }
+
+  function bodySectionHeight(node) {
+    const p = node.props || {};
+    const mh = p.minHeight || "auto";
+    return `<label>Alto mínimo
+        ${selProp("minHeight", mh, [
+          ["auto", "El del contenido"],
+          ["screen", "Pantalla completa"],
+          ["screen-minus-header", "Pantalla menos la cabecera"],
+          ["tall", "Alta (78 %)"],
+          ["half", "Media (50 %)"],
+          ["custom", "A medida…"],
+        ])}
+      </label>
+      ${mh === "custom" ? `<div class="b-rowfields">
+        <label>Valor <input type="number" data-prop="minHeightValue" min="1" max="4000" value="${esc(p.minHeightValue ?? 60)}"></label>
+        <label>Unidad ${selProp("minHeightUnit", p.minHeightUnit || "vh", [
+          ["vh", "% de la pantalla"],
+          ["px", "Píxeles"],
+        ])}</label>
+      </div>
+      <label>¿Quién manda en el alto?
+        ${selProp("heightMode", p.heightMode || "exact", [
+          ["exact", "La sección: el contenido se adapta"],
+          ["min", "El contenido: el alto es sólo un mínimo"],
+        ])}
+      </label>
+      <p class="m-muted">Si dentro tienes un panel partido o una portada a pantalla completa, ese módulo trae su propio alto. Con «La sección» se encoge para caber; con «El contenido» manda él y la sección crece. En móvil el alto siempre pasa a ser un mínimo, para no recortar texto.</p>
+      ${fitWarning(node)}` : ""}
+      ${mh !== "auto" ? `<label>Alineación vertical del contenido
+        ${selProp("vAlign", p.vAlign || "start", [
+          ["start", "Arriba"],
+          ["center", "Centro"],
+          ["end", "Abajo"],
+          ["stretch", "Estirar: el contenido llena el alto"],
+        ])}
+      </label>
+      <p class="m-muted">Dónde va el contenido cuando ocupa menos que el alto de la sección. Con «Estirar» no queda franja de fondo vacía: el bloque crece hasta llenarla. Si lo único que hay dentro es un panel partido, una portada o un mapa, se estiran solos.</p>` : `<p class="m-muted">Con un alto fijo podrás centrar el contenido verticalmente.</p>`}`;
+  }
+
+  function bodySectionHeader(node) {
+    const p = node.props || {};
+    return `<label>Color del texto de la cabecera
+        ${selProp("headerSkin", p.headerSkin || "auto", [
+          ["auto", "Automático (según el fondo)"],
+          ["dark", "Forzar texto oscuro"],
+          ["light", "Forzar texto claro"],
+          ["none", "No cambiar nada"],
+        ])}
+      </label>
+      <p class="m-muted">Automático mira la luminosidad del fondo y elige el que se lee mejor. Requiere tener el color adaptativo activo en Chrome → Cabecera.</p>`;
+  }
+
+  /* ---------- Avanzado ---------- */
+
+  function bodyCssId(node) {
+    return `<label>Identificador CSS (id) <input data-node="htmlId" value="${esc(node.htmlId || node.props?.htmlId || "")}" placeholder="mi-bloque"></label>
+      <label>Clase CSS <input data-node="htmlClass" value="${esc(node.htmlClass || "")}" placeholder="mi-clase otra-clase"></label>
+      <p class="m-muted">Se añaden al elemento sin tocar las clases que pone el CMS.</p>`;
+  }
+
+  function bodyAttributes(node) {
+    const pares = node.attrs && typeof node.attrs === "object" ? node.attrs : {};
+    const texto = Object.keys(pares).map((k) => `${k}: ${pares[k]}`).join("\n");
+    return `<label>Atributos del elemento
+        <textarea data-attrs rows="4" placeholder="data-gtm: cta-principal&#10;aria-label: Reserva tu mesa">${esc(texto)}</textarea>
+      </label>
+      <p class="m-muted">Uno por línea, <code>clave: valor</code>. Se admiten <code>data-*</code>, <code>aria-*</code> y <code>title</code>, <code>role</code>, <code>lang</code>, <code>dir</code>, <code>tabindex</code>. El identificador, la clase y el estilo se ponen en sus propios campos.</p>`;
+  }
+  function bodyCustomCss(node) {
+    const css = node.customCss || { before: "", main: "", after: "" };
+    return `<label>Antes ( ::before ) <textarea data-css="before">${esc(css.before || "")}</textarea></label>
+      <label>Elemento principal <textarea data-css="main">${esc(css.main || "")}</textarea></label>
+      <label>Después ( ::after ) <textarea data-css="after">${esc(css.after || "")}</textarea></label>
+      <p class="m-muted">Solo declaraciones (<code>color: red;</code>), sin llaves ni selectores: el CMS las encierra en el selector de este bloque.</p>`;
+  }
+
+  function bodyVisibility(node) {
+    const hide = node.hiddenOn || {};
+    return `<label><input type="checkbox" data-hide-bp="desktop" ${hide.desktop ? "checked" : ""}> Ocultar en escritorio</label>
+      <label><input type="checkbox" data-hide-bp="tablet" ${hide.tablet ? "checked" : ""}> Ocultar en tablet</label>
+      <label><input type="checkbox" data-hide-bp="mobile" ${hide.mobile ? "checked" : ""}> Ocultar en teléfono</label>
+      <p class="m-muted">Oculto en los tres tamaños equivale a apagado: no se imprime en la web.</p>`;
+  }
+
+  function bodyPosition(st) {
+    return `${seg("position", st.position || "", [
+        { v: "static", l: "Normal" }, { v: "relative", l: "Relativa" }, { v: "absolute", l: "Absoluta" }, { v: "sticky", l: "Pegajosa" },
+      ])}
+      <div class="b-box-grid">
+        <label>Arriba <input data-style="top" value="${esc(st.top || "")}" placeholder="auto"></label>
+        <label>Derecha <input data-style="right" value="${esc(st.right || "")}" placeholder="auto"></label>
+        <label>Abajo <input data-style="bottom" value="${esc(st.bottom || "")}" placeholder="auto"></label>
+        <label>Izquierda <input data-style="left" value="${esc(st.left || "")}" placeholder="auto"></label>
+      </div>
+      <label>Orden de apilado (z-index) <input type="number" data-style="z-index" value="${esc(st["z-index"] || "")}" placeholder="auto"></label>
+      <p class="m-muted">Con «Normal» el bloque va donde le toca. Las otras tres necesitan además algún valor de los cuatro lados.</p>`;
+  }
+
+  function bodyTransform(st) {
+    return `<label>Transformación <input data-style="transform" value="${esc(st.transform || "")}" placeholder="rotate(-2deg) scale(1.05)"></label>
+      <label>Origen <input data-style="transform-origin" value="${esc(st["transform-origin"] || "")}" placeholder="center"></label>
+      <p class="m-muted">Admite las funciones de CSS: <code>rotate()</code>, <code>scale()</code>, <code>translate()</code>, <code>skew()</code>.</p>`;
+  }
+
+  function bodyTransitions(st) {
+    return `${rangeControl("Duración", "transition-duration", { "transition-duration": (st["transition-duration"] || "300ms") }, 0, 2000, "ms", 50)}
+      ${rangeControl("Retardo", "transition-delay", { "transition-delay": (st["transition-delay"] || "0ms") }, 0, 2000, "ms", 50)}
+      <label>Curva
+        <select data-style="transition-timing-function">
+          ${["ease", "linear", "ease-in", "ease-out", "ease-in-out"].map((e) => `<option value="${e}" ${(st["transition-timing-function"] || "ease") === e ? "selected" : ""}>${e}</option>`).join("")}
+        </select>
+      </label>`;
+  }
+
+  function bodyDiag(node) {
+    return `<p class="m-muted">Si pones un valor y no lo ves, esto recorre la cadena entera en esta instalación y dice en qué paso se pierde.</p>
+      <button type="button" class="m-btn ghost" data-diag="${esc(node.id)}">Revisar este bloque</button>
+      <textarea class="b-diag" readonly hidden></textarea>`;
+  }
+
+  /* ---------- Contenido por tipo de elemento ---------- */
+
+  function bodySectionBasics(node) {
+    const p = node.props || {};
+    return `<label>Nombre interno <input data-prop="name" value="${esc(p.name || node.name || "")}"></label>
+      <p class="m-muted">Solo se ve en el árbol y en este panel. El ancho, el alto y el fondo están en Diseño.</p>`;
+  }
+
+  function bodySectionRows(node) {
+    const current = (node.children || []).find((c) => c.type === "row")?.props?.layout || "";
+    return `<p class="m-muted">Agrupa los módulos en columnas. ‹ › en el árbol mueve un módulo a la columna vecina.</p>
+      ${layoutGallery(current)}
+      <button type="button" class="m-btn ghost" data-add-row>Añadir otra fila</button>`;
+  }
+
+  function bodyRowBasics(node) {
+    const p = node.props || {};
+    const current = p.layout || (node.children || []).map((c) => c.props?.span || 12).join("-");
+    return `<p class="m-muted">Cada bloque es una columna (grupo de módulos).</p>
+      ${layoutThumbs(current)}
+      <label>Separación entre columnas (px) <input type="number" data-prop="gap" min="0" max="80" value="${esc(p.gap ?? 24)}"></label>`;
+  }
+
+  function bodyColumnBasics(node) {
+    const p = node.props || {};
+    return `<p class="m-muted">Selecciona esta columna y añade título, texto o imagen desde la paleta. Quedarán apilados aquí.</p>
+      <label>Ancho desktop (1–12) <input type="number" data-prop="span" min="1" max="12" value="${esc(p.span ?? 12)}"></label>
+      <label>Ancho tablet (1–12) <input type="number" data-prop="spanTablet" min="1" max="12" value="${esc(p.spanTablet ?? 12)}"></label>
+      <label>Ancho móvil (1–12) <input type="number" data-prop="spanMobile" min="1" max="12" value="${esc(p.spanMobile ?? 12)}"></label>`;
+  }
+
+  function bodyImageContent(node) {
+    const p = node.props || {};
+    const thumb = p.imageUrl || "";
+    return `<div class="b-thumb">
+        ${thumb ? `<img src="${esc(thumb)}" alt="">` : `<span class="m-thumb-empty">${p.imageId ? "Imagen #" + p.imageId : "Sin imagen"}</span>`}
+        <div class="b-thumb-actions">
+          <button type="button" class="m-btn ghost" data-media="imageId">Cambiar</button>
+          <button type="button" class="m-btn ghost" data-clear-img>Quitar</button>
+        </div>
+      </div>
+      <label>Texto alternativo <input data-prop="alt" value="${esc(p.alt || "")}"></label>`;
+  }
+
+  function bodyImageLink(node) {
+    const p = node.props || {};
+    return `<label>Lightbox <input type="checkbox" data-prop="lightbox" ${p.lightbox ? "checked" : ""}></label>
+      <label>URL del enlace <input data-prop="link" value="${esc(p.link || "")}" placeholder="https://"></label>
+      <label>Destino
+        <select data-prop="linkTarget">
+          <option value="_self" ${p.linkTarget !== "_blank" ? "selected" : ""}>Misma ventana</option>
+          <option value="_blank" ${p.linkTarget === "_blank" ? "selected" : ""}>Nueva ventana</option>
+        </select>
+      </label>`;
+  }
+
+  function bodyImageFill(node) {
+    const p = node.props || {};
+    const st = node.styles?.[state.bp] || {};
+    return `<p class="m-muted">Propio deja la foto con su proporción. Columna la estira a la altura del resto de la fila.</p>
+      ${seg("fillMode", p.fillMode || "natural", [
+        { v: "natural", l: "Propio" },
+        { v: "fill", l: "Columna" },
+      ], "data-prop-set")}
+      <p class="m-muted">Recorte dentro del marco (solo si Relleno = Columna)</p>
+      ${seg("objectFit", p.objectFit || st["object-fit"] || "cover", [
+        { v: "cover", l: "Cover" }, { v: "contain", l: "Contain" }, { v: "fill", l: "Fill" },
+      ], "data-prop-set")}
+      <p class="m-muted">Posición en el recorte</p>
+      ${seg("object-position", st["object-position"] || "center", [
+        { v: "left", l: "Izq" }, { v: "center", l: "Centro" }, { v: "right", l: "Der" }, { v: "top", l: "Arriba" }, { v: "bottom", l: "Abajo" },
+      ])}
+      <label>Centrar en móvil <input type="checkbox" data-prop="centerOnMobile" ${p.centerOnMobile ? "checked" : ""}></label>`;
+  }
+
+  function bodyImageRadius(node) {
+    const p = node.props || {};
+    return seg("radius", p.radius || "none", [
+      { v: "none", l: "Ninguno" }, { v: "sm", l: "S" }, { v: "md", l: "M" }, { v: "lg", l: "L" }, { v: "full", l: "Círculo" },
+    ], "data-prop-set");
+  }
+
+  function bodyImageScale(node) {
+    const p = node.props || {};
+    return `<p class="m-muted">100 % es el tamaño natural. Baja para que no ocupe todo el hueco.</p>
+      ${propRange("Escala de la imagen", "scale", p.scale ?? 100, 10, 200, "%")}`;
+  }
+
+  function bodyParallax(node, texto) {
+    const p = node.props || {};
+    return `<label>Activar efecto <input type="checkbox" data-prop="parallax" ${p.parallax ? "checked" : ""}></label>
+      ${p.parallax ? `
+        <p class="m-muted">La ampliación deja margen para que al moverse no se vean bordes. Baja ambos valores para un efecto más sutil.</p>
+        ${propRange("Ampliación de la imagen", "parallaxZoom", p.parallaxZoom ?? 8, 0, 40, "%")}
+        ${propRange("Intensidad del movimiento", "parallaxAmount", p.parallaxAmount ?? 10, 0, 40, "%")}
+        <label>Invertir dirección <input type="checkbox" data-prop="parallaxInvert" ${p.parallaxInvert ? "checked" : ""}></label>
+      ` : `<p class="m-muted">${texto}</p>`}`;
+  }
+
+  function bodyGalleryItems(node) {
+    const p = node.props || {};
+    let items = Array.isArray(p.items) ? p.items : [];
+    if (!items.length && p.ids) {
+      items = String(p.ids).split(",").map((id) => ({ imageId: Number(id) || 0, imageUrl: "", alt: "" })).filter((it) => it.imageId);
+    }
+    return `<p class="m-muted">Añade una por una o varias a la vez.</p>
+      ${items.map((it, i) => `<div class="b-gal-item">
+        <div class="b-thumb">${it.imageUrl ? `<img src="${esc(it.imageUrl)}" alt="">` : `<span class="m-thumb-empty">${it.imageId ? "#" + it.imageId : "—"}</span>`}</div>
+        <div class="b-gal-meta">
+          <button type="button" class="m-btn ghost" data-gal-set="${i}">Cambiar</button>
+          <button type="button" class="b-ico" data-gal-up="${i}" title="Subir">↑</button>
+          <button type="button" class="b-ico" data-gal-down="${i}" title="Bajar">↓</button>
+          <button type="button" class="b-ico" data-gal-del="${i}" title="Quitar">×</button>
+          <label>Alt <input data-gal-alt="${i}" value="${esc(it.alt || "")}"></label>
+        </div>
+      </div>`).join("") || `<p class="m-muted">Todavía no hay fotos.</p>`}
+      <div class="b-gal-actions">
+        <button type="button" class="m-btn" data-gal-add>Añadir imagen</button>
+        <button type="button" class="m-btn ghost" data-gal-add-many>Añadir varias</button>
+      </div>`;
+  }
+
+  function bodyGalleryPresentation(node) {
+    const p = node.props || {};
+    return `${seg("layout", p.layout || "carousel", [
+        { v: "carousel", l: "Carrusel" },
+        { v: "grid", l: "Cuadrícula" },
+      ], "data-prop-set")}
+      <p class="m-muted">Ancho</p>
+      <label>Escritorio: cubrir toda la pantalla <input type="checkbox" data-prop="fullWidth" ${p.fullWidth ? "checked" : ""}></label>
+      <label>Tablet y móvil: adaptar tamaño <input type="checkbox" data-prop="adaptSmall" ${p.adaptSmall !== false ? "checked" : ""}></label>
+      <p class="m-muted">En PC la foto llega de borde a borde. En tablet y móvil se mantiene el tamaño actual, más compacto. El parallax sigue activo.</p>
+      ${propRange("Alto", "height", p.height ?? 420, 120, 900, "px", 10)}
+      ${(p.layout === "grid") ? `
+      <p class="m-muted">Recorte</p>
+      ${seg("objectFit", p.objectFit || "cover", [
+        { v: "cover", l: "Cubrir" },
+        { v: "contain", l: "Contener" },
+      ], "data-prop-set")}` : `<p class="m-muted">Las fotos se escalan solas para llenar el recuadro, aunque no tengan el mismo tamaño. No quedan franjas vacías en escritorio, tablet ni móvil.</p>`}`;
+  }
+
+  function bodyGalleryNav(node) {
+    const p = node.props || {};
+    return `<label>Flechas <input type="checkbox" data-prop="arrows" ${p.arrows !== false ? "checked" : ""}></label>
+      <label>Teclado (← →) <input type="checkbox" data-prop="keyboard" ${p.keyboard !== false ? "checked" : ""}></label>
+      <label>Reproducción automática <input type="checkbox" data-prop="autoplay" ${p.autoplay ? "checked" : ""}></label>
+      ${p.autoplay ? propRange("Intervalo", "interval", p.interval ?? 5000, 1500, 12000, "ms", 500) : ""}`;
+  }
+
+  function bodyGalleryColumns(node) {
+    const p = node.props || {};
+    if (p.layout !== "grid") return "";
+    return `<label>Desktop <input type="number" data-prop="desktop" min="1" max="6" value="${esc(p.desktop ?? 3)}"></label>
+      <label>Tablet <input type="number" data-prop="tablet" min="1" max="4" value="${esc(p.tablet ?? 2)}"></label>
+      <label>Móvil <input type="number" data-prop="mobile" min="1" max="2" value="${esc(p.mobile ?? 1)}"></label>`;
+  }
+
+  function bodyVideoSource(node) {
+    const p = node.props || {};
+    const src = p.source === "upload" ? "upload" : "link";
+    return `${seg("source", src, [
+        { v: "link", l: "Enlace" },
+        { v: "upload", l: "Subir archivo" },
+      ], "data-prop-set")}
+      ${src === "upload" ? `
+        <p class="m-muted">${p.videoUrl ? "Video de la biblioteca." : "Sube un MP4 o elige uno de la biblioteca."}</p>
+        ${p.videoUrl ? `<p class="m-muted">${esc(p.videoUrl)}</p>` : ""}
+        <button type="button" class="m-btn" data-video-media>Elegir o subir video</button>
+        ${p.videoId ? `<button type="button" class="m-btn ghost" data-video-clear>Quitar</button>` : ""}
+      ` : `
+        <label>URL <input data-prop="url" value="${esc(p.url || "")}" placeholder="https://… mp4, YouTube o Vimeo"></label>
+        <p class="m-muted">Para que el visitante no vea controles ni pueda descargar, usa un archivo subido (MP4). YouTube y Vimeo ocultan lo que permiten, pero no se puede bloquear del todo.</p>
+      `}`;
+  }
+
+  function bodyVideoSize(node) {
+    const p = node.props || {};
+    return `${seg("sizeMode", p.sizeMode || "auto", [
+        { v: "auto", l: "Del lugar" },
+        { v: "full", l: "Pantalla" },
+        { v: "fullWidth", l: "Ancho" },
+        { v: "fullHeight", l: "Alto" },
+        { v: "custom", l: "Medidas" },
+      ], "data-prop-set")}
+      ${p.sizeMode === "custom" ? propRange("Ancho", "width", p.width ?? 800, 120, 1600, "px", 10) : ""}
+      ${p.sizeMode !== "full" ? propRange("Alto", "height", p.height ?? 420, 80, 1000, "px", 10) : ""}
+      <p class="m-muted">Ajuste dentro del marco. Cubrir llena el recuadro sin bandas negras.</p>
+      ${seg("fit", p.fit || "cover", [
+        { v: "cover", l: "Cubrir" },
+        { v: "contain", l: "Contener" },
+      ], "data-prop-set")}`;
+  }
+
+  function bodyVideoPlayback(node) {
+    const p = node.props || {};
+    return `<p class="m-muted">El autoplay arranca en silencio (lo exigen los navegadores). El visitante puede activar sonido y el volumen con el control del video. Clic en el video para pausar. No hay descarga.</p>
+      <label>Reproducción automática <input type="checkbox" data-prop="autoplay" ${p.autoplay !== false ? "checked" : ""}></label>
+      <label>Repetir <input type="checkbox" data-prop="loop" ${p.loop !== false ? "checked" : ""}></label>
+      ${propRange("Volumen inicial (tras activar sonido)", "volume", p.volume ?? 70, 0, 100, "%")}`;
+  }
+
+  function bodyEverest(node) {
+    const p = node.props || {};
+    const def = defOf("everest-form") || {};
+    const field = (def.fields || []).find((f) => f.key === "formId") || {};
+    const opts = def.everestForms || field.options || [];
+    const forms = opts.filter((o) => String(typeof o === "object" ? (o.value ?? "") : o) !== "0");
+    const val = String(Number(p.formId) || 0);
+    const plugin = !!def.pluginActive;
+    return `${plugin ? "" : `<p class="m-form-error">El plugin Everest Forms no está activo. Actívalo en WordPress → Plugins y recarga el constructor.</p>`}
+      ${plugin && !forms.length ? `<p class="m-muted">No hay formularios. Créalos en WordPress → Everest Forms y recarga.</p>` : ""}
+      ${plugin && forms.length ? `<label>Formulario <select data-prop="formId">
+        ${opts.map((o) => {
+          const v = typeof o === "object" ? String(o.value ?? "") : String(o);
+          const l = typeof o === "object" ? (o.label || v) : o;
+          return `<option value="${esc(v)}" ${val === v ? "selected" : ""}>${esc(l)}</option>`;
+        }).join("")}
+      </select></label>
+      ${Number(val) > 0 ? `<p class="m-muted">Shortcode: [everest_form id="${esc(val)}"]</p>` : `<p class="m-muted">Elige el formulario que ya tenías en el plugin. Se muestra en esta página tal cual.</p>`}` : ""}`;
+  }
+
+  function bodyTextContent(node) {
+    const p = node.props || {};
+    if (node.type === "heading") {
+      return `<label>Contenido <textarea data-prop="text">${esc(p.text || "")}</textarea></label>
+        <label>Enlace <input data-prop="link" value="${esc(p.link || "")}" placeholder="https://"></label>`;
+    }
+    if (node.type === "paragraph") {
+      return `<label>Contenido <textarea data-prop="text">${esc(p.text || "")}</textarea></label>`;
+    }
+    if (node.type === "rich-text") return richEditor(node, "html");
+    if (node.type === "eyebrow") {
+      return `<label>Contenido <input data-prop="text" value="${esc(p.text || "")}"></label>`;
+    }
+    if (node.type === "quote") {
+      return `<label>Texto <textarea data-prop="text">${esc(p.text || "")}</textarea></label>
+        <label>Autor <input data-prop="cite" value="${esc(p.cite || "")}"></label>`;
+    }
+    return "";
+  }
+
+  function bodyHeadingTag(node) {
+    if (node.type !== "heading") return "";
+    return `<p class="m-muted">Nivel del encabezado: manda en el peso semántico y en el estilo que hereda del sistema de diseño.</p>
+      ${seg("tag", node.props?.tag || "h2", ["h1", "h2", "h3", "h4", "h5", "h6"].map((v) => ({ v, l: v.toUpperCase() })), "data-prop-set")}`;
+  }
+
+  function bodyGlobalNote(node) {
+    if (node.source !== "global") return "";
+    return `<p class="m-muted">Instancia de #${esc(node.globalId)}. Editar aquí es un cambio local. Editar el global afecta a todas las páginas.</p>
+      <button type="button" class="m-btn ghost" data-unlink="${esc(node.id)}">Desvincular</button>`;
+  }
+
+  /** Campos del catálogo de un grupo concreto («content», «colors»…). */
+  function bodyCatalogGroup(node, grupo) {
+    const def = defOf(node.type) || { fields: [] };
+    const campos = (def.fields || []).filter((f) => (f.group || "content") === grupo);
+    if (!campos.length) return "";
+    const aviso = grupo === "colors"
+      ? `<p class="m-muted">El «Tema» es el atajo. Si eliges un color aquí, manda el color: deja el campo en blanco (o pulsa la ✕) para volver al tema.</p>`
+      : "";
+    return aviso + campos.map((f) => fieldHtml(node, f)).join("");
+  }
+
+  function bodyMenuModes(node) {
+    if (node.type !== "menu") return "";
+    const p = node.props || {};
+    const row = (key, label, fallback) => {
+      const cur = p[key] || fallback;
+      return `<p class="m-muted">${label}</p>
+        <div class="b-seg">
+          <button type="button" class="${cur === "bar" ? "is-on" : ""}" data-prop-set="${key}" data-v="bar">Barra (escritorio)</button>
+          <button type="button" class="${cur === "drawer" ? "is-on" : ""}" data-prop-set="${key}" data-v="drawer">Hamburguesa (móvil)</button>
+        </div>`;
+    };
+    return `<p class="m-muted">En cada tamaño puedes mostrar la barra horizontal o el botón Menú.</p>
+      ${row("navModeDesktop", "Escritorio", "bar")}
+      ${row("navModeTablet", "Tablet", "bar")}
+      ${row("navModeMobile", "Móvil", "drawer")}`;
+  }
+
+  /* ================================================================
+     Registro de controles
+     ================================================================ */
+
+  const CORE = window.KrgBuilderCore;
+
+  /** ¿Este bloque tiene texto que merezca controles de tipografía? */
+  function tieneTexto(node) {
+    if (TEXT_TYPES.includes(node.type)) return true;
+    const def = defOf(node.type) || {};
+    return (def.fields || []).some((f) => ["text", "textarea", "richtext"].includes(f.type))
+      || LAYOUT_TYPES.includes(node.type);
+  }
+
+  (function registrarControles() {
+    const R = (id, label, body, extra) => CORE.registerControl(id, Object.assign({ label: label, body: body }, extra || {}));
+    const conBp = (label) => (ctx) => `${label} (${ctx.bp})`;
+
+    // Contenido
+    R("sectionBasics", "Sección", (c) => bodySectionBasics(c.node));
+    R("sectionRows", "Disposición", (c) => bodySectionRows(c.node));
+    R("rowBasics", "Fila", (c) => bodyRowBasics(c.node));
+    R("columnBasics", "Columna · grupo de módulos", (c) => bodyColumnBasics(c.node));
+    R("imageContent", "Imagen", (c) => bodyImageContent(c.node));
+    R("imageLink", "Enlace", (c) => bodyImageLink(c.node));
+    R("galleryItems", "Imágenes", (c) => bodyGalleryItems(c.node));
+    R("videoSource", "Origen del vídeo", (c) => bodyVideoSource(c.node));
+    R("everestForm", "Formulario de Everest Forms", (c) => bodyEverest(c.node));
+    R("textContent", "Contenido", (c) => bodyTextContent(c.node));
+    R("globalNote", "Componente global", (c) => bodyGlobalNote(c.node));
+    R("moduleContent", "Contenido", (c) => bodyCatalogGroup(c.node, "content"));
+
+    // Diseño
+    R("align", "Alinear", (c) => bodyAlign(c.node));
+    R("sectionWidth", "Ancho del contenido", (c) => bodySectionWidth(c.node));
+    R("sectionHeight", "Alto de la sección", (c) => bodySectionHeight(c.node));
+    R("sectionCurtain", "Animación de entrada", (c) => bodySectionCurtain(c.node));
+    R("sectionHeader", "Cabecera sobre esta sección", (c) => bodySectionHeader(c.node));
+    R("menuModes", "Tipo de menú", (c) => bodyMenuModes(c.node));
+    R("catLayout", "Disposición", (c) => bodyCatalogGroup(c.node, "layout"));
+    R("catDesign", "Opciones del bloque", (c) => bodyCatalogGroup(c.node, "design"));
+    R("catColors", "Colores", (c) => bodyCatalogGroup(c.node, "colors"));
+    R("catSpacing", "Espaciado del bloque", (c) => bodyCatalogGroup(c.node, "spacing"));
+    R("catTypography", "Tipografía del bloque", (c) => bodyCatalogGroup(c.node, "typography"));
+    R("catResponsive", "Responsive", (c) => bodyCatalogGroup(c.node, "responsive"));
+    R("headingTag", "Encabezado", (c) => bodyHeadingTag(c.node));
+    R("typography", "Texto", (c) => bodyTypography(c.st), { when: (c) => tieneTexto(c.node) });
+    R("textSize", conBp("Tamaño del texto"), (c) => bodyTextSize(c.st), { when: (c) => tieneTexto(c.node) });
+    R("imgFill", "Relleno y recorte", (c) => bodyImageFill(c.node));
+    R("imgRadius", "Radio", (c) => bodyImageRadius(c.node));
+    R("imgScale", "Escala", (c) => bodyImageScale(c.node));
+    R("imgParallax", "Parallax", (c) => bodyParallax(c.node, "Actívalo para mover la imagen al hacer scroll."));
+    R("galPresentation", "Presentación", (c) => bodyGalleryPresentation(c.node));
+    R("galNav", "Navegación", (c) => bodyGalleryNav(c.node));
+    R("galColumns", "Columnas (cuadrícula)", (c) => bodyGalleryColumns(c.node));
+    R("galParallax", "Parallax", (c) => bodyParallax(c.node, "Actívalo para mover las fotos al hacer scroll."));
+    R("vidSize", "Tamaño del vídeo", (c) => bodyVideoSize(c.node));
+    R("vidPlayback", "Reproducción", (c) => bodyVideoPlayback(c.node));
+    R("size", conBp("Tamaño"), (c) => bodySize(c.st));
+    R("spacing", conBp("Separación"), (c) => bodySpacing(c.st));
+    R("background", "Fondo", (c) => bodyBg(c.st, c.node));
+    R("border", "Borde", (c) => bodyBorder(c.st));
+    R("shadow", "Sombra", (c) => bodyShadow(c.st));
+    R("filters", "Filtros", (c) => bodyFilters(c.node));
+    R("animation", "Animación", (c) => bodyAnim(c.node));
+
+    // Avanzado
+    R("cssId", "ID y clase CSS", (c) => bodyCssId(c.node));
+    R("visibility", "Visibilidad responsive", (c) => bodyVisibility(c.node));
+    R("position", conBp("Posición"), (c) => bodyPosition(c.st));
+    R("transform", conBp("Transformación"), (c) => bodyTransform(c.st));
+    R("transitions", conBp("Transiciones"), (c) => bodyTransitions(c.st));
+    R("customCss", "CSS personalizado", (c) => bodyCustomCss(c.node));
+    R("attributes", "Atributos", (c) => bodyAttributes(c.node));
+    R("diag", "Diagnóstico de estilos", (c) => bodyDiag(c.node));
+  })();
+
+  /* ================================================================
+     Esquema: qué ve cada clase de elemento
+     ----------------------------------------------------------------
+     Añadir un grupo a un tipo es escribir su nombre en una lista. Un
+     bloque del catálogo puede además traer su propia lista en
+     `def.inspector`, y entonces manda la suya.
+     ================================================================ */
+
+  const AVANZADO = ["cssId", "visibility", "position", "transform", "transitions", "attributes", "customCss", "diag"];
+  const CAJA = ["background", "spacing", "size", "border", "shadow", "animation"];
+
+  (function registrarEsquemas() {
+    CORE.setSchema("section", {
+      content: ["sectionBasics", "sectionRows"],
+      design: ["sectionWidth", "sectionHeight", "sectionCurtain", "sectionHeader", "align"].concat(CAJA),
+      advanced: AVANZADO,
+    });
+    CORE.setSchema("row", {
+      content: ["rowBasics"],
+      design: ["align"].concat(CAJA),
+      advanced: AVANZADO,
+    });
+    CORE.setSchema("column", {
+      content: ["columnBasics"],
+      design: ["align"].concat(CAJA),
+      advanced: AVANZADO,
+    });
+    CORE.setSchema("image", {
+      content: ["imageContent", "imageLink"],
+      design: ["align", "imgFill", "imgRadius", "imgScale", "imgParallax"].concat(CAJA).concat(["filters"]),
+      advanced: AVANZADO,
+    });
+    CORE.setSchema("gallery", {
+      content: ["galleryItems"],
+      design: ["align", "galPresentation", "galNav", "galColumns", "galParallax"].concat(CAJA).concat(["filters"]),
+      advanced: AVANZADO,
+    });
+    CORE.setSchema("video", {
+      content: ["videoSource"],
+      design: ["align", "vidSize", "vidPlayback"].concat(CAJA),
+      advanced: AVANZADO,
+    });
+    CORE.setSchema("everest-form", {
+      content: ["everestForm"],
+      design: ["align"].concat(CAJA),
+      advanced: AVANZADO,
+    });
+    CORE.setSchema("text", {
+      content: ["textContent"],
+      design: ["align", "headingTag", "typography", "textSize"].concat(CAJA).concat(["filters"]),
+      advanced: AVANZADO,
+    });
+    CORE.setSchema("module", {
+      content: ["globalNote", "moduleContent"],
+      design: ["align", "menuModes", "catLayout", "catDesign", "catColors", "catSpacing", "catTypography", "catResponsive", "typography", "textSize"].concat(CAJA).concat(["filters"]),
+      advanced: AVANZADO,
+    });
+  })();
+
+  /** La clase de elemento, que es lo que decide el esquema. */
+  function kindOf(node) {
+    if (node.type === "section" || node.type === "row" || node.type === "column") return node.type;
+    if (TEXT_TYPES.includes(node.type)) return "text";
+    if (["image", "gallery", "video", "everest-form"].includes(node.type)) return node.type;
+    return "module";
+  }
+
+  const KIND_LABEL = {
+    section: "Sección",
+    row: "Fila",
+    column: "Columna",
+    text: "Módulo de texto",
+    image: "Módulo",
+    gallery: "Módulo",
+    video: "Módulo",
+    "everest-form": "Módulo",
+    module: "Módulo",
+  };
+
+  /**
+   * El inspector: un solo camino para todos los elementos.
+   *
+   * Monta el contexto y se lo pasa al nucleo, que pinta la cabecera del
+   * elemento, las tres pestañas y los grupos del esquema.
+   */
+  function inspector() {
+    const pagina = { label: "Configuración de página", html: pageFields() };
+    if (!state.selected) {
+      return window.KrgBuilderCore.render({ page: pagina, tab: state.inspTab || "content" });
+    }
+    const hit = findNode(state.doc.sections, state.selected);
+    if (!hit) return `<div class="b-empty">Elemento no encontrado.</div>`;
+    const node = hit.node;
+    const def = defOf(node.type) || { name: node.type, fields: [] };
+    const kind = kindOf(node);
+    return window.KrgBuilderCore.render({
+      page: pagina,
+      kind: kind,
+      type: node.type,
+      kindLabel: KIND_LABEL[kind] || "Módulo",
+      // El nombre que se lee. Un documento viejo puede traer el nombre
+      // interno igual al tipo («statement-cta»); en ese caso manda el
+      // nombre del catalogo, que es el que la persona reconoce.
+      title: node.name && node.name !== node.type ? node.name : (def.name || node.type),
+      subtitle: def.name && node.name && node.name !== def.name && node.name !== node.type ? def.name : "",
+      tab: state.inspTab || "content",
+      schema: def.inspector || null,
+      node: node,
+      def: def,
+      bp: state.bp,
+      st: node.styles?.[state.bp] || {},
+    });
   }
   function propRange(label, key, value, min, max, unit, step) {
     const n = Number(value);
@@ -1534,143 +2257,8 @@
     { v: "flip", l: "Girar" },
   ];
 
-  function inspTabs() {
-    const tab = state.inspTab || "content";
-    return `<div class="b-tabs">
-      <button type="button" data-insp-tab="content" class="${tab === "content" ? "is-on" : ""}">Contenido</button>
-      <button type="button" data-insp-tab="design" class="${tab === "design" ? "is-on" : ""}">Diseño</button>
-      <button type="button" data-insp-tab="advanced" class="${tab === "advanced" ? "is-on" : ""}">Avanzado</button>
-    </div>`;
-  }
-  function panelSpacing(st) {
-    const otros = { desktop: "tablet y móvil", tablet: "móvil", mobile: "" }[state.bp];
-    return `<div class="acc"><h5>Separación (${state.bp})</h5>
-      ${boxControl("padding", "Relleno", st)}
-      ${boxControl("margin", "Margen", st)}
-      <p class="m-muted">En blanco no es cero: es «lo que traiga el bloque». Escribe 0 para pegarlo del todo.${otros ? ` Lo que pongas aquí vale también en ${otros} mientras no les pongas un valor propio.` : ""}</p>
-    </div>`;
-  }
-  function panelBorder(st) {
-    return `<div class="acc"><h5>Borde</h5>
-      <div class="b-box-grid">
-        <label>Sup. izq. <input type="number" data-side="border-top-left-radius" value="${esc(String(st["border-top-left-radius"] || "").replace(/px$/i, ""))}" placeholder="auto"></label>
-        <label>Sup. der. <input type="number" data-side="border-top-right-radius" value="${esc(String(st["border-top-right-radius"] || "").replace(/px$/i, ""))}" placeholder="auto"></label>
-        <label>Inf. izq. <input type="number" data-side="border-bottom-left-radius" value="${esc(String(st["border-bottom-left-radius"] || "").replace(/px$/i, ""))}" placeholder="auto"></label>
-        <label>Inf. der. <input type="number" data-side="border-bottom-right-radius" value="${esc(String(st["border-bottom-right-radius"] || "").replace(/px$/i, ""))}" placeholder="auto"></label>
-      </div>
-      <p class="m-muted">Estilo</p>
-      ${seg("border-style", st["border-style"] || "none", [
-        { v: "none", l: "Ninguno" }, { v: "solid", l: "Sólido" }, { v: "dashed", l: "Guion" }, { v: "dotted", l: "Punto" },
-      ])}
-      ${rangeControl("Grosor", "border-width", st, 0, 20, "px")}
-      ${window.KrgUi.colorField("Color borde", st["border-color"] || "", 'data-style="border-color"')}
-    </div>`;
-  }
-  function panelShadow(st) {
-    return `<div class="acc"><h5>Sombra</h5>
-      ${seg("box-shadow", st["box-shadow"] || "", SHADOWS.map((s) => ({ v: s.v, l: s.l })))}
-    </div>`;
-  }
-  function panelFilters(node) {
-    const f = node.filters || { hue: 0, sat: 100, brightness: 100, contrast: 100, invert: 0, sepia: 0 };
-    return `<div class="acc"><h5>Filtros</h5>
-      ${[["hue", "Tono", 0, 360, "deg"], ["sat", "Saturación", 0, 200, "%"], ["brightness", "Brillo", 0, 200, "%"], ["contrast", "Contraste", 0, 200, "%"], ["invert", "Invertir", 0, 100, "%"], ["sepia", "Sepia", 0, 100, "%"]].map(([k, lab, min, max, u]) => `
-        <label class="m-pick-label">${lab}
-          <div class="b-range">
-            <input type="range" min="${min}" max="${max}" data-filter="${k}" value="${f[k] ?? min}">
-            <input type="number" min="${min}" max="${max}" data-filter="${k}" value="${f[k] ?? min}">
-            <span class="m-pick-unit">${u}</span>
-          </div>
-        </label>`).join("")}
-    </div>`;
-  }
-  function panelAnim(node) {
-    return `<div class="acc"><h5>Animación</h5>
-      <div class="b-anim">${ANIMS.map((a) => `<button type="button" class="${(node.animation || "none") === a.v ? "is-on" : ""}" data-anim="${a.v}">${a.l}</button>`).join("")}</div>
-      <label>Duración (ms) <input type="number" data-node="animDuration" min="0" max="3000" value="${esc(node.animDuration ?? 600)}"></label>
-      <label>Retardo (ms) <input type="number" data-node="animDelay" min="0" max="3000" value="${esc(node.animDelay ?? 0)}"></label>
-      <label>Curva
-        <select data-node="animEasing">
-          ${["ease", "linear", "ease-in", "ease-out", "ease-in-out"].map((e) => `<option value="${e}" ${(node.animEasing || "ease") === e ? "selected" : ""}>${e}</option>`).join("")}
-        </select>
-      </label>
-    </div>`;
-  }
   // Opciones propias de la sección: alto, cortina y color de la cabecera.
   // Hasta ahora existían en el renderizador pero no había dónde tocarlas.
-  function panelSection(node) {
-    const p = node.props || {};
-    const mh = p.minHeight || "auto";
-    const sel = (key, value, opts) => `<select data-prop="${key}">${opts.map(([v, l]) =>
-      `<option value="${v}" ${String(value) === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
-    const width = (p.width === "bleed" ? "full" : p.width) || (p.fullWidth === false ? "boxed" : "full");
-    return `<div class="acc"><h5>Ancho del contenido</h5>
-      <label>Hasta dónde llega el contenido
-        ${sel("width", width, [
-          ["full", "Todo el ancho, de borde a borde"],
-          ["padded", "Todo el ancho, con margen lateral"],
-          ["boxed", "Centrado y limitado"],
-        ])}
-      </label>
-      <p class="m-muted">De borde a borde no deja ningún margen: el contenido llega al filo de la pantalla. Es lo que necesitan los mapas, los vídeos y las fotos a pantalla completa.</p>
-    </div>
-    <div class="acc"><h5>Animación de entrada</h5>
-      <label>Revelado al hacer scroll
-        ${sel("curtain", p.curtain || "off", [
-          ["on", "Cortina (la siguiente sección la tapa)"],
-          ["off", "Sin cortina"],
-        ])}
-      </label>
-      <p class="m-muted">Cortina: la sección se queda quieta y la siguiente se desliza por encima, tapándola. Es el mismo efecto del pie. Se desactiva sola si la sección no cabe en la pantalla, así que va mejor con alto Pantalla completa.</p>
-    </div>
-    <div class="acc"><h5>Alto de la sección</h5>
-      <label>Alto mínimo
-        ${sel("minHeight", mh, [
-          ["auto", "El del contenido"],
-          ["screen", "Pantalla completa"],
-          ["screen-minus-header", "Pantalla menos la cabecera"],
-          ["tall", "Alta (78 %)"],
-          ["half", "Media (50 %)"],
-          ["custom", "A medida…"],
-        ])}
-      </label>
-      ${mh === "custom" ? `<div class="b-rowfields">
-        <label>Valor <input type="number" data-prop="minHeightValue" min="1" max="4000" value="${esc(p.minHeightValue ?? 60)}"></label>
-        <label>Unidad ${sel("minHeightUnit", p.minHeightUnit || "vh", [
-          ["vh", "% de la pantalla"],
-          ["px", "Píxeles"],
-        ])}</label>
-      </div>
-      <label>¿Quién manda en el alto?
-        ${sel("heightMode", p.heightMode || "exact", [
-          ["exact", "La sección: el contenido se adapta"],
-          ["min", "El contenido: el alto es sólo un mínimo"],
-        ])}
-      </label>
-      <p class="m-muted">Si dentro tienes un panel partido o una portada a pantalla completa, ese módulo trae su propio alto. Con «La sección» se encoge para caber; con «El contenido» manda él y la sección crece. En móvil el alto siempre pasa a ser un mínimo, para no recortar texto.</p>
-      ${fitWarning(node)}` : ""}
-      ${mh !== "auto" ? `<label>Alineación vertical del contenido
-        ${sel("vAlign", p.vAlign || "start", [
-          ["start", "Arriba"],
-          ["center", "Centro"],
-          ["end", "Abajo"],
-          ["stretch", "Estirar: el contenido llena el alto"],
-        ])}
-      </label>
-      <p class="m-muted">Dónde va el contenido cuando ocupa menos que el alto de la sección. Con «Estirar» no queda franja de fondo vacía: el bloque crece hasta llenarla. Si lo único que hay dentro es un panel partido, una portada o un mapa, se estiran solos.</p>` : `<p class="m-muted">Con un alto fijo podrás centrar el contenido verticalmente.</p>`}
-    </div>
-    <div class="acc"><h5>Cabecera sobre esta sección</h5>
-      <label>Color del texto de la cabecera
-        ${sel("headerSkin", p.headerSkin || "auto", [
-          ["auto", "Automático (según el fondo)"],
-          ["dark", "Forzar texto oscuro"],
-          ["light", "Forzar texto claro"],
-          ["none", "No cambiar nada"],
-        ])}
-      </label>
-      <p class="m-muted">Automático mira la luminosidad del fondo y elige el que se lee mejor. Requiere tener el color adaptativo activo en Chrome → Cabecera.</p>
-    </div>`;
-  }
 
   /** Id tal cual se usa en las clases del marcado. */
   function idClase(id) {
@@ -1749,12 +2337,6 @@
     return out;
   }
 
-  function panelBg(st, node) {
-    return `<div class="acc"><h5>Fondo</h5>
-      ${window.KrgUi.colorField("Color de fondo", st["background-color"] || "", 'data-style="background-color"')}
-      <div data-bg-note>${bgNoteHtml(node, st["background-color"] || "")}</div>
-    </div>`;
-  }
 
   /**
    * El aviso de «este color lo tapa un bloque».
@@ -1971,82 +2553,6 @@
     return out;
   }
 
-  function panelAdvanced(node) {
-    const css = node.customCss || { before: "", main: "", after: "" };
-    const hide = node.hiddenOn || {};
-    const st = node.styles?.[state.bp] || {};
-    return `
-      <div class="acc"><h5>ID y clases de CSS</h5>
-        <label>Identificador CSS <input data-node="htmlId" value="${esc(node.htmlId || "")}" placeholder="mi-bloque"></label>
-        <label>Clase CSS <input data-node="htmlClass" value="${esc(node.htmlClass || "")}" placeholder="mi-clase"></label>
-      </div>
-      <div class="acc"><h5>CSS personalizado</h5>
-        <label>Antes ( ::before ) <textarea data-css="before">${esc(css.before || "")}</textarea></label>
-        <label>Elemento principal <textarea data-css="main">${esc(css.main || "")}</textarea></label>
-        <label>Después ( ::after ) <textarea data-css="after">${esc(css.after || "")}</textarea></label>
-      </div>
-      <div class="acc"><h5>Diagnóstico de estilos</h5>
-        <p class="m-muted">Si pones un valor y no lo ves, esto recorre la cadena entera en esta instalación y dice en qué paso se pierde.</p>
-        <button type="button" class="m-btn ghost" data-diag="${esc(node.id)}">Revisar este bloque</button>
-        <textarea class="b-diag" readonly hidden></textarea>
-      </div>
-      <div class="acc"><h5>Visibilidad</h5>
-        <label><input type="checkbox" data-hide-bp="mobile" ${hide.mobile ? "checked" : ""}> Ocultar en teléfono</label>
-        <label><input type="checkbox" data-hide-bp="tablet" ${hide.tablet ? "checked" : ""}> Ocultar en tablet</label>
-        <label><input type="checkbox" data-hide-bp="desktop" ${hide.desktop ? "checked" : ""}> Ocultar en escritorio</label>
-      </div>
-      <div class="acc"><h5>Transiciones</h5>
-        ${rangeControl("Duración", "transition-duration", { "transition-duration": (st["transition-duration"] || "300ms") }, 0, 2000, "ms", 50)}
-        ${rangeControl("Retardo", "transition-delay", { "transition-delay": (st["transition-delay"] || "0ms") }, 0, 2000, "ms", 50)}
-        <label>Curva
-          <select data-style="transition-timing-function">
-            ${["ease", "linear", "ease-in", "ease-out", "ease-in-out"].map((e) => `<option value="${e}" ${(st["transition-timing-function"] || "ease") === e ? "selected" : ""}>${e}</option>`).join("")}
-          </select>
-        </label>
-      </div>`;
-  }
-  function panelTypography(st) {
-    return `<div class="acc"><h5>Texto</h5>
-      <p class="m-muted">Alineación</p>
-      ${seg("text-align", st["text-align"] || "", [
-        { v: "left", l: "⟸", t: "Izquierda" },
-        { v: "center", l: "≡", t: "Centro" },
-        { v: "right", l: "⟹", t: "Derecha" },
-        { v: "justify", l: "☰", t: "Justificado" },
-      ])}
-      ${window.KrgUi.fontFamilyField("Familia", st["font-family"] || "", 'data-style="font-family"')}
-      <p class="m-muted">Peso</p>
-      ${seg("font-weight", st["font-weight"] || "", [
-        { v: "300", l: "Light" }, { v: "400", l: "Regular" }, { v: "600", l: "Semi" }, { v: "700", l: "Bold" },
-      ])}
-      <p class="m-muted">Estilo</p>
-      ${seg("font-style", st["font-style"] || "", [{ v: "normal", l: "Normal" }, { v: "italic", l: "<i>Cursiva</i>" }])}
-      <p class="m-muted">Decoración</p>
-      ${seg("text-decoration", st["text-decoration"] || "none", [
-        { v: "none", l: "Ninguna" }, { v: "underline", l: "Subrayado" }, { v: "line-through", l: "Tachado" },
-      ])}
-      <p class="m-muted">Transformar</p>
-      ${seg("text-transform", st["text-transform"] || "", [
-        { v: "none", l: "aa" }, { v: "uppercase", l: "AA" }, { v: "capitalize", l: "Aa" },
-      ])}
-      ${window.KrgUi.colorField("Color texto", st.color || "", 'data-style="color"')}
-      ${window.KrgUi.colorField("Fondo", st["background-color"] || "", 'data-style="background-color"')}
-    </div>`;
-  }
-  function panelHeading(node, st) {
-    const tag = node.props?.tag || "h2";
-    return `<div class="acc"><h5>Encabezado</h5>
-      ${seg("tag", tag, ["h1", "h2", "h3", "h4", "h5", "h6"].map((v) => ({ v, l: v.toUpperCase() })), "data-prop-set")}
-      ${panelTypography(st).replace("<h5>Texto</h5>", "<p class=\"m-muted\">Tipografía del título</p>")}
-    </div>`;
-  }
-  function panelTextSize(st) {
-    return `<div class="acc"><h5>Tamaño (${state.bp})</h5>
-      ${rangeControl("Tamaño de fuente", "font-size", st, 10, 96, "px")}
-      ${rangeControl("Interlineado", "line-height", st, 80, 220, "%")}
-      ${rangeControl("Espaciado de letras", "letter-spacing", st, -4, 20, "px")}
-    </div>`;
-  }
   function richEditor(node, key) {
     const mode = state.rtMode || "visual";
     const val = node.props?.[key] || "";
@@ -2067,323 +2573,11 @@
     </div>`;
   }
 
-  function imageInspector(node) {
-    const st = node.styles?.[state.bp] || {};
-    const p = node.props || {};
-    const tab = state.inspTab || "content";
-    const thumb = p.imageUrl || "";
-    const tabs = inspTabs();
-    const content = `
-      <div class="acc"><h5>Imagen</h5>
-        <div class="b-thumb">
-          ${thumb ? `<img src="${esc(thumb)}" alt="">` : `<span class="m-thumb-empty">${p.imageId ? "Imagen #" + p.imageId : "Sin imagen"}</span>`}
-          <div class="b-thumb-actions">
-            <button type="button" class="m-btn ghost" data-media="imageId">Cambiar</button>
-            <button type="button" class="m-btn ghost" data-clear-img>Quitar</button>
-          </div>
-        </div>
-        <label>Texto alternativo <input data-prop="alt" value="${esc(p.alt || "")}"></label>
-      </div>
-      <div class="acc"><h5>Enlace</h5>
-        <label>Lightbox <input type="checkbox" data-prop="lightbox" ${p.lightbox ? "checked" : ""}></label>
-        <label>URL del enlace <input data-prop="link" value="${esc(p.link || "")}" placeholder="https://"></label>
-        <label>Destino
-          <select data-prop="linkTarget">
-            <option value="_self" ${p.linkTarget !== "_blank" ? "selected" : ""}>Misma ventana</option>
-            <option value="_blank" ${p.linkTarget === "_blank" ? "selected" : ""}>Nueva ventana</option>
-          </select>
-        </label>
-      </div>`;
-    const design = `
-      ${panelAlign(node)}
-      <div class="acc"><h5>Móvil</h5>
-        <label>Centrar en móvil <input type="checkbox" data-prop="centerOnMobile" ${p.centerOnMobile ? "checked" : ""}></label>
-      </div>
-      <div class="acc"><h5>Relleno</h5>
-        <p class="m-muted">Propio deja la foto con su proporción. Columna la estira a la altura del resto de la fila.</p>
-        ${seg("fillMode", p.fillMode || "natural", [
-          { v: "natural", l: "Propio" },
-          { v: "fill", l: "Columna" },
-        ], "data-prop-set")}
-        <p class="m-muted">Recorte dentro del marco (solo si Relleno = Columna)</p>
-        ${seg("objectFit", p.objectFit || st["object-fit"] || "cover", [
-          { v: "cover", l: "Cover" }, { v: "contain", l: "Contain" }, { v: "fill", l: "Fill" },
-        ], "data-prop-set")}
-      </div>
-      <div class="acc"><h5>Radio</h5>
-        ${seg("radius", p.radius || "none", [
-          { v: "none", l: "Ninguno" }, { v: "sm", l: "S" }, { v: "md", l: "M" }, { v: "lg", l: "L" }, { v: "full", l: "Círculo" },
-        ], "data-prop-set")}
-      </div>
-      <div class="acc"><h5>Escala</h5>
-        <p class="m-muted">100 % es el tamaño natural. Baja para que no ocupe todo el hueco.</p>
-        ${propRange("Escala de la imagen", "scale", p.scale ?? 100, 10, 200, "%")}
-      </div>
-      <div class="acc"><h5>Parallax</h5>
-        <label>Activar efecto <input type="checkbox" data-prop="parallax" ${p.parallax ? "checked" : ""}></label>
-        ${p.parallax ? `
-          <p class="m-muted">La ampliación deja margen para que al moverse no se vean bordes. Baja ambos valores para un efecto más sutil.</p>
-          ${propRange("Ampliación de la imagen", "parallaxZoom", p.parallaxZoom ?? 8, 0, 40, "%")}
-          ${propRange("Intensidad del movimiento", "parallaxAmount", p.parallaxAmount ?? 10, 0, 40, "%")}
-          <label>Invertir dirección <input type="checkbox" data-prop="parallaxInvert" ${p.parallaxInvert ? "checked" : ""}></label>
-        ` : `<p class="m-muted">Actívalo para mover la imagen al hacer scroll.</p>`}
-      </div>
-      <div class="acc"><h5>Tamaño (${state.bp})</h5>
-        ${rangeControl("Ancho", "width", st, 10, 100, "%")}
-        ${rangeControl("Alto (opcional)", "height", st, 0, 800, "px")}
-        ${rangeControl("Máximo ancho", "max-width", st, 10, 100, "%")}
-      </div>
-      ${panelSpacing(st)}
-      ${panelBorder(st)}
-      ${panelShadow(st)}
-      ${panelFilters(node)}
-      ${panelAnim(node)}
-      ${panelBg(st, node)}`;
-    const advanced = panelAdvanced(node);
-    const body = tab === "design" ? design : tab === "advanced" ? advanced : content;
-    return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
-      <div class="acc"><h5>Imagen</h5><p class="m-muted">Ajustes de imagen</p></div>
-      ${tabs}${body}`;
-  }
 
-  function galleryInspector(node) {
-    const st = node.styles?.[state.bp] || {};
-    const p = node.props || {};
-    const tab = state.inspTab || "content";
-    let items = Array.isArray(p.items) ? p.items : [];
-    if (!items.length && p.ids) {
-      items = String(p.ids).split(",").map((id) => ({ imageId: Number(id) || 0, imageUrl: "", alt: "" })).filter((it) => it.imageId);
-    }
-    const content = `
-      <div class="acc"><h5>Imágenes</h5>
-        <p class="m-muted">Añade una por una o varias a la vez.</p>
-        ${items.map((it, i) => `<div class="b-gal-item">
-          <div class="b-thumb">${it.imageUrl ? `<img src="${esc(it.imageUrl)}" alt="">` : `<span class="m-thumb-empty">${it.imageId ? "#" + it.imageId : "—"}</span>`}</div>
-          <div class="b-gal-meta">
-            <button type="button" class="m-btn ghost" data-gal-set="${i}">Cambiar</button>
-            <button type="button" class="b-ico" data-gal-up="${i}" title="Subir">↑</button>
-            <button type="button" class="b-ico" data-gal-down="${i}" title="Bajar">↓</button>
-            <button type="button" class="b-ico" data-gal-del="${i}" title="Quitar">×</button>
-            <label>Alt <input data-gal-alt="${i}" value="${esc(it.alt || "")}"></label>
-          </div>
-        </div>`).join("") || `<p class="m-muted">Todavía no hay fotos.</p>`}
-        <div class="b-gal-actions">
-          <button type="button" class="m-btn" data-gal-add>Añadir imagen</button>
-          <button type="button" class="m-btn ghost" data-gal-add-many>Añadir varias</button>
-        </div>
-      </div>`;
-    const design = `
-      ${panelAlign(node)}
-      <div class="acc"><h5>Presentación</h5>
-        ${seg("layout", p.layout || "carousel", [
-          { v: "carousel", l: "Carrusel" },
-          { v: "grid", l: "Cuadrícula" },
-        ], "data-prop-set")}
-        <p class="m-muted">Ancho</p>
-        <label>Escritorio: cubrir toda la pantalla <input type="checkbox" data-prop="fullWidth" ${p.fullWidth ? "checked" : ""}></label>
-        <label>Tablet y móvil: adaptar tamaño <input type="checkbox" data-prop="adaptSmall" ${p.adaptSmall !== false ? "checked" : ""}></label>
-        <p class="m-muted">En PC la foto llega de borde a borde. En tablet y móvil se mantiene el tamaño actual, más compacto. El parallax sigue activo.</p>
-        ${propRange("Alto", "height", p.height ?? 420, 120, 900, "px", 10)}
-        ${(p.layout === "grid") ? `
-        <p class="m-muted">Recorte</p>
-        ${seg("objectFit", p.objectFit || "cover", [
-          { v: "cover", l: "Cubrir" },
-          { v: "contain", l: "Contener" },
-        ], "data-prop-set")}` : `<p class="m-muted">Las fotos se escalan solas para llenar el recuadro, aunque no tengan el mismo tamaño. No quedan franjas vacías en escritorio, tablet ni móvil.</p>`}
-      </div>
-      <div class="acc"><h5>Navegación</h5>
-        <label>Flechas <input type="checkbox" data-prop="arrows" ${p.arrows !== false ? "checked" : ""}></label>
-        <label>Teclado (← →) <input type="checkbox" data-prop="keyboard" ${p.keyboard !== false ? "checked" : ""}></label>
-        <label>Reproducción automática <input type="checkbox" data-prop="autoplay" ${p.autoplay ? "checked" : ""}></label>
-        ${p.autoplay ? propRange("Intervalo", "interval", p.interval ?? 5000, 1500, 12000, "ms", 500) : ""}
-      </div>
-      <div class="acc"><h5>Parallax</h5>
-        <label>Activar efecto <input type="checkbox" data-prop="parallax" ${p.parallax ? "checked" : ""}></label>
-        ${p.parallax ? `
-          <p class="m-muted">La ampliación deja margen para que al moverse no se vean bordes. Baja ambos valores para un efecto más sutil.</p>
-          ${propRange("Ampliación de la imagen", "parallaxZoom", p.parallaxZoom ?? 8, 0, 40, "%")}
-          ${propRange("Intensidad del movimiento", "parallaxAmount", p.parallaxAmount ?? 10, 0, 40, "%")}
-          <label>Invertir dirección <input type="checkbox" data-prop="parallaxInvert" ${p.parallaxInvert ? "checked" : ""}></label>
-        ` : `<p class="m-muted">Actívalo para mover las fotos al hacer scroll.</p>`}
-      </div>
-      ${(p.layout === "grid") ? `<div class="acc"><h5>Columnas (cuadrícula)</h5>
-        <label>Desktop <input type="number" data-prop="desktop" min="1" max="6" value="${esc(p.desktop ?? 3)}"></label>
-        <label>Tablet <input type="number" data-prop="tablet" min="1" max="4" value="${esc(p.tablet ?? 2)}"></label>
-        <label>Móvil <input type="number" data-prop="mobile" min="1" max="2" value="${esc(p.mobile ?? 1)}"></label>
-      </div>` : ""}
-      ${panelSpacing(st)}${panelBorder(st)}${panelBg(st, node)}`;
-    const body = tab === "design" ? design : tab === "advanced" ? panelAdvanced(node) : content;
-    return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
-      <div class="acc"><h5>Galería</h5><p class="m-muted">Carrusel o cuadrícula</p></div>
-      ${inspTabs()}${body}`;
-  }
 
-  function videoInspector(node) {
-    const st = node.styles?.[state.bp] || {};
-    const p = node.props || {};
-    const tab = state.inspTab || "content";
-    const src = p.source === "upload" ? "upload" : "link";
-    const content = `
-      <div class="acc"><h5>Origen</h5>
-        ${seg("source", src, [
-          { v: "link", l: "Enlace" },
-          { v: "upload", l: "Subir archivo" },
-        ], "data-prop-set")}
-      </div>
-      ${src === "upload" ? `<div class="acc"><h5>Archivo</h5>
-        <p class="m-muted">${p.videoUrl ? "Video de la biblioteca." : "Sube un MP4 o elige uno de la biblioteca."}</p>
-        ${p.videoUrl ? `<p class="m-muted">${esc(p.videoUrl)}</p>` : ""}
-        <button type="button" class="m-btn" data-video-media>Elegir o subir video</button>
-        ${p.videoId ? `<button type="button" class="m-btn ghost" data-video-clear>Quitar</button>` : ""}
-      </div>` : `<div class="acc"><h5>Enlace</h5>
-        <label>URL <input data-prop="url" value="${esc(p.url || "")}" placeholder="https://… mp4, YouTube o Vimeo"></label>
-        <p class="m-muted">Para que el visitante no vea controles ni pueda descargar, usa un archivo subido (MP4). YouTube y Vimeo ocultan lo que permiten, pero no se puede bloquear del todo.</p>
-      </div>`}`;
-    const design = `
-      ${panelAlign(node)}
-      <div class="acc"><h5>Tamaño</h5>
-        ${seg("sizeMode", p.sizeMode || "auto", [
-          { v: "auto", l: "Del lugar" },
-          { v: "full", l: "Pantalla" },
-          { v: "fullWidth", l: "Ancho" },
-          { v: "fullHeight", l: "Alto" },
-          { v: "custom", l: "Medidas" },
-        ], "data-prop-set")}
-        ${(p.sizeMode === "custom" || p.sizeMode === "fullWidth" || p.sizeMode === "fullHeight" || p.sizeMode === "auto") ? `
-          ${p.sizeMode === "custom" ? propRange("Ancho", "width", p.width ?? 800, 120, 1600, "px", 10) : ""}
-          ${p.sizeMode !== "fullWidth" || true ? propRange("Alto", "height", p.height ?? 420, 80, 1000, "px", 10) : ""}
-        ` : ""}
-        <p class="m-muted">Ajuste dentro del marco. Cubrir llena el recuadro sin bandas negras.</p>
-        ${seg("fit", p.fit || "cover", [
-          { v: "cover", l: "Cubrir" },
-          { v: "contain", l: "Contener" },
-        ], "data-prop-set")}
-      </div>
-      <div class="acc"><h5>Reproducción</h5>
-        <p class="m-muted">El autoplay arranca en silencio (lo exigen los navegadores). El visitante puede activar sonido y el volumen con el control del video. Clic en el video para pausar. No hay descarga.</p>
-        <label>Reproducción automática <input type="checkbox" data-prop="autoplay" ${p.autoplay !== false ? "checked" : ""}></label>
-        <label>Repetir <input type="checkbox" data-prop="loop" ${p.loop !== false ? "checked" : ""}></label>
-        ${propRange("Volumen inicial (tras activar sonido)", "volume", p.volume ?? 70, 0, 100, "%")}
-      </div>
-      ${panelSpacing(st)}${panelBg(st, node)}`;
-    const body = tab === "design" ? design : tab === "advanced" ? panelAdvanced(node) : content;
-    return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
-      <div class="acc"><h5>Video</h5><p class="m-muted">Enlace o archivo, sin visor descargable</p></div>
-      ${inspTabs()}${body}`;
-  }
 
-  function everestInspector(node) {
-    const st = node.styles?.[state.bp] || {};
-    const p = node.props || {};
-    const tab = state.inspTab || "content";
-    const def = defOf("everest-form") || {};
-    const field = (def.fields || []).find((f) => f.key === "formId") || {};
-    const opts = def.everestForms || field.options || [];
-    const forms = opts.filter((o) => String(typeof o === "object" ? (o.value ?? "") : o) !== "0");
-    const val = String(Number(p.formId) || 0);
-    const plugin = !!def.pluginActive;
-    const content = `
-      <div class="acc"><h5>Formulario de Everest Forms</h5>
-        ${plugin ? "" : `<p class="m-form-error">El plugin Everest Forms no está activo. Actívalo en WordPress → Plugins y recarga el constructor.</p>`}
-        ${plugin && !forms.length ? `<p class="m-muted">No hay formularios. Créalos en WordPress → Everest Forms y recarga.</p>` : ""}
-        ${plugin && forms.length ? `<label>Formulario <select data-prop="formId">
-          ${opts.map((o) => {
-            const v = typeof o === "object" ? String(o.value ?? "") : String(o);
-            const l = typeof o === "object" ? (o.label || v) : o;
-            return `<option value="${esc(v)}" ${val === v ? "selected" : ""}>${esc(l)}</option>`;
-          }).join("")}
-        </select></label>
-        ${Number(val) > 0 ? `<p class="m-muted">Shortcode: [everest_form id="${esc(val)}"]</p>` : `<p class="m-muted">Elige el formulario que ya tenías en el plugin. Se muestra en esta página tal cual.</p>`}` : ""}
-      </div>`;
-    const design = `${panelAlign(node)}${panelSpacing(st)}${panelBg(st, node)}`;
-    const body = tab === "design" ? design : tab === "advanced" ? panelAdvanced(node) : content;
-    return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
-      <div class="acc"><h5>Everest Forms</h5><p class="m-muted">Inserta un formulario del plugin</p></div>
-      ${inspTabs()}${body}`;
-  }
 
-  function textInspector(node) {
-    const st = node.styles?.[state.bp] || {};
-    const p = node.props || {};
-    const tab = state.inspTab || "content";
-    const def = defOf(node.type) || { name: node.type };
-    let content = "";
-    if (node.type === "heading") {
-      content = `<div class="acc"><h5>Texto</h5>
-        <label>Contenido <textarea data-prop="text">${esc(p.text || "")}</textarea></label>
-        <label>Enlace <input data-prop="link" value="${esc(p.link || "")}" placeholder="https://"></label>
-      </div>`;
-    } else if (node.type === "paragraph") {
-      content = `<div class="acc"><h5>Texto</h5>
-        <label>Contenido <textarea data-prop="text">${esc(p.text || "")}</textarea></label>
-      </div>`;
-    } else if (node.type === "rich-text") {
-      content = `<div class="acc"><h5>Texto</h5>${richEditor(node, "html")}</div>`;
-    } else if (node.type === "eyebrow") {
-      content = `<div class="acc"><h5>Texto</h5>
-        <label>Contenido <input data-prop="text" value="${esc(p.text || "")}"></label>
-      </div>`;
-    } else if (node.type === "quote") {
-      content = `<div class="acc"><h5>Cita</h5>
-        <label>Texto <textarea data-prop="text">${esc(p.text || "")}</textarea></label>
-        <label>Autor <input data-prop="cite" value="${esc(p.cite || "")}"></label>
-      </div>`;
-    }
-    const headingBlock = node.type === "heading"
-      ? `<div class="acc"><h5>Encabezado</h5>
-          ${seg("tag", p.tag || "h2", ["h1", "h2", "h3", "h4", "h5", "h6"].map((v) => ({ v, l: v.toUpperCase() })), "data-prop-set")}
-        </div>`
-      : "";
-    const design = `${panelAlign(node)}${headingBlock}${panelTypography(st)}${panelTextSize(st)}${panelSpacing(st)}${panelBorder(st)}${panelShadow(st)}${panelFilters(node)}${panelAnim(node)}${panelBg(st, node)}`;
-    const body = tab === "design" ? design : tab === "advanced" ? panelAdvanced(node) : content;
-    return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
-      <div class="acc"><h5>${esc(def.name || node.type)}</h5><p class="m-muted">Ajustes de texto</p></div>
-      ${inspTabs()}${body}`;
-  }
 
-  function layoutInspector(node) {
-    const st = node.styles?.[state.bp] || {};
-    const p = node.props || {};
-    const tab = state.inspTab || "content";
-    const def = defOf(node.type) || { name: node.type };
-    const current = node.type === "row"
-      ? (p.layout || (node.children || []).map((c) => c.props?.span || 12).join("-"))
-      : node.type === "section"
-        ? ((node.children || []).find((c) => c.type === "row")?.props?.layout || "")
-        : "";
-    let content = "";
-    if (node.type === "section") {
-      content = `<div class="acc"><h5>Sección</h5>
-        <label>Nombre interno <input data-prop="name" value="${esc(p.name || node.name || "")}"></label>
-        <p class="m-muted">El ancho del contenido se elige en la pestaña Diseño, en «Ancho del contenido».</p>
-      </div>
-      <div class="acc"><h5>Disposición</h5>
-        <p class="m-muted">Agrupa los módulos en columnas. ‹ › en el árbol mueve un módulo a la columna vecina.</p>
-        ${layoutGallery(current)}
-        <button type="button" class="m-btn ghost" data-add-row>Añadir otra fila</button>
-      </div>
-      `;
-    } else if (node.type === "row") {
-      content = `<div class="acc"><h5>Fila</h5>
-        <p class="m-muted">Cada bloque es una columna (grupo de módulos).</p>
-        ${layoutThumbs(current)}
-        <label>Separación (px) <input type="number" data-prop="gap" min="0" max="80" value="${esc(p.gap ?? 24)}"></label>
-      </div>`;
-    } else {
-      content = `<div class="acc"><h5>Columna · grupo de módulos</h5>
-        <p class="m-muted">Selecciona esta columna y añade título, texto o imagen desde la paleta. Quedarán apilados aquí.</p>
-        <label>Ancho desktop (1–12) <input type="number" data-prop="span" min="1" max="12" value="${esc(p.span ?? 12)}"></label>
-        <label>Ancho tablet (1–12) <input type="number" data-prop="spanTablet" min="1" max="12" value="${esc(p.spanTablet ?? 12)}"></label>
-        <label>Ancho móvil (1–12) <input type="number" data-prop="spanMobile" min="1" max="12" value="${esc(p.spanMobile ?? 12)}"></label>
-      </div>`;
-    }
-    const extra = node.type === "section" ? panelSection(node) : "";
-    const design = `${extra}${panelAlign(node)}${panelSpacing(st)}${panelBorder(st)}${panelBg(st, node)}${panelAnim(node)}`;
-    const body = tab === "design" ? design : tab === "advanced" ? panelAdvanced(node) : content;
-    return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
-      <div class="acc"><h5>${esc(def.name || node.type)}</h5><p class="m-muted">${esc(node.name || node.type)}</p></div>
-      ${inspTabs()}${body}`;
-  }
 
   // Con alto exacto lo que no cabe se recorta. Callarlo seria peor que el
   // problema: aqui se dice, con los numeros y la salida a mano.
@@ -2395,121 +2589,6 @@
       o pasa a «El contenido manda».</p>`;
   }
 
-  function inspector() {
-    if (!state.selected) {
-      return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
-        <div class="b-empty">Selecciona un elemento en el árbol o en el canvas.</div>`;
-    }
-    const hit = findNode(state.doc.sections, state.selected);
-    if (!hit) return `<div class="b-empty">Elemento no encontrado.</div>`;
-    const node = hit.node;
-    if (node.type === "image") return imageInspector(node);
-    if (node.type === "gallery") return galleryInspector(node);
-    if (node.type === "video") return videoInspector(node);
-    if (node.type === "everest-form") return everestInspector(node);
-    if (TEXT_TYPES.includes(node.type)) return textInspector(node);
-    if (LAYOUT_TYPES.includes(node.type)) return layoutInspector(node);
-    const def = defOf(node.type) || { fields: [] };
-    const byGroup = {};
-    (def.fields || []).forEach((f) => {
-      const g = f.group || "content";
-      byGroup[g] = byGroup[g] || [];
-      byGroup[g].push(f);
-    });
-    const glob = node.source === "global" ? `
-      <div class="acc"><h5>Componente global</h5>
-        <p class="m-muted">Instancia de #${node.globalId}. Editar props aquí es override local. Editar el global afecta todas las páginas.</p>
-        <button type="button" class="m-btn ghost" data-unlink="${node.id}">Desvincular</button>
-      </div>` : "";
-    const fieldsHtml = Object.entries(byGroup).map(([g, fields]) => `
-      <div class="acc"><h5>${groups[g] || g}</h5>
-        ${fields.map((f) => fieldHtml(node, f)).join("")}
-      </div>`).join("");
-    const hide = node.hiddenOn || {};
-    const st = node.styles?.[state.bp] || {};
-    const isImg = node.type === "image" || node.type === "hero";
-    const visHtml = `
-      <div class="acc"><h5>Visibilidad</h5>
-        <label><input type="checkbox" data-hide-bp="desktop" ${hide.desktop ? "checked" : ""}> Ocultar en desktop</label>
-        <label><input type="checkbox" data-hide-bp="tablet" ${hide.tablet ? "checked" : ""}> Ocultar en tablet</label>
-        <label><input type="checkbox" data-hide-bp="mobile" ${hide.mobile ? "checked" : ""}> Ocultar en mobile</label>
-        <p class="m-muted">Aplica al breakpoint del canvas (${state.bp}, ${state.widths[state.bp]}px).</p>
-      </div>`;
-    const typeHtml = `
-      <div class="acc"><h5>Diseño de texto (${state.bp})</h5>
-        <p class="m-muted">Alineación</p>
-        ${seg("text-align", st["text-align"] || "", [
-          { v: "left", l: "⟸", t: "Izquierda" },
-          { v: "center", l: "≡", t: "Centro" },
-          { v: "right", l: "⟹", t: "Derecha" },
-          { v: "justify", l: "☰", t: "Justificado" },
-        ])}
-        ${rangeControl("Tamaño de fuente", "font-size", st, 10, 96, "px")}
-        <p class="m-muted">Peso</p>
-        ${seg("font-weight", st["font-weight"] || "", [
-          { v: "300", l: "Light" }, { v: "400", l: "Reg" }, { v: "600", l: "Semi" }, { v: "700", l: "Bold" },
-        ])}
-        <p class="m-muted">Estilo</p>
-        ${seg("font-style", st["font-style"] || "", [{ v: "normal", l: "I", t: "Normal" }, { v: "italic", l: "<i>I</i>", t: "Cursiva" }])}
-        <p class="m-muted">Transformar</p>
-        ${seg("text-transform", st["text-transform"] || "", [
-          { v: "none", l: "aa" }, { v: "uppercase", l: "AA" }, { v: "capitalize", l: "Aa" },
-        ])}
-        ${window.KrgUi.fontFamilyField("Familia", st["font-family"] || "", 'data-style="font-family"')}
-        ${window.KrgUi.colorField("Color texto", st.color || "", 'data-style="color"')}
-        ${window.KrgUi.colorField("Fondo", st["background-color"] || "", 'data-style="background-color"')}
-        <p class="m-muted">Estos dos pintan el bloque entero por encima de todo, incluido su tema. Para los colores propios del bloque (y los de cada texto, cuando los tenga) usa «Colores», más arriba.</p>
-      </div>`;
-    const spaceHtml = `
-      <div class="acc"><h5>Espaciado (${state.bp})</h5>
-        ${boxControl("padding", "Padding", st)}
-        ${boxControl("margin", "Margin", st)}
-      </div>`;
-    const imgHtml = isImg ? `
-      <div class="acc"><h5>Imagen (${state.bp})</h5>
-        ${rangeControl("Ancho", "width", st, 10, 100, "%")}
-        ${rangeControl("Alto (opcional)", "height", st, 0, 800, "px")}
-        ${rangeControl("Máximo ancho", "max-width", st, 10, 100, "%")}
-        <p class="m-muted">Ajuste</p>
-        ${seg("object-fit", st["object-fit"] || node.props?.objectFit || "cover", [
-          { v: "cover", l: "Cover" }, { v: "contain", l: "Contain" }, { v: "fill", l: "Fill" },
-        ])}
-        <p class="m-muted">Posición en el recorte</p>
-        ${seg("object-position", st["object-position"] || "center", [
-          { v: "left", l: "Izq" }, { v: "center", l: "Centro" }, { v: "right", l: "Der" }, { v: "top", l: "Arriba" }, { v: "bottom", l: "Abajo" },
-        ])}
-      </div>` : "";
-    const advHtml = `
-      <div class="acc"><h5>Avanzado</h5>
-        <label>Identificador CSS (id) <input data-node="htmlId" value="${esc(node.htmlId || node.props?.htmlId || "")}" placeholder="hero-inicio"></label>
-        <label>Clase CSS <input data-node="htmlClass" value="${esc(node.htmlClass || "")}" placeholder="mi-clase"></label>
-        <label>Order <input data-style="order" value="${esc(st.order || "")}"></label>
-      </div>`;
-    const contentFields = (byGroup.content || []).map((f) => fieldHtml(node, f)).join("");
-    // Agrupado y con titulillo: con los colores por elemento la lista
-    // plana se hacia larguisima y «Colores» quedaba enterrado entre
-    // campos de disposicion.
-    const designFields = ["layout", "design", "colors", "spacing", "typography"]
-      .filter((g) => (byGroup[g] || []).length)
-      .map((g) => `<div class="acc"><h5>${groups[g] || g}</h5>
-        ${g === "colors" ? `<p class="m-muted">El «Tema» es el atajo. Si eliges un color aquí, manda el color: deja el campo en blanco (o pulsa la ✕) para volver al tema.</p>` : ""}
-        ${byGroup[g].map((f) => fieldHtml(node, f)).join("")}
-      </div>`)
-      .join("");
-    const tab = state.inspTab || "content";
-    const menuModes = node.type === "menu" ? navModeFields(node.props || {}, "data-prop-set") : "";
-    let body = "";
-    if (tab === "design") {
-      body = `${panelAlign(node)}${menuModes}${designFields}${typeHtml}${spaceHtml}${imgHtml}${panelAnim(node)}`;
-    } else if (tab === "advanced") {
-      body = `${visHtml}${advHtml}`;
-    } else {
-      body = `${glob}${contentFields ? `<div class="acc"><h5>Contenido</h5>${contentFields}</div>` : fieldsHtml}`;
-    }
-    return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
-      <div class="acc"><h5>${esc(def.name || node.type)}</h5><p class="m-muted">${esc(node.type)}</p></div>
-      ${inspTabs()}${body}`;
-  }
 
   function navModeFields(p, attr) {
     const row = (key, label, fallback) => {
@@ -2730,6 +2809,11 @@
 
   function bindInspector() {
     const box = root.querySelector(".b-insp");
+
+    // Los acordeones del nuevo inspector. No repintan nada al abrirse:
+    // cambian `hidden` y apuntan la preferencia, asi que el control que
+    // el usuario tiene debajo del dedo no desaparece.
+    window.KrgBuilderCore.bindGroups(box);
     if (!box) return;
     const hit = () => findNode(state.doc.sections, state.selected);
     box.querySelectorAll("[data-prop]").forEach((inp) => {
@@ -2997,6 +3081,25 @@
         h.node.customCss[inp.dataset.css] = inp.value;
         markDirty();
         paintLiveCss();
+      });
+    });
+    box.querySelectorAll("[data-attrs]").forEach((inp) => {
+      inp.addEventListener("input", () => {
+        const h = hit();
+        if (!h) return;
+        // «clave: valor» por linea. Lo que no cuadre se ignora en
+        // silencio mientras se escribe; el filtro de verdad (que
+        // atributos se admiten) esta en el guardado.
+        const out = {};
+        String(inp.value || "").split("\n").forEach((linea) => {
+          const corte = linea.indexOf(":");
+          if (corte < 1) return;
+          const k = linea.slice(0, corte).trim().toLowerCase();
+          const v = linea.slice(corte + 1).trim();
+          if (k) out[k] = v;
+        });
+        h.node.attrs = out;
+        markDirty();
       });
     });
     box.querySelectorAll("[data-rt]").forEach((b) => {

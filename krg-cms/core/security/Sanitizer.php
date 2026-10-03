@@ -95,6 +95,7 @@ class Sanitizer {
 			'animEasing'   => in_array( (string) ( $node['animEasing'] ?? 'ease' ), [ 'ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out' ], true ) ? (string) ( $node['animEasing'] ?? 'ease' ) : 'ease',
 			'filters'      => self::filters( $node['filters'] ?? [] ),
 			'customCss'    => self::custom_css_fields( $node['customCss'] ?? [] ),
+			'attrs'        => self::html_attrs( $node['attrs'] ?? [] ),
 			'props'        => [],
 			'styles'       => self::styles( $node['styles'] ?? [] ),
 			'children'     => [],
@@ -369,6 +370,11 @@ class Sanitizer {
 			'filter', 'box-shadow', 'border-top-left-radius', 'border-top-right-radius', 'border-bottom-right-radius', 'border-bottom-left-radius',
 			'transition', 'transition-duration', 'transition-delay', 'transition-timing-function',
 			'animation-duration', 'animation-delay', 'animation-timing-function',
+			// Posicion y transformacion: las pide el grupo «Avanzado» del
+			// inspector. Van con validacion propia mas abajo, porque aqui
+			// un valor libre acaba en la hoja de estilos de la web.
+			'position', 'top', 'right', 'bottom', 'left', 'z-index',
+			'transform', 'transform-origin',
 		];
 		$out = [];
 		foreach ( $styles as $prop => $val ) {
@@ -391,6 +397,14 @@ class Sanitizer {
 				}
 			} else {
 				$out[ $prop ] = \Meridian\Design\TokenCompiler::safe_css( (string) $val );
+			}
+			if ( isset( $out[ $prop ] ) ) {
+				$limpio = self::guarded_prop( $prop, (string) $out[ $prop ] );
+				if ( '' === $limpio ) {
+					unset( $out[ $prop ] );
+				} else {
+					$out[ $prop ] = $limpio;
+				}
 			}
 		}
 		return array_merge( $out, $box );
@@ -474,6 +488,98 @@ class Sanitizer {
 			'invert'     => $n( $v['invert'] ?? 0, 0, 100, 0 ),
 			'sepia'      => $n( $v['sepia'] ?? 0, 0, 100, 0 ),
 		];
+	}
+
+	/**
+	 * Las propiedades que no pueden llevar cualquier cosa.
+	 *
+	 * `safe_css()` solo quita llaves y angulos, que vale para un color o
+	 * un tamaño. Para `position`, `transform` y los cuatro lados hace
+	 * falta algo mas estrecho: son valores que el inspector deja escribir
+	 * a mano y acaban tal cual en la hoja de la web.
+	 *
+	 * Devuelve el valor bueno, o cadena vacia si no vale (y entonces no
+	 * se guarda: mejor que no haya nada a que haya algo raro).
+	 */
+	private static function guarded_prop( string $prop, string $val ): string {
+		$val = trim( $val );
+		if ( '' === $val ) {
+			return '';
+		}
+		switch ( $prop ) {
+			case 'position':
+				return in_array( $val, [ 'static', 'relative', 'absolute', 'sticky', 'fixed' ], true ) ? $val : '';
+			case 'z-index':
+				return is_numeric( $val ) ? (string) max( -999, min( 999, (int) $val ) ) : '';
+			case 'top':
+			case 'right':
+			case 'bottom':
+			case 'left':
+				return 'auto' === $val ? 'auto' : self::css_length( $val );
+			case 'transform':
+			case 'transform-origin':
+				// Solo funciones y palabras de CSS: letras, numeros,
+				// unidades, comas, parentesis y signos. Nada de `url(`,
+				// `expression(`, comillas ni punto y coma.
+				if ( preg_match( '/^[a-zA-Z0-9 .,%()+\-_\/]+$/', $val ) !== 1 ) {
+					return '';
+				}
+				if ( preg_match( '/(url|expression|image-set|javascript)\s*\(/i', $val ) === 1 ) {
+					return '';
+				}
+				return $val;
+			default:
+				return $val;
+		}
+	}
+
+	/**
+	 * Atributos HTML que el usuario escribe a mano en «Avanzado».
+	 *
+	 * Sirven para enganchar analitica, accesibilidad o librerias de
+	 * terceros sin tocar codigo. Como van directos a la etiqueta, la
+	 * lista es cerrada: `data-*`, `aria-*` y un puñado de atributos de
+	 * HTML que no cambian el comportamiento del documento.
+	 *
+	 * Lo que NUNCA pasa: `on*` (un `onclick` es ejecutar codigo ajeno),
+	 * `style`, `class` e `id` (los pone el CMS y los gestiona el panel),
+	 * y `src`/`href` (cargar o enlazar a cualquier sitio desde un
+	 * atributo suelto). Maximo 20 por bloque.
+	 *
+	 * @param mixed $v Lista de { key, value } o mapa clave => valor.
+	 */
+	public static function html_attrs( $v ): array {
+		$permitidos = [ 'title', 'role', 'lang', 'dir', 'tabindex', 'itemprop', 'itemtype', 'itemscope', 'translate', 'draggable', 'hidden' ];
+		$pares      = [];
+		if ( is_array( $v ) ) {
+			foreach ( $v as $k => $item ) {
+				if ( is_array( $item ) ) {
+					$pares[] = [ (string) ( $item['key'] ?? '' ), (string) ( $item['value'] ?? '' ) ];
+				} else {
+					$pares[] = [ (string) $k, (string) $item ];
+				}
+			}
+		}
+		$out = [];
+		foreach ( $pares as [ $clave, $valor ] ) {
+			$clave = strtolower( trim( $clave ) );
+			if ( '' === $clave || count( $out ) >= 20 ) {
+				continue;
+			}
+			$bueno = preg_match( '/^(data|aria)-[a-z0-9][a-z0-9_-]*$/', $clave ) === 1
+				|| in_array( $clave, $permitidos, true );
+			if ( ! $bueno ) {
+				continue;
+			}
+			$valor = sanitize_text_field( $valor );
+			// Un `javascript:` o un `data:` dentro del valor no tiene
+			// sentido en estos atributos y si lo tiene en un ataque.
+			if ( preg_match( '/^\s*(javascript|data|vbscript)\s*:/i', $valor ) === 1 ) {
+				continue;
+			}
+			$out[ $clave ] = $valor;
+		}
+		return $out;
 	}
 
 	public static function custom_css_fields( $v ): array {
