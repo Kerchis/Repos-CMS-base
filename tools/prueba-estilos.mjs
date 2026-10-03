@@ -36,7 +36,7 @@ const leer = (sel, prop) =>
     return cs.getPropertyValue(p).trim();
   }, [sel, prop]);
 
-async function caso(nombre, comprobaciones, { sinHoja = false } = {}) {
+async function caso(nombre, comprobaciones, { sinHoja = false, ancho = 1440, etiqueta = '' } = {}) {
   // `sinHoja` quita la hoja de estilos del documento para comprobar que
   // lo escrito en el panel sigue en pie aunque esa hoja no llegue
   // (cache del hosting, plugins que agrupan y minifican CSS...).
@@ -44,10 +44,13 @@ async function caso(nombre, comprobaciones, { sinHoja = false } = {}) {
   if (sinHoja) {
     markup = markup.replace(/<style id="krg-doc-css">[\s\S]*?<\/style>/, '');
   }
-  const file = pagina(`estilos-${nombre}${sinHoja ? '-sin-hoja' : ''}`, markup);
+  const file = pagina(`estilos-${nombre}${sinHoja ? '-sin-hoja' : ''}${ancho}`, markup);
+  if (ancho !== 1440) {
+    await page.setViewportSize({ width: ancho, height: 1000 });
+  }
   await page.goto('file://' + file);
   await page.waitForTimeout(60);
-  console.log(`\n${nombre}${sinHoja ? ' (sin la hoja del documento)' : ''}`);
+  console.log(`\n${nombre}${etiqueta ? ' ' + etiqueta : ''}${sinHoja ? ' (sin la hoja del documento)' : ''}`);
   for (const [sel, prop, esperado] of comprobaciones) {
     const real = await leer(sel, prop);
     const bien = typeof esperado === 'function' ? esperado(real) : String(real) === String(esperado);
@@ -104,6 +107,27 @@ await caso('colores-rev-propio', [
   ['.m-rev', 'color', 'rgb(254, 246, 231)'],
   ['.m-rev-card', 'background-color', 'rgb(217, 78, 39)'],
 ]);
+
+// Escritorio, tablet y movil son valores independientes: el de cada
+// tamaño manda en su tamaño y no pisa a los otros.
+await caso('estilos-tres-tamanos', [['.m-n-secBp', 'padding-top', '80px'], ['.m-n-secBp', 'background-color', 'rgb(217, 78, 39)']], { ancho: 1440, etiqueta: '· escritorio' });
+await caso('estilos-tres-tamanos', [['.m-n-secBp', 'padding-top', '40px'], ['.m-n-secBp', 'background-color', 'rgb(217, 78, 39)']], { ancho: 900, etiqueta: '· tablet' });
+await caso('estilos-tres-tamanos', [['.m-n-secBp', 'padding-top', '20px'], ['.m-n-secBp', 'background-color', 'rgb(217, 78, 39)']], { ancho: 420, etiqueta: '· móvil' });
+// ...y sin la hoja del documento el tamaño base sigue en pie.
+await caso('estilos-tres-tamanos', [['.m-n-secBp', 'padding-top', '80px']], { ancho: 1440, sinHoja: true });
+
+// Los cuatro lados y el margen, en cinco bloques distintos.
+const cinco = [];
+[['sb1', 'rgb(217, 78, 39)'], ['sb2', 'rgb(43, 65, 61)'], ['sb3', 'rgb(92, 125, 118)'],
+  ['sb4', 'rgb(120, 115, 106)'], ['sb5', 'rgb(225, 211, 182)']].forEach(([id, color]) => {
+  cinco.push([`.m-n-${id}`, 'padding-top', '100px']);
+  cinco.push([`.m-n-${id}`, 'padding-right', '50px']);
+  cinco.push([`.m-n-${id}`, 'padding-bottom', '80px']);
+  cinco.push([`.m-n-${id}`, 'padding-left', '30px']);
+  cinco.push([`.m-n-${id}`, 'margin-top', '40px']);
+  cinco.push([`.m-n-${id}`, 'background-color', color]);
+});
+await caso('estilos-cinco-bloques', cinco);
 
 /* ------------------------------------------------------------------ */
 /* 2. Alineación vertical dentro de una sección con alto              */

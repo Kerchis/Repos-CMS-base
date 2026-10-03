@@ -75,11 +75,19 @@
       return "#1d1d1b";
     },
     colorField(label, value, attr) {
+      // Un campo de color vacio tiene que PARECER vacio. Antes el hueco
+      // llevaba de ejemplo un hexadecimal («#D94E27») y el cuadrito salia
+      // casi negro, asi que un campo sin color se leia como un color ya
+      // elegido: se cambiaba el de al lado, no pasaba nada y parecia que
+      // el panel mentia. Ahora el texto dice que esta vacio, el cuadrito
+      // se marca con una franja y hay una ✕ para volver a vaciarlo.
       const v = String(value || "");
+      const vacio = "" === v.trim();
       return `<label class="m-pick-label">${uiEsc(label)}
-        <div class="m-pick m-pick-color">
-          <input type="color" data-pick-hex value="${uiEsc(this.hex(v))}" title="Selector de color">
-          <input ${attr} value="${uiEsc(v)}" class="m-pick-val" placeholder="#D94E27" spellcheck="false">
+        <div class="m-pick m-pick-color${vacio ? " is-empty" : ""}">
+          <input type="color" data-pick-hex value="${uiEsc(this.hex(v))}" title="Elegir un color">
+          <input ${attr} value="${uiEsc(v)}" class="m-pick-val" placeholder="Sin color" spellcheck="false">
+          <button type="button" class="m-pick-clear" data-pick-clear title="Quitar el color">✕</button>
         </div>
       </label>`;
     },
@@ -193,18 +201,30 @@
             fire();
           }
         });
+        // El cuadrito y la casilla de texto son el mismo dato: lo que se
+        // elija en uno tiene que verse en el otro al momento, y la marca
+        // de «vacio» tiene que irse en cuanto haya color.
+        const marcarVacio = () => row.classList.toggle("is-empty", "" === String(val.value || "").trim());
         hex?.addEventListener("input", () => {
           val.value = hex.value;
+          marcarVacio();
           fire();
+        });
+        row.querySelector("[data-pick-clear]")?.addEventListener("click", () => {
+          val.value = "";
+          marcarVacio();
+          fire();
+        });
+        val.addEventListener("input", () => {
+          marcarVacio();
+          const limpio = String(val.value || "").trim();
+          if (hex && /^#[0-9a-fA-F]{6}$/.test(limpio)) hex.value = limpio.toLowerCase();
         });
         px?.addEventListener("input", () => {
           if (!px.value) return;
           val.value = `${px.value}px`;
           if (token) token.value = "__custom__";
           fire();
-        });
-        val.addEventListener("input", () => {
-          if (hex && /^#[0-9a-fA-F]{6}$/.test(val.value.trim())) hex.value = val.value.trim();
         });
       });
     },

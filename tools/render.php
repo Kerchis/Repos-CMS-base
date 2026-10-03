@@ -982,6 +982,44 @@ $cases = [
 		return documento( [ arbol( [ 'width' => 'full' ], [ node( 'review-slider', $props, 'rev2' ) ], 'secRev2' ) ] );
 	},
 
+	// Los tres tamanos a la vez, para comprobar que no se pisan.
+	'estilos-tres-tamanos' => function () {
+		$sec = arbol( [ 'width' => 'full' ], [ node( 'statement-cta', [ 'title' => 'Hola' ], 'ctaB' ) ], 'secBp' );
+		$sec['styles'] = [
+			'desktop' => [ 'padding-top' => '80px', 'background' => '#D94E27' ],
+			'tablet'  => [ 'padding-top' => '40px' ],
+			'mobile'  => [ 'padding-top' => '20px' ],
+		];
+		return documento( [ $sec ] );
+	},
+
+	// Relleno, margen y fondo en cinco bloques distintos a la vez.
+	'estilos-cinco-bloques' => function () {
+		$casos = [
+			[ 'statement-cta', [ 'title' => 'CTA' ], 'b1', '#D94E27' ],
+			[ 'review-slider', [ 'title' => 'Reseñas', 'items' => [ [ 'text' => 'Hola', 'author' => 'Ana' ] ] ], 'b2', '#2B413D' ],
+			[ 'menu-list', carta_props(), 'b3', '#5C7D76' ],
+			[ 'product-rail', [ 'title' => 'Carril' ], 'b4', '#78736A' ],
+			[ 'map', [], 'b5', '#E1D3B6' ],
+		];
+		$secciones = [];
+		foreach ( $casos as $i => [ $tipo, $props, $nid, $color ] ) {
+			$sec           = arbol( [ 'width' => 'full' ], [ node( $tipo, $props, $nid ) ], 'sb' . ( $i + 1 ) );
+			$sec['styles'] = [
+				'desktop' => [
+					'padding-top'    => '100px',
+					'padding-right'  => '50px',
+					'padding-bottom' => '80px',
+					'padding-left'   => '30px',
+					'margin-top'     => '40px',
+					'background'     => $color,
+				],
+			];
+			$secciones[] = $sec;
+		}
+		return documento( $secciones );
+	},
+
 ];
 
 $want = $argv[1] ?? '';

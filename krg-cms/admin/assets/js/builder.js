@@ -1144,7 +1144,7 @@
     return `<div class="b-box">
       <div class="b-box-h"><strong>${label}</strong><span class="m-muted">px · ${state.bp}</span></div>
       <div class="b-box-grid">
-        ${sides.map(([s, lab]) => `<label>${lab}<input type="number" data-side="${kind}-${s}" value="${esc(sideVal(st, kind, s))}" placeholder="0"></label>`).join("")}
+        ${sides.map(([s, lab]) => `<label>${lab}<input type="number" data-side="${kind}-${s}" value="${esc(sideVal(st, kind, s))}" placeholder="auto"></label>`).join("")}
       </div>
     </div>`;
   }
@@ -1529,18 +1529,20 @@
     </div>`;
   }
   function panelSpacing(st) {
+    const otros = { desktop: "tablet y móvil", tablet: "móvil", mobile: "" }[state.bp];
     return `<div class="acc"><h5>Separación (${state.bp})</h5>
       ${boxControl("padding", "Relleno", st)}
       ${boxControl("margin", "Margen", st)}
+      <p class="m-muted">En blanco no es cero: es «lo que traiga el bloque». Escribe 0 para pegarlo del todo.${otros ? ` Lo que pongas aquí vale también en ${otros} mientras no les pongas un valor propio.` : ""}</p>
     </div>`;
   }
   function panelBorder(st) {
     return `<div class="acc"><h5>Borde</h5>
       <div class="b-box-grid">
-        <label>Sup. izq. <input type="number" data-side="border-top-left-radius" value="${esc(String(st["border-top-left-radius"] || "").replace(/px$/i, ""))}" placeholder="0"></label>
-        <label>Sup. der. <input type="number" data-side="border-top-right-radius" value="${esc(String(st["border-top-right-radius"] || "").replace(/px$/i, ""))}" placeholder="0"></label>
-        <label>Inf. izq. <input type="number" data-side="border-bottom-left-radius" value="${esc(String(st["border-bottom-left-radius"] || "").replace(/px$/i, ""))}" placeholder="0"></label>
-        <label>Inf. der. <input type="number" data-side="border-bottom-right-radius" value="${esc(String(st["border-bottom-right-radius"] || "").replace(/px$/i, ""))}" placeholder="0"></label>
+        <label>Sup. izq. <input type="number" data-side="border-top-left-radius" value="${esc(String(st["border-top-left-radius"] || "").replace(/px$/i, ""))}" placeholder="auto"></label>
+        <label>Sup. der. <input type="number" data-side="border-top-right-radius" value="${esc(String(st["border-top-right-radius"] || "").replace(/px$/i, ""))}" placeholder="auto"></label>
+        <label>Inf. izq. <input type="number" data-side="border-bottom-left-radius" value="${esc(String(st["border-bottom-left-radius"] || "").replace(/px$/i, ""))}" placeholder="auto"></label>
+        <label>Inf. der. <input type="number" data-side="border-bottom-right-radius" value="${esc(String(st["border-bottom-right-radius"] || "").replace(/px$/i, ""))}" placeholder="auto"></label>
       </div>
       <p class="m-muted">Estilo</p>
       ${seg("border-style", st["border-style"] || "none", [

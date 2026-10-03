@@ -286,7 +286,32 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   gap: 6px;
   align-items: center;
 }
-.m-pick-color { grid-template-columns: 42px minmax(0, 1fr); }
+.m-pick-color { grid-template-columns: 42px minmax(0, 1fr) 30px; }
+/* Campo de color sin color: tiene que notarse que está vacío, no parecer
+   un negro elegido a propósito. La franja va sobre el cuadrito. */
+.m-pick-color.is-empty { position: relative; }
+.m-pick-color.is-empty::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 42px;
+  height: 100%;
+  border-radius: 8px;
+  background:
+    linear-gradient(to top right, transparent calc(50% - 1px), #d94e27 calc(50% - 1px), #d94e27 calc(50% + 1px), transparent calc(50% + 1px)),
+    repeating-linear-gradient(45deg, #f2f2f2 0 6px, #e4e4e4 6px 12px);
+  pointer-events: none;
+}
+.m-pick-clear {
+  width: 30px;
+  border: 1px solid var(--m-line, #ddd);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  line-height: 1;
+}
+.m-pick-clear:hover { background: var(--m-soft, #f3f3f3); }
 /* Con color elegido aparece la aspa para volver al tema. */
 .m-pick-color:has([data-color-clear]) { grid-template-columns: 42px minmax(0, 1fr) 30px; }
 .m-pick-color [data-color-clear] { width: 30px; }

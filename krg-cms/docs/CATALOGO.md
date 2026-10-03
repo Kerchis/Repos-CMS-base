@@ -289,6 +289,13 @@ partido, reseñas, CTA, acordeón, hitos y colección filtrable).
 
 ## 5. Mejoras del editor y del admin
 
+- **Un campo de color vacío ahora se ve vacío.** El hueco llevaba de
+  ejemplo un hexadecimal (`#D94E27`) y el cuadrito salía casi negro, así que
+  un campo sin color se leía como un color ya elegido: se cambiaba otro
+  campo, no pasaba nada y parecía que el panel mentía. Ahora el texto dice
+  «Sin color», el cuadrito lleva una franja y hay una ✕ para vaciarlo. Las
+  casillas de Relleno y Margen dicen «auto» en vez de «0», porque en blanco
+  no es cero: es el ritmo propio del bloque.
 - **«Pintar también el bloque».** Cuando el bloque de dentro tapa el fondo
   de la sección, el aviso trae un botón que copia ese color al campo propio
   del bloque de un clic (y a las tarjetas, en el carrusel de reseñas), en

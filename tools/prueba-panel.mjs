@@ -51,6 +51,7 @@ function doc() {
 }
 
 const guardados = [];
+let ultimo = null;
 // Cuando esta a true, el servidor simulado devuelve el documento sin
 // estilos: asi se comprueba que el constructor lo nota y avisa.
 let servidorTragon = false;
@@ -86,6 +87,7 @@ await page.route('**/krg.test/**', async (route) => {
   if (req.method() === 'POST' && /\/pages\/1(\/save)?$/.test(url)) {
     const cuerpo = JSON.parse(req.postData() || '{}');
     guardados.push(cuerpo);
+    ultimo = JSON.parse(JSON.stringify(cuerpo));
     const resp = JSON.parse(JSON.stringify(cuerpo));
     if (servidorTragon) {
       const limpiar = (list) => (list || []).forEach((n) => {
@@ -96,7 +98,7 @@ await page.route('**/krg.test/**', async (route) => {
     }
     return json({ ...resp, checksum: 'c' + guardados.length });
   }
-  if (url === '/pages/1') return json(doc());
+  if (url === '/pages/1') return json(ultimo || doc());
   if (url === '/registry') return json(registry);
   if (url === '/tokens') return json({ data: { color: {}, font: {}, typography: {}, spacing: {} } });
   return json([]);
@@ -189,6 +191,19 @@ await seleccionar('secCta');
 const visto = await page.inputValue('.b-insp [data-side="padding-top"]');
 ok(visto === '50', `la casilla Arriba enseña ${JSON.stringify(visto)}`);
 
+console.log('\nTras recargar el constructor, el panel enseña lo guardado');
+await page.reload();
+await page.waitForSelector('#krg-builder .b-insp', { timeout: 15000 });
+await seleccionar('secCta');
+const tras = await page.evaluate(() => ({
+  texto: document.querySelector('.b-insp [data-style="background"]')?.value,
+  muestra: document.querySelector('.b-insp [data-style="background"]')?.closest('.m-pick')?.querySelector('[data-pick-hex]')?.value,
+  relleno: document.querySelector('.b-insp [data-side="padding-top"]')?.value,
+}));
+ok(tras.texto === '#D94E27', `campo de texto = ${tras.texto}`);
+ok(tras.muestra === '#d94e27', `cuadrito del color = ${tras.muestra}`);
+ok(tras.relleno === '50', `relleno Arriba = ${tras.relleno}`);
+
 console.log('\nSi el servidor descarta un estilo, el panel avisa');
 servidorTragon = true;
 await seleccionar('secTxt');
@@ -201,6 +216,69 @@ ok(/descart/i.test(aviso || ''), `aviso visible: ${JSON.stringify((aviso || '').
 ok(/padding-top/.test(aviso || ''), 'el aviso nombra la propiedad perdida');
 servidorTragon = false;
 
+// Nadie escribe un hexadecimal a mano: se pulsa el cuadrito y se elige en
+// el selector del sistema. Eso es otro control y otro camino.
+// Un campo vacío tiene que parecer vacío: era lo que hacía creer que el
+// panel ya tenía un color puesto y que el render lo ignoraba.
+console.log('\nUn campo de color vacío se ve vacío');
+await seleccionar('secTxt');
+const vacio = await page.evaluate(() => {
+  const campo = document.querySelector('.b-insp [data-style="background"]');
+  const fila = campo.closest('.m-pick');
+  return { valor: campo.value, hueco: campo.placeholder, marcado: fila.classList.contains('is-empty'), tieneX: !!fila.querySelector('[data-pick-clear]') };
+});
+ok(vacio.valor === '', 'el campo llega sin valor');
+ok(!/^#/.test(vacio.hueco), `el texto de ayuda no parece un color: ${JSON.stringify(vacio.hueco)}`);
+ok(vacio.marcado, 'el cuadrito se marca como vacío');
+ok(vacio.tieneX, 'hay botón para quitar el color');
+
+console.log('\nElegir el color con el cuadrito (no escribiendo el hex)');
+await seleccionar('secTxt');
+await page.evaluate(() => {
+  const campo = document.querySelector('.b-insp [data-style="background"]');
+  const cuadro = campo.closest('.m-pick').querySelector('[data-pick-hex]');
+  cuadro.value = '#00ff00';
+  cuadro.dispatchEvent(new Event('input', { bubbles: true }));
+});
+const n7 = guardados.length;
+ok(await esperarGuardado(n7 + 1), 'elegir en el cuadrito dispara un guardado');
+const secV = nodoDe(guardados[guardados.length - 1], 'secTxt');
+ok(secV?.styles?.desktop?.background === '#00ff00', `fondo elegido con el cuadrito = ${secV?.styles?.desktop?.background}`);
+
+const trasElegir = await page.evaluate(() => {
+  const fila = document.querySelector('.b-insp [data-style="background"]').closest('.m-pick');
+  return { marcado: fila.classList.contains('is-empty'), texto: fila.querySelector('.m-pick-val').value };
+});
+ok(!trasElegir.marcado, 'al elegir color se quita la marca de vacío');
+ok(trasElegir.texto === '#00ff00', `la casilla de texto se sincroniza: ${trasElegir.texto}`);
+
+console.log('\nLa ✕ vuelve a dejarlo sin color');
+// Ojo: hay otra ✕ antes (la del color de borde). Hay que pulsar la del
+// campo de fondo, no la primera que aparezca.
+await page.evaluate(() => {
+  document.querySelector('.b-insp [data-style="background"]').closest('.m-pick').querySelector('[data-pick-clear]').click();
+});
+const nX = guardados.length;
+ok(await esperarGuardado(nX + 1), 'quitar el color dispara un guardado');
+await page.waitForTimeout(2200);
+const secX = nodoDe(guardados[guardados.length - 1], 'secTxt');
+ok(!secX?.styles?.desktop?.background, `el fondo queda sin valor: ${JSON.stringify(secX?.styles?.desktop?.background)}`);
+
+console.log('\nColor propio del bloque, también con el cuadrito');
+await seleccionar('cta1');
+const hayPicker = await page.evaluate(() => {
+  const inp = document.querySelector('.b-insp [data-color-picker]');
+  if (!inp) return false;
+  inp.value = '#0000ff';
+  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  return true;
+});
+ok(hayPicker, 'el bloque tiene selector de color');
+const n8 = guardados.length;
+ok(await esperarGuardado(n8 + 1), 'el color del bloque dispara un guardado');
+const ctaC = nodoDe(guardados[guardados.length - 1], 'cta1');
+ok(JSON.stringify(ctaC?.props?.bgColor || '').includes('0000ff'), `bgColor del bloque = ${JSON.stringify(ctaC?.props?.bgColor)}`);
+
 if (errores.length) {
   console.log('\nErrores de consola:');
   errores.forEach((e) => console.log('  ' + e));
@@ -208,6 +286,6 @@ if (errores.length) {
 }
 
 await browser.close();
-const total = 15 + errores.length;
+const total = 31 + errores.length;
 console.log(`\n${total - fallos}/${total} comprobaciones correctas`);
 process.exit(fallos ? 1 : 0);
