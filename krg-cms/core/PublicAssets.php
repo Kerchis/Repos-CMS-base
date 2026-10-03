@@ -12,10 +12,10 @@ defined( 'ABSPATH' ) || exit;
 class PublicAssets {
 
 	public static function enqueue(): void {
-		wp_enqueue_style( 'krg-base', MERIDIAN_URI . '/assets/css/base.css', [], MERIDIAN_VERSION );
-		wp_enqueue_style( 'krg-components', MERIDIAN_URI . '/assets/css/components.css', [ 'krg-base' ], MERIDIAN_VERSION );
+		wp_enqueue_style( 'krg-base', MERIDIAN_URI . '/assets/css/base.css', [], meridian_ver( '/assets/css/base.css' ) );
+		wp_enqueue_style( 'krg-components', MERIDIAN_URI . '/assets/css/components.css', [ 'krg-base' ], meridian_ver( '/assets/css/components.css' ) );
 		// Capa del sistema visual de referencia: siempre después de components.css.
-		wp_enqueue_style( 'krg-modules', MERIDIAN_URI . '/assets/css/modules.css', [ 'krg-components' ], MERIDIAN_VERSION );
+		wp_enqueue_style( 'krg-modules', MERIDIAN_URI . '/assets/css/modules.css', [ 'krg-components' ], meridian_ver( '/assets/css/modules.css' ) );
 		\Meridian\Design\FontCatalog::enqueue_used();
 
 		wp_add_inline_style( 'krg-base', \Meridian\Design\TokenCompiler::css() );
@@ -33,8 +33,8 @@ class PublicAssets {
 		}
 
 		$types = is_array( $doc ) ? \Meridian\Media\Prefetch::types( $doc['sections'] ?? [] ) : [];
-		wp_enqueue_script( 'krg-public', MERIDIAN_URI . '/assets/js/public.js', [], MERIDIAN_VERSION, true );
-		wp_enqueue_script( 'krg-modules', MERIDIAN_URI . '/assets/js/modules.js', [ 'krg-public' ], MERIDIAN_VERSION, true );
+		wp_enqueue_script( 'krg-public', MERIDIAN_URI . '/assets/js/public.js', [], meridian_ver( '/assets/js/public.js' ), true );
+		wp_enqueue_script( 'krg-modules', MERIDIAN_URI . '/assets/js/modules.js', [ 'krg-public' ], meridian_ver( '/assets/js/modules.js' ), true );
 		wp_localize_script(
 			'krg-public',
 			'KrgPublic',
@@ -54,11 +54,11 @@ class PublicAssets {
 		// la pestana «Preview» dejaba la pagina muerta: ni enlaces ni
 		// botones. Y «Preview» tiene que comportarse como la web.
 		if ( \Meridian\Render\Preview::is_canvas() ) {
-			wp_enqueue_script( 'krg-preview', MERIDIAN_URI . '/assets/js/preview.js', [], MERIDIAN_VERSION, true );
+			wp_enqueue_script( 'krg-preview', MERIDIAN_URI . '/assets/js/preview.js', [], meridian_ver( '/assets/js/preview.js' ), true );
 		}
 
 		if ( ! empty( $types['map'] ) ) {
-			wp_enqueue_script( 'krg-maps', MERIDIAN_URI . '/assets/js/maps.js', [ 'krg-public' ], MERIDIAN_VERSION, true );
+			wp_enqueue_script( 'krg-maps', MERIDIAN_URI . '/assets/js/maps.js', [ 'krg-public' ], meridian_ver( '/assets/js/maps.js' ), true );
 		}
 		if ( ! empty( $types['everest-form'] ) && class_exists( '\EVF_Frontend_Scripts' ) && method_exists( '\EVF_Frontend_Scripts', 'load_scripts' ) ) {
 			\EVF_Frontend_Scripts::load_scripts();

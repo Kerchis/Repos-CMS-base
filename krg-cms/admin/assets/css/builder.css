@@ -540,3 +540,15 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   font-size: 12px;
   line-height: 1.5;
 }
+
+/* Aviso de guardado incompleto: algo se envio y el servidor no lo
+   devolvio. Va junto al estado, en rojo, y solo aparece si pasa. */
+.b-warn {
+  max-width: 420px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #fdecea;
+  color: #8a1c13;
+  font-size: 12px;
+  line-height: 1.35;
+}

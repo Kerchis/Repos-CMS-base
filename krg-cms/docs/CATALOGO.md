@@ -289,6 +289,17 @@ partido, reseñas, CTA, acordeón, hitos y colección filtrable).
 
 ## 5. Mejoras del editor y del admin
 
+- **Cada archivo lleva su propia versión.** El CSS y el JavaScript se
+  encolaban con una constante escrita a mano (`MERIDIAN_VERSION`), así que
+  subir archivos nuevos sin tocarla dejaba al navegador —y a cualquier CDN o
+  plugin de caché— sirviendo los viejos desde la misma URL: el PHP era nuevo
+  y la interfaz que se ejecutaba era la de antes. Ahora `meridian_ver()`
+  añade la fecha del propio archivo y cada subida invalida su caché sola.
+- **Si el guardado pierde un estilo, el panel lo dice.** Al guardar, el
+  constructor compara lo que envió con lo que el servidor devolvió; si falta
+  alguna propiedad, la nombra en un aviso junto al estado. Un ajuste que se
+  escribe, se guarda sin error y al recargar aparece vacío ya no es
+  invisible.
 - **Lo que escribes en el panel viaja con el HTML.** Relleno, margen, fondo
   y demás estilos del tamaño base se emiten además en el atributo `style`
   del propio elemento, no sólo en la hoja de estilos del documento. Esa hoja

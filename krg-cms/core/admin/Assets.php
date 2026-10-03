@@ -18,8 +18,8 @@ class Assets {
 		}
 
 		wp_enqueue_media();
-		wp_enqueue_style( 'krg-admin', MERIDIAN_URI . '/admin/assets/css/admin.css', [], MERIDIAN_VERSION );
-		wp_enqueue_script( 'krg-admin', MERIDIAN_URI . '/admin/assets/js/app.js', [], MERIDIAN_VERSION, true );
+		wp_enqueue_style( 'krg-admin', MERIDIAN_URI . '/admin/assets/css/admin.css', [], meridian_ver( '/admin/assets/css/admin.css' ) );
+		wp_enqueue_script( 'krg-admin', MERIDIAN_URI . '/admin/assets/js/app.js', [], meridian_ver( '/admin/assets/js/app.js' ), true );
 		$skin_css = \Meridian\Admin\Skin::css();
 		if ( $skin_css ) {
 			wp_add_inline_style( 'krg-admin', $skin_css );
@@ -49,11 +49,11 @@ class Assets {
 
 		$is_builder = ( 'krg-builder' === $page );
 		if ( $is_builder ) {
-			wp_enqueue_style( 'krg-builder', MERIDIAN_URI . '/admin/assets/css/builder.css', [ 'krg-admin' ], MERIDIAN_VERSION );
+			wp_enqueue_style( 'krg-builder', MERIDIAN_URI . '/admin/assets/css/builder.css', [ 'krg-admin' ], meridian_ver( '/admin/assets/css/builder.css' ) );
 			if ( ! empty( $config['chrome'] ) ) {
-				wp_enqueue_script( 'krg-chrome', MERIDIAN_URI . '/admin/assets/js/chrome.js', [ 'krg-admin' ], MERIDIAN_VERSION, true );
+				wp_enqueue_script( 'krg-chrome', MERIDIAN_URI . '/admin/assets/js/chrome.js', [ 'krg-admin' ], meridian_ver( '/admin/assets/js/chrome.js' ), true );
 			} else {
-				wp_enqueue_script( 'krg-builder', MERIDIAN_URI . '/admin/assets/js/builder.js', [ 'krg-admin' ], MERIDIAN_VERSION, true );
+				wp_enqueue_script( 'krg-builder', MERIDIAN_URI . '/admin/assets/js/builder.js', [ 'krg-admin' ], meridian_ver( '/admin/assets/js/builder.js' ), true );
 			}
 		}
 

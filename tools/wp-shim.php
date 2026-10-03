@@ -83,8 +83,27 @@ if ( ! function_exists( 'wp_kses' ) ) {
 if ( ! function_exists( 'wp_parse_args' ) ) {
 	function wp_parse_args( $a, $b = [] ) { return array_merge( (array) $b, (array) $a ); }
 }
+// Como en WordPress: lo que entra por la peticion llega con barras y las
+// metas se guardan con barras. Si el banco no lo imita, el viaje de ida y
+// vuelta de un documento se prueba mas facil de lo que es en realidad.
+if ( ! function_exists( 'stripslashes_deep' ) ) {
+	function stripslashes_deep( $v ) {
+		if ( is_array( $v ) ) {
+			return array_map( 'stripslashes_deep', $v );
+		}
+		return is_string( $v ) ? stripslashes( $v ) : $v;
+	}
+}
 if ( ! function_exists( 'wp_unslash' ) ) {
-	function wp_unslash( $v ) { return $v; }
+	function wp_unslash( $v ) { return stripslashes_deep( $v ); }
+}
+if ( ! function_exists( 'wp_slash' ) ) {
+	function wp_slash( $v ) {
+		if ( is_array( $v ) ) {
+			return array_map( 'wp_slash', $v );
+		}
+		return is_string( $v ) ? addslashes( $v ) : $v;
+	}
 }
 if ( ! function_exists( 'wp_unique_id' ) ) {
 	function wp_unique_id( $p = '' ) { static $i = 0; return $p . ( ++$i ); }

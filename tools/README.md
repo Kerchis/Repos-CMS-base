@@ -23,6 +23,8 @@ bash tools/devenv.sh     # PHP 8.3 estático + Chromium + playwright-core en .to
 | `tools/prueba-preview.mjs` | Contrato de contextos: «Preview» tiene que salir byte a byte igual que la web pública, y el andamiaje solo en el lienzo. |
 | `tools/prueba-guardado.php` | Camino de guardado: pasa nodos por el saneador de verdad y comprueba qué propiedades sobreviven. |
 | `tools/prueba-estilos.mjs` | Contrato de «lo que escribes en el panel manda»: documento real → saneador → compilador de CSS → navegador, y se lee el color, el relleno y la posición calculados. |
+| `tools/prueba-panel.mjs` | El tramo anterior: el panel del constructor de verdad en Chromium con la API simulada. Teclea en «Relleno», «Margen» y «Color de fondo» y comprueba que el valor sale en el cuerpo del POST de guardado. |
+| `tools/dump-registry.php` | Vuelca el catálogo de componentes como JSON para alimentar al constructor en `prueba-panel.mjs`. |
 
 Chromium necesita sus librerías en el entorno:
 
@@ -39,6 +41,7 @@ bash tools/lint-php.sh
 node tools/prueba-preview.mjs
 node tools/prueba-vacias.mjs
 node tools/prueba-estilos.mjs
+node tools/prueba-panel.mjs
 ```
 
 `tools/render.php` trae dos ayudantes para montar casos por el camino
@@ -47,3 +50,15 @@ el constructor) y `documento()` (pasa el árbol por `Sanitizer::document()`,
 compila el CSS con `DocumentCssCompiler` y lo devuelve delante del marcado).
 Son los que hacen falta para medir quién gana la cascada: llamar al
 renderizador a pelo se salta justo el tramo donde se pierden los estilos.
+
+## `prueba-panel.mjs`
+
+Los demás bancos empiezan en el documento ya guardado. Éste empieza antes:
+carga `app.js` y `builder.js` tal cual se sirven en el admin, con las
+llamadas a la API interceptadas, escribe en las casillas como lo haría una
+persona y comprueba que el valor aparece en el cuerpo del POST y que el
+panel lo vuelve a enseñar al volver a seleccionar la sección. El registro de
+componentes es el real: lo vuelca `dump-registry.php` desde el catálogo PHP.
+
+El último caso pone un servidor que devuelve el documento sin estilos y
+comprueba que el constructor lo detecta y lo dice en la barra de estado.

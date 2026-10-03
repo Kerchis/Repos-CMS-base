@@ -23,6 +23,7 @@ require_once $base . '/core/components/Registry.php';
 require_once $base . '/core/security/Sanitizer.php';
 require_once $base . '/core/security/UrlValidator.php';
 require_once $base . '/core/design/TokenCompiler.php';
+require_once $base . '/core/content/Document.php';
 
 \Meridian\Components\Registry::boot();
 
@@ -146,6 +147,47 @@ if ( '90vh' === $mh ) {
 } else {
 	++$fallos;
 	echo "  FALLA styles.desktop.min-height llega como " . var_export( $mh, true ) . "\n";
+}
+
+// El viaje completo de un estilo del panel: saneado, a JSON para la meta
+// del post y de vuelta. Es el tramo donde «lo guardo y al recargar esta
+// vacio» seria invisible desde fuera.
+echo "\nRelleno, margen y fondo de una seccion, ida y vuelta\n";
+$sec = [
+	'id'     => 'secX',
+	'type'   => 'section',
+	'props'  => [ 'width' => 'full' ],
+	'styles' => [
+		'desktop' => [
+			'padding-top'    => '50px',
+			'padding-left'   => '80px',
+			'margin-bottom'  => '30px',
+			'background'     => '#D94E27',
+		],
+		'tablet'  => [ 'padding-top' => '20px' ],
+	],
+];
+$doc   = \Meridian\Security\Sanitizer::document( [ 'sections' => [ $sec ] ] );
+$ida   = wp_json_encode( $doc, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+$vuelta = \Meridian\Content\Document::decode( wp_slash( $ida ) );
+$st     = $vuelta['sections'][0]['styles'] ?? [];
+foreach (
+	[
+		[ 'desktop', 'padding-top', '50px' ],
+		[ 'desktop', 'padding-left', '80px' ],
+		[ 'desktop', 'margin-bottom', '30px' ],
+		[ 'desktop', 'background', '#D94E27' ],
+		[ 'tablet', 'padding-top', '20px' ],
+	] as [ $bp, $prop, $esperado ]
+) {
+	$val = $st[ $bp ][ $prop ] ?? '«no existe»';
+	if ( $esperado === $val ) {
+		++$ok;
+		echo "  OK    $bp.$prop = $esperado\n";
+	} else {
+		++$fallos;
+		echo "  FALLA $bp.$prop llega como " . var_export( $val, true ) . "\n";
+	}
 }
 
 echo "\n" . ( $fallos ? "HAY $fallos FALLOS" : 'TODO SOBREVIVE AL GUARDADO (' . $ok . ' comprobaciones)' ) . "\n";

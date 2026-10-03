@@ -24,6 +24,7 @@
     viewH: 800,
     fit: false,
     save: "Guardado",
+    styleWarn: "",
     dirty: false,
     dirtyGen: 0,
     saving: false,
@@ -467,6 +468,45 @@
     return cambio;
   }
 
+  /**
+   * Mapa id de nodo → estilos, para comparar lo enviado con lo devuelto.
+   */
+  function mapaEstilos(secciones) {
+    const out = {};
+    const walk = (list) => (list || []).forEach((n) => {
+      if (n && n.id) out[n.id] = n.styles || {};
+      walk(n?.children);
+    });
+    walk(secciones);
+    return out;
+  }
+
+  /**
+   * ¿El servidor devolvió algún estilo menos de los que le mandamos?
+   *
+   * Un ajuste que se escribe en el panel, se guarda sin error y al recargar
+   * aparece vacío no deja rastro en ningún sitio: parece que el campo «no
+   * funciona». Esto lo convierte en un aviso con nombre y apellidos. Pasa
+   * si hay una copia antigua del tema, un plugin que filtra la petición o
+   * un saneador que no conoce esa propiedad.
+   */
+  function estilosDescartados(enviado, devuelto) {
+    const a = mapaEstilos(enviado);
+    const b = mapaEstilos(devuelto);
+    const perdidos = [];
+    Object.keys(a).forEach((id) => {
+      if (!(id in b)) return;
+      ["desktop", "tablet", "mobile"].forEach((bp) => {
+        const antes = a[id]?.[bp] || {};
+        const ahora = b[id]?.[bp] || {};
+        Object.keys(antes).forEach((prop) => {
+          if (antes[prop] && !ahora[prop]) perdidos.push(prop);
+        });
+      });
+    });
+    return [...new Set(perdidos)];
+  }
+
   async function saveDraft() {
     if (!state.doc) return;
     if (state.saving) {
@@ -492,6 +532,13 @@
         } else {
           throw err;
         }
+      }
+      const perdidos = estilosDescartados(payload.sections, saved?.sections);
+      if (perdidos.length) {
+        state.styleWarn = `El servidor descartó: ${perdidos.join(", ")}. Puede haber una copia antigua del tema o un plugin filtrando el guardado.`;
+        console.warn("[KRG] estilos descartados al guardar:", perdidos);
+      } else {
+        state.styleWarn = "";
       }
       if (saved?.checksum) state.doc.checksum = saved.checksum;
       if (saved?.previewUrl) state.doc.previewUrl = saved.previewUrl;
@@ -535,6 +582,11 @@
   function paintStatus() {
     const s = root.querySelector(".b-status");
     if (s) s.textContent = state.save;
+    const w = root.querySelector(".b-warn");
+    if (w) {
+      w.textContent = state.styleWarn || "";
+      w.hidden = !state.styleWarn;
+    }
   }
 
   function frameScrollSnap(iframe) {
@@ -3222,6 +3274,7 @@
           <button class="m-btn ghost" id="redo" title="Ctrl+Y">Rehacer</button>
           <button class="m-btn ghost" id="history">Historial</button>
           <span class="b-status">${esc(state.save)}</span>
+          <span class="b-warn" hidden></span>
           <button class="m-btn ghost" id="refresh" title="Vuelve a cargar la vista del lienzo">Actualizar vista</button>
           <button class="m-btn ghost" id="save" title="Ctrl+S">Guardar</button>
           <button class="m-btn ghost" id="preview">Preview</button>
