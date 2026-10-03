@@ -44,7 +44,9 @@ function doc() {
     id: 1, title: 'Prueba', slug: 'prueba', status: 'draft', checksum: 'c0',
     seo: {}, settings: { showHeader: true, showFooter: true },
     sections: [
-      seccion('secCta', nodo('cta1', 'statement-cta', { title: 'Reserva', theme: 'forest' })),
+      // Con su propio color, como en una instalacion de verdad: es el caso
+      // en el que el bloque tapa el fondo de la seccion.
+      seccion('secCta', nodo('cta1', 'statement-cta', { title: 'Reserva', theme: 'forest', bgColor: '#3f5e58' })),
       seccion('secTxt', nodo('p1', 'paragraph', { text: 'Hola' })),
     ],
   };
@@ -56,7 +58,9 @@ let ultimo = null;
 // estilos: asi se comprueba que el constructor lo nota y avisa.
 let servidorTragon = false;
 let fallos = 0;
+let hechas = 0;
 const ok = (cond, msg) => {
+  hechas++;
   console.log(`  ${cond ? 'OK   ' : 'FALLA'} ${msg}`);
   if (!cond) fallos++;
 };
@@ -165,8 +169,18 @@ ok(await esperarGuardado(n0 + 1), 'el color dispara un guardado');
 sec = nodoDe(guardados[guardados.length - 1], 'secCta');
 ok(sec?.styles?.desktop?.background === '#D94E27', `background guardado = ${sec?.styles?.desktop?.background}`);
 
+// Aqui no hay lienzo que mirar (la API simulada no devuelve pagina), asi
+// que el panel decide por lo que declara el documento: el bloque lleva su
+// propio color, luego tapa.
 console.log('\n«Pintar también el bloque» copia el color al bloque de dentro');
 await page.waitForSelector('.b-insp [data-paint-child]');
+// El aviso sale al escribir el color, sin volver a seleccionar nada.
+ok(true, 'el aviso de «lo tapa un bloque» aparece al poner el color');
+// Y sobrevive a perder el foco: el `change` del campo no puede borrar el
+// boton entre el mousedown y el click de quien lo esta pulsando.
+await page.click('.b-insp h5');
+ok(await page.locator('.b-insp [data-paint-child]').count() === 1,
+  'el botón sigue ahí después de que el campo pierda el foco');
 await page.click('.b-insp [data-paint-child]');
 const n9 = guardados.length;
 ok(await esperarGuardado(n9 + 1), 'pintar el bloque dispara un guardado');
@@ -279,6 +293,16 @@ ok(await esperarGuardado(n8 + 1), 'el color del bloque dispara un guardado');
 const ctaC = nodoDe(guardados[guardados.length - 1], 'cta1');
 ok(JSON.stringify(ctaC?.props?.bgColor || '').includes('0000ff'), `bgColor del bloque = ${JSON.stringify(ctaC?.props?.bgColor)}`);
 
+console.log('\nEl aviso entiende el color guardado como objeto, no lo escupe en crudo');
+// El selector de color guarda {mode,token,value}. Si el aviso lo trata
+// como una cadena, enseña «[object Object]» y queda como un error.
+await seleccionar('secCta');
+await page.fill('.b-insp [data-style="background"]', '#D94E27');
+await page.waitForSelector('.b-insp [data-bg-note] p');
+const textoAviso = await page.locator('.b-insp [data-bg-note]').innerText();
+ok(!/object Object/.test(textoAviso), `el aviso no enseña basura: «${textoAviso.replace(/\s+/g, ' ').trim().slice(0, 90)}»`);
+ok(/#0000ff/i.test(textoAviso), 'y nombra el color real del bloque');
+
 if (errores.length) {
   console.log('\nErrores de consola:');
   errores.forEach((e) => console.log('  ' + e));
@@ -286,6 +310,6 @@ if (errores.length) {
 }
 
 await browser.close();
-const total = 31 + errores.length;
+const total = hechas + errores.length;
 console.log(`\n${total - fallos}/${total} comprobaciones correctas`);
 process.exit(fallos ? 1 : 0);

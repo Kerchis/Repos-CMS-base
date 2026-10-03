@@ -23,8 +23,8 @@ bash tools/devenv.sh     # PHP 8.3 estático + Chromium + playwright-core en .to
 | `tools/prueba-preview.mjs` | Contrato de contextos: «Preview» tiene que salir byte a byte igual que la web pública, y el andamiaje solo en el lienzo. |
 | `tools/prueba-guardado.php` | Camino de guardado: pasa nodos por el saneador de verdad y comprueba qué propiedades sobreviven. |
 | `tools/prueba-estilos.mjs` | Contrato de «lo que escribes en el panel manda»: documento real → saneador → compilador de CSS → navegador, y se lee el color, el relleno y la posición calculados. |
-| `tools/prueba-panel.mjs` | El tramo anterior: el panel del constructor de verdad en Chromium con la API simulada. Teclea en «Relleno» y «Margen», elige color con el cuadrito, lo quita con la ✕, recarga y comprueba el cuerpo de cada POST (31). |
-| `tools/prueba-lienzo.mjs` | El tramo que faltaba: el constructor entero con su iframe de verdad. Teclea en el panel y lee `getComputedStyle` **dentro del lienzo** (23). |
+| `tools/prueba-panel.mjs` | El tramo anterior: el panel del constructor de verdad en Chromium con la API simulada. Teclea en «Relleno» y «Margen», elige color con el cuadrito, lo quita con la ✕, recarga y comprueba el cuerpo de cada POST (35). |
+| `tools/prueba-lienzo.mjs` | El tramo que faltaba: el constructor entero con su iframe de verdad. Teclea en el panel y lee el color que **se ve** dentro del lienzo (33). |
 | `tools/render-doc.php` | Convierte un documento JSON en una página HTML completa por la cadena real, con los CSS del tema incrustados. Lo usa `prueba-lienzo.mjs` para servir el lienzo. |
 | `tools/dump-registry.php` | Vuelca el catálogo de componentes como JSON para alimentar al constructor en `prueba-panel.mjs`. |
 
@@ -106,3 +106,20 @@ pedido contra calculado propiedad por propiedad y, si no coinciden, todas las
 reglas CSS que declaran esa propiedad sobre ese elemento con su selector, su
 `@media` y su `!important`. Está en `diagnosticar()` y `reglasQueTocan()`
 (`admin/assets/js/builder.js`). No cambia nada: solo mira.
+
+## Preguntarle al elemento o preguntarle al pixel
+
+`prueba-lienzo.mjs` daba por buena la cadena entera midiendo
+`getComputedStyle(.m-n-secA).backgroundColor`. Es verdad y no sirve: un
+bloque de dentro puede pintar encima, y entonces la seccion es roja y la
+pantalla verde al mismo tiempo. Las dos medidas son correctas; solo una
+contesta la pregunta de quien mira.
+
+Desde la PRUEBA 10 el banco pregunta por el punto: centro de la seccion,
+`elementFromPoint`, y hacia arriba hasta el primer fondo opaco. Eso devuelve
+el color **y** quien lo pinta. Con eso se reprodujo en dos minutos lo que la
+captura de una instalacion de verdad enseñaba: seccion `#f5f500`, pantalla
+`#3f5e58`, lo pinta `.m-c-statement-cta`.
+
+El aviso del panel usa esa misma medida (`blockingBg()` en `builder.js`), asi
+que ya no avisa de lo que no pasa ni calla lo que si.

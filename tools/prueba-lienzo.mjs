@@ -289,6 +289,106 @@ comprueba(/@media \(min-width: 300px\)/.test(informe), 'y la media query en la q
 await page.evaluate(() => document.querySelector('.b-insp .b-diag').scrollIntoView({ block: 'center' }));
 await page.locator('.b-insp').screenshot({ path: '.captures/panel/diagnostico.png' });
 
+console.log('\nPRUEBA 10 — el color que de verdad se VE en el centro de la sección');
+// Las pruebas anteriores le preguntan el fondo a la seccion. Eso no es lo
+// que mira una persona: mira el pixel. Si un bloque de dentro pinta encima,
+// la seccion puede ser roja y la pantalla verde, y las dos cosas son
+// ciertas a la vez. Esto pregunta por el punto, no por el elemento.
+const queSeVe = async (sel) => {
+  const f = marco();
+  return f.evaluate((s) => {
+    const sec = document.querySelector(s);
+    const c = sec.getBoundingClientRect();
+    const x = c.left + c.width / 2;
+    const y = c.top + c.height / 2;
+    let el = document.elementFromPoint(x, y);
+    while (el) {
+      const bg = getComputedStyle(el).backgroundColor;
+      if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+        return { color: bg, quien: el.className || el.tagName };
+      }
+      el = el.parentElement;
+    }
+    return { color: '(nada)', quien: '-' };
+  }, sel);
+};
+await seleccionar('secA');
+await page.fill('.b-insp [data-style="background"]', '#f5f500');
+await esperarGuardado();
+await recargarMarco();
+const visto = await queSeVe('.m-n-secA');
+console.log(`     la sección dice: ${(await calculado('.m-n-secA', ['background-color']))['background-color']}`);
+console.log(`     la pantalla enseña: ${visto.color}  (lo pinta ${visto.quien})`);
+comprueba(visto.color === 'rgb(245, 245, 0)',
+  `el color elegido es el que se ve: ${visto.color}`);
+
+console.log('\nPRUEBA 11 — si nadie tapa nada, el panel no inventa un problema');
+// El CTA tiene tema pero no pinta fondo: no tapa. El aviso de «lo tapa un
+// bloque» aqui seria mentira, y el atajo, ruido.
+await page.click('.b-insp [data-insp-tab="design"]');
+const avisos11 = await page.locator('.b-insp [data-paint-child]').count();
+comprueba(avisos11 === 0, `sin nada que tape, no hay aviso ni atajo: ${avisos11}`);
+
+console.log('\nPRUEBA 12 — el caso de la captura: el bloque lleva SU color puesto');
+// Lo que se ve en la instalacion de verdad: el CTA no solo tiene tema, lleva
+// su propio color (`--m-th-bg:#3f5e58` en linea). Ese bloque si tapa la
+// seccion entera, y entonces el campo de la seccion deja de verse. Aqui se
+// reproduce tal cual, con el panel.
+await seleccionar('cta1');
+await page.fill('.b-insp [data-color-custom="bgColor"]', '#3f5e58');
+await esperarGuardado();
+await recargarMarco();
+const tapado = await queSeVe('.m-n-secA');
+console.log(`     la sección sigue diciendo: ${(await calculado('.m-n-secA', ['background-color']))['background-color']}`);
+console.log(`     pero la pantalla enseña: ${tapado.color}  (lo pinta ${tapado.quien})`);
+comprueba(tapado.color === 'rgb(63, 94, 88)', `el bloque tapa el color de la sección: ${tapado.color}`);
+
+console.log('\nPRUEBA 13 — y el panel lo dice y lo arregla de un clic');
+await seleccionar('secA');
+await page.click('.b-insp [data-insp-tab="design"]');
+const nota = await page.locator('.b-insp [data-paint-child]').innerText();
+comprueba(/Pintar CTA display de #f5f500/i.test(nota) || /Pintar statement-cta de #f5f500/i.test(nota),
+  `el botón dice qué va a hacer: «${nota.trim()}»`);
+const texto13 = await page.locator('.b-insp .acc', { hasText: 'Fondo' }).last().innerText();
+comprueba(/#3f5e58/i.test(texto13) || /rgb\(63, 94, 88\)/.test(texto13),
+  'el aviso nombra el color que está tapando');
+await page.locator('.b-insp .acc', { hasText: 'Fondo' }).last()
+  .screenshot({ path: '.captures/panel/fondo-tapado.png' });
+await page.click('.b-insp [data-paint-child]');
+// Sin recargar el marco a mano: el constructor tiene que refrescarlo solo.
+await esperarGuardado();
+await page.waitForTimeout(1200);
+const aviso13 = await page.locator('.b-warn').textContent().catch(() => '');
+comprueba(!/Elige antes/.test(aviso13), `sin aviso falso: «${aviso13.trim()}»`);
+const arreglado = await queSeVe('.m-n-secA');
+comprueba(arreglado.color === 'rgb(245, 245, 0)', `tras el clic se ve: ${arreglado.color} (${arreglado.quien})`);
+await seleccionar('secA');
+await page.click('.b-insp [data-insp-tab="design"]');
+const yaIgual = await page.locator('.b-insp [data-paint-child]').count();
+comprueba(yaIgual === 0, `con el bloque ya del mismo color no se ofrece nada: ${yaIgual}`);
+
+console.log('\nPRUEBA 14 — el aviso rojo de la captura: ¿de dónde sale?');
+// En la captura el panel enseña «#f5f500» y la barra dice «Elige antes un
+// color de fondo para la sección». Las dos cosas no pueden ser ciertas a la
+// vez, asi que o el aviso es viejo o el boton no ve el color. Se prueba.
+await seleccionar('secB');
+await page.click('.b-insp [data-insp-tab="design"]');
+const botonesSinColor = await page.locator('.b-insp [data-paint-child]').count();
+console.log(`     secB no tiene color de fondo puesto; botones de «pintar el bloque»: ${botonesSinColor}`);
+await seleccionar('secA');
+await page.click('.b-insp [data-insp-tab="design"]');
+// La ✕ del borde y la del fondo son dos botones distintos: hay que
+// apuntar a la del campo de fondo, no a la primera que aparezca.
+await page.click('.b-insp .m-pick:has([data-style="background"]) [data-pick-clear]');
+await esperarGuardado();
+await page.waitForTimeout(1200);
+await seleccionar('secA');
+await page.click('.b-insp [data-insp-tab="design"]');
+const hay = await page.locator('.b-insp [data-paint-child]').count();
+comprueba(hay === 0, `sin color puesto no se ofrece el atajo (botones: ${hay})`);
+const barra = await page.locator('.b-warn').textContent().catch(() => '');
+comprueba(!/Elige antes/.test(barra), `y no hay forma de provocar el aviso rojo: «${barra.trim()}»`);
+
 const unicos = [...new Set(errores)];
 comprueba(unicos.length === 0, `sin errores de consola${unicos.length ? ': ' + unicos.join(' | ') : ''}`);
 

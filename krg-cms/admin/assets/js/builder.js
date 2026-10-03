@@ -1658,14 +1658,76 @@
     </div>`;
   }
 
-  /** Bloques de dentro que pintan su propio fondo y taparian el de aqui. */
+  /** Id tal cual se usa en las clases del marcado. */
+  function idClase(id) {
+    return String(id || "").replace(/[^a-zA-Z0-9_-]/g, "");
+  }
+
+  /**
+   * Bloques de dentro que estan tapando el fondo de esta seccion.
+   *
+   * Dos intentos anteriores fallaban por el mismo sitio: suponer. El
+   * primero preguntaba al catalogo —si el modulo tiene campo de tema, se
+   * daba por hecho que tapa—, y avisaba de problemas que no existian. El
+   * segundo comparaba cajas: el bloque tenia que ser tan grande como la
+   * seccion entera, asi que con que la seccion tuviera un poco de relleno
+   * ya no contaba como tapado, aunque en pantalla no se viera ni un pixel
+   * del color. Los dos median algo parecido a lo que importa, pero no lo
+   * que importa.
+   *
+   * Lo que importa es el pixel: en el centro de la seccion, que color se
+   * ve. Eso se pregunta igual que lo haria un ojo —`elementFromPoint` y
+   * hacia arriba hasta el primer fondo opaco— y si quien lo pinta no es la
+   * seccion, ese es el que tapa.
+   */
   function blockingBg(node) {
+    const doc = root.querySelector("iframe")?.contentDocument;
+    const win = doc?.defaultView;
+    const sec = doc ? doc.querySelector(`.m-n-${idClase(node?.id)}`) : null;
+    if (!sec || !win) return declaredBg(node);
+    const caja = sec.getBoundingClientRect();
+    const x = Math.min(Math.max(caja.left + caja.width / 2, 1), win.innerWidth - 1);
+    const y = Math.min(Math.max(caja.top + caja.height / 2, 1), win.innerHeight - 1);
+    if (y < 0 || y > win.innerHeight) return declaredBg(node);
+    let el = doc.elementFromPoint(x, y);
+    let pinta = null;
+    while (el) {
+      const bg = win.getComputedStyle(el).backgroundColor;
+      if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") { pinta = { el, bg }; break; }
+      el = el.parentElement;
+    }
+    if (!pinta || pinta.el === sec || !sec.contains(pinta.el)) return [];
+    // Del elemento que pinta al nodo del documento: puede ser un envoltorio
+    // de dentro del modulo, asi que se sube hasta encontrar un id conocido.
+    let cur = pinta.el;
+    while (cur && cur !== sec) {
+      const cls = [...cur.classList].find((c) => c.startsWith("m-n-"));
+      const hit = cls ? findNode(node.children || [], cls.slice(4)) : null;
+      if (hit) {
+        const def = defOf(hit.node.type);
+        return [{ id: hit.node.id, name: hit.node.name || def?.name || hit.node.type, color: pinta.bg }];
+      }
+      cur = cur.parentElement;
+    }
+    return [];
+  }
+
+  /**
+   * Sin lienzo que mirar, lo unico honesto es lo que diga el documento.
+   *
+   * `bgColor` no siempre es una cadena: el selector de color guarda
+   * `{mode,token,value}`. Pasarlo tal cual acababa escribiendo
+   * «[object Object]» en el aviso, asi que se traduce a CSS como hace el
+   * resto del constructor.
+   */
+  function declaredBg(node) {
     const out = [];
     const walk = (n) => {
       (n.children || []).forEach((c) => {
-        const def = defOf(c.type);
-        const tiene = (def?.fields || []).some((f) => f.key === "theme" || f.key === "bgColor");
-        if (tiene) out.push({ id: c.id, name: c.name || def?.name || c.type });
+        const color = cssColor(c.props?.bgColor);
+        if (color) {
+          out.push({ id: c.id, name: c.name || defOf(c.type)?.name || c.type, color });
+        }
         walk(c);
       });
     };
@@ -1674,23 +1736,91 @@
   }
 
   function panelBg(st, node) {
-    // El fondo de una seccion se ve por donde el contenido no llega. Si
-    // dentro hay un bloque que pinta el suyo de borde a borde, lo tapa
-    // entero y parece que el campo no hace nada: de ahi el aviso y el
-    // atajo al bloque, que es donde esta el color que se ve.
-    const tapan = node ? blockingBg(node) : [];
-    const aviso = tapan.length
-      ? `<p class="m-muted">Ojo: <strong>${esc(tapan[0].name)}</strong> pinta su propio fondo y ocupa toda la sección, así que la tapa. Este color sólo asomará por el relleno o el margen que dejes.</p>
-         <div class="b-row">
-           <button type="button" class="m-btn" data-paint-child="${tapan[0].id}">Pintar también el bloque</button>
-           <button type="button" class="m-btn ghost" data-sel="${tapan[0].id}">Ir a ${esc(tapan[0].name)}</button>
-         </div>`
-      : "";
     return `<div class="acc"><h5>Fondo</h5>
       ${window.KrgUi.colorField("Color de fondo", st.background || "", 'data-style="background"')}
-      ${aviso}
+      <div data-bg-note>${bgNoteHtml(node, st.background || "")}</div>
     </div>`;
   }
+
+  /**
+   * El aviso de «este color lo tapa un bloque».
+   *
+   * El fondo de una seccion se ve por donde el contenido no llega. Si
+   * dentro hay un bloque que pinta el suyo encima, el campo parece roto:
+   * pones un color y la pantalla no cambia. Eso hay que contarlo, pero
+   * solo cuando pasa de verdad y cuando hay algo que hacer al respecto.
+   *
+   * Antes salia siempre, incluso sin color elegido, asi que se podia
+   * pulsar «Pintar tambien el bloque» sin tener color que copiar; el boton
+   * contestaba con una barra roja arriba, identica a un error de guardado,
+   * y ademas se quedaba pegada hasta el siguiente guardado. Se ofrecia un
+   * atajo que no podia funcionar y se avisaba del fallo en el sitio
+   * equivocado.
+   */
+  function bgNoteHtml(node, background) {
+    const color = (background || "").trim();
+    const tapan = color && node ? blockingBg(node) : [];
+    if (!tapan.length) return "";
+    const t = tapan[0];
+    if (mismoColor(t.color, color)) {
+      return `<p class="m-muted"><strong>${esc(t.name)}</strong> ocupa toda la sección y ya usa este mismo color.</p>`;
+    }
+    return `<p class="m-muted"><strong>${esc(t.name)}</strong> está pintado de
+        <code>${esc(hexDe(t.color))}</code> por encima y ocupa toda la sección, así que tapa
+        este color: sólo asomará por el relleno o el margen que dejes.</p>
+      <div class="b-row">
+        <button type="button" class="m-btn" data-paint-child="${esc(t.id)}">Pintar ${esc(t.name)} de ${esc(color)}</button>
+        <button type="button" class="m-btn ghost" data-sel="${esc(t.id)}">Ir a ${esc(t.name)}</button>
+      </div>`;
+  }
+
+  /**
+   * Repinta solo el aviso del fondo.
+   *
+   * Tentacion evidente: redibujar el inspector entero al cambiar el color.
+   * No se puede. El `change` de un campo salta cuando el foco se va al
+   * siguiente, asi que redibujar ahi arranca de debajo del cursor el campo
+   * al que la persona acaba de saltar, y lo que escriba se pierde. Esto
+   * cambia un trozo que nadie esta tocando, y deja los campos en paz.
+   */
+  function repaintBgNote() {
+    const caja = root.querySelector(".b-insp [data-bg-note]");
+    const h = state.selected ? findNode(state.doc.sections, state.selected) : null;
+    if (!caja || !h) return;
+    const nuevo = bgNoteHtml(h.node, h.node.styles?.[state.bp]?.background || "");
+    // Si no ha cambiado, no se toca el DOM. No es por ahorrar: al pulsar
+    // «Pintar el bloque» el campo de color pierde el foco, eso dispara su
+    // `change`, y repintar ahi borraba el boton justo entre el mousedown y
+    // el click. El boton existia, estaba enlazado, y aun asi no hacia
+    // nada. Reescribir solo cuando hay algo distinto que escribir.
+    if (caja._html === nuevo) return;
+    caja._html = nuevo;
+    caja.innerHTML = nuevo;
+    bindBgNote(caja);
+  }
+
+  /** Los dos botones del aviso, que nacen y mueren con el. */
+  function bindBgNote(caja) {
+    caja.querySelectorAll("[data-sel]").forEach((b) => {
+      b.onclick = () => { state.selected = b.dataset.sel; render(); pingFrame(); };
+    });
+    caja.querySelectorAll("[data-paint-child]").forEach((b) => {
+      b.onclick = () => {
+        const h = state.selected ? findNode(state.doc.sections, state.selected) : null;
+        const hijo = findNode(state.doc.sections, b.dataset.paintChild);
+        const color = h?.node?.styles?.[state.bp]?.background || "";
+        if (!h || !hijo || !color) return;
+        snapshot();
+        hijo.node.props = hijo.node.props || {};
+        hijo.node.props.bgColor = color;
+        if (hijo.node.type === "review-slider") hijo.node.props.cardColor = color;
+        state.selected = hijo.node.id;
+        markDirty();
+        render();
+      };
+    });
+  }
+
   /**
    * Recorre la cadena de un estilo y cuenta donde se rompe.
    *
@@ -1703,7 +1833,7 @@
    * que contesta «donde se pierde» sin tener delante la instalacion.
    */
   function diagnosticar(node) {
-    const id = String(node.id || "").replace(/[^a-zA-Z0-9_-]/g, "");
+    const id = idClase(node.id);
     const st = node.styles?.[state.bp] || {};
     const L = [];
     L.push(`Bloque: ${node.name || node.type} (${node.type})`);
@@ -1773,6 +1903,19 @@
     margin: "margin-top",
     flex: "flex-grow",
   };
+
+  /** Para enseñarlo: del rgb() del navegador al hex que escribe la gente. */
+  function hexDe(v) {
+    const m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(String(v || "").trim());
+    if (!m) return String(v || "");
+    const h = (n) => Number(n).toString(16).padStart(2, "0");
+    return `#${h(m[1])}${h(m[2])}${h(m[3])}`;
+  }
+
+  /** Compara colores escritos de cualquier manera (#hex, rgb(), token). */
+  function mismoColor(a, b) {
+    return normColor(a) === normColor(b);
+  }
 
   /** El mismo color escrito de dos maneras es el mismo color. */
   function normColor(v) {
@@ -2674,7 +2817,19 @@
       markDirty();
     };
     box.querySelectorAll("[data-style]").forEach((inp) => {
-      const apply = () => setStyle(inp.dataset.style, inp.value);
+      // El aviso de «esto lo tapa un bloque» depende del color que acabas
+      // de elegir, y el inspector no se redibuja con cada tecla. Sin esto
+      // el aviso solo aparecia al volver a seleccionar la seccion, que es
+      // justo cuando ya has decidido que el campo no funciona. Se repinta
+      // en los dos eventos porque hay tres formas de poner un color aqui
+      // —teclear, el cuadrito del sistema y la ✕— y no todas mandan los
+      // mismos; y se repinta solo el aviso, nunca el inspector entero:
+      // redibujarlo en `change` le arranca a la persona el campo al que
+      // acaba de saltar.
+      const apply = () => {
+        setStyle(inp.dataset.style, inp.value);
+        if (inp.dataset.style === "background") { repaintBgNote(); paintLiveCss(); }
+      };
       inp.addEventListener("input", apply);
       inp.addEventListener("change", apply);
     });
@@ -2687,10 +2842,6 @@
         if (h?.node?.styles?.[state.bp]) delete h.node.styles[state.bp][kind];
       });
     });
-    // «Pintar también el bloque»: el color de la sección queda detrás del
-    // bloque, asi que lo normal al ponerlo es querer ver ese color. Esto lo
-    // copia al campo propio del bloque de un clic, en vez de obligar a
-    // buscarlo. Se deshace con Ctrl+Z como cualquier otro cambio.
     box.querySelectorAll("[data-diag]").forEach((b) => {
       b.onclick = () => {
         const h = findNode(state.doc.sections, b.dataset.diag);
@@ -2702,26 +2853,8 @@
         caja.style.height = Math.min(420, caja.scrollHeight + 8) + "px";
       };
     });
-    box.querySelectorAll("[data-paint-child]").forEach((b) => {
-      b.onclick = () => {
-        const h = hit();
-        const hijo = findNode(state.doc.sections, b.dataset.paintChild);
-        if (!h || !hijo) return;
-        const color = h.node.styles?.[state.bp]?.background || "";
-        if (!color) {
-          state.styleWarn = "Elige antes un color de fondo para la sección.";
-          paintStatus();
-          return;
-        }
-        snapshot();
-        hijo.node.props = hijo.node.props || {};
-        hijo.node.props.bgColor = color;
-        if (hijo.node.type === "review-slider") hijo.node.props.cardColor = color;
-        state.selected = hijo.node.id;
-        markDirty();
-        render();
-      };
-    });
+    const notaBg = box.querySelector("[data-bg-note]");
+    if (notaBg) bindBgNote(notaBg);
     box.querySelectorAll("[data-style-set]").forEach((b) => {
       b.onclick = () => {
         const cur = hit()?.node?.styles?.[state.bp]?.[b.dataset.styleSet];
