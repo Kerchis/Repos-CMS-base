@@ -3797,6 +3797,9 @@
       if (handle && !handle.dataset.bound) {
         handle.dataset.bound = "1";
         handle.addEventListener("pointerdown", (e) => {
+          // El botón de plegar vive dentro del tirador: pulsarlo no puede
+          // arrancar un arrastre, o el panel se movería al esconderlo.
+          if (e.target.closest(".b-split-t")) return;
           e.preventDefault();
           handle.setPointerCapture(e.pointerId);
           const x0 = e.clientX;
@@ -4015,7 +4018,7 @@
         </div>
         <div class="b-layout">
           <aside class="b-left"></aside>
-          <div class="b-split" data-split="left" title="Arrastra para ensanchar"></div>
+          <div class="b-split" data-split="left" title="Arrastra para ensanchar"><button type="button" class="b-split-t" data-panel="left" title="Esconder la estructura">‹</button></div>
           <button type="button" class="b-show" data-show="left" title="Mostrar la estructura" hidden>Estructura ›</button>
           <div class="b-canvas">
             <div class="b-frame-slot">
@@ -4027,7 +4030,7 @@
               </div>
             </div>
           </div>
-          <div class="b-split" data-split="right" title="Arrastra para ensanchar"></div>
+          <div class="b-split" data-split="right" title="Arrastra para ensanchar"><button type="button" class="b-split-t" data-panel="right" title="Esconder los ajustes">›</button></div>
           <aside class="b-right b-insp"></aside>
           <button type="button" class="b-show" data-show="right" title="Mostrar los ajustes" hidden>‹ Ajustes</button>
         </div>

@@ -652,7 +652,44 @@ Dos cosas que sólo se ven midiendo, y que el banco pilló:
    panel derecho se salía de la pantalla. La barra ahora se recorta por
    dentro (`overflow-x`) en vez de empujar el ancho de todo.
 
-## 36. Pendiente, no tocado
+## 36. Por qué los botones «no se dejaban»
+
+El usuario dijo que los paneles seguían sin esconderse a gusto. El banco
+decía 36/36. Los dos tenían razón: **el banco montaba el constructor en una
+página vacía y el constructor de verdad vive dentro del admin de
+WordPress**, con un menú lateral que se come 160 px.
+
+Con esos 160 px menos la barra de arriba no cabe, y yo le había puesto
+recorte interno (`overflow-x:auto`) con la barra de scroll oculta
+(`scrollbar-width:none`). Resultado: los botones existían, respondían y
+estaban **fuera de la pantalla**, sin nada que lo delatara.
+
+```
+FALLA la barra de arriba no esconde botones por el lado
+FALLA los 4 botones de plegar se ven y se alcanzan: left/barra✔ right/barra✔
+```
+
+Tres cambios:
+
+1. **La barra se parte en varias líneas** (`flex-wrap`) en vez de recortarse.
+   `grid-template-rows: auto 1fr` para que pueda crecer. Nada queda nunca
+   fuera de alcance.
+2. **Un botón de plegar en el borde de cada panel** (`‹` y `›`, dentro del
+   propio tirador), que es donde se busca y no depende de que la barra tenga
+   sitio. Pulsarlo no arranca un arrastre.
+3. `max-width: 100%` en vez de `100vw`: el constructor mide lo que su hueco
+   en el admin, no lo que el monitor.
+
+**El banco ahora monta el armazón del admin** —`#wpwrap > #wpcontent` con su
+margen de 160 px— y comprueba que todo cabe, que la barra no recorta y que
+los cuatro botones de plegar se ven y se alcanzan. Verificado al revés:
+con el código anterior, esas aserciones fallan.
+
+**Regla:** un banco que no reproduce el contenedor real no prueba la
+interfaz, sólo el componente. Es la misma lección del servidor falso que
+no corría el saneador.
+
+## 37. Pendiente, no tocado
 
 En el banco de pruebas, si se **recarga** el editor en el sitio (`reload`) en
 vez de abrirlo de nuevo, pulsar un bloque en el árbol de estructura no lo

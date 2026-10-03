@@ -100,7 +100,14 @@ const leer = (f) => readFileSync(f, 'utf8');
 const html = `<!doctype html><meta charset="utf-8">
 <style>${leer(`${CSS_DIR}/admin.css`)}</style>
 <style>${leer(`${CSS_DIR}/builder.css`)}</style>
-<body><div id="krg-builder"></div>
+<body class="wp-admin">
+<!-- El armazón del admin de WordPress: el menú lateral empuja el
+     contenido 160px. Sin esto el banco no puede ver los fallos de
+     ancho, que son justo los que se escapan. -->
+<div id="wpwrap"><div id="wpcontent" style="margin-left:160px"><div id="wpbody"><div id="wpbody-content">
+<div id="krg-builder"></div>
+</div></div></div></div>
+<div style="position:fixed;left:0;top:0;width:160px;height:100%;background:#1d2327;z-index:0"></div>
 <script>window.KrgAdmin={pageId:1,rest:${JSON.stringify(REST)},nonce:'n',admin:'/wp-admin/admin.php?'};</script>
 <script>${leer(`${JS_DIR}/app.js`)}</script>
 <script>${leer(`${JS_DIR}/builder-core.js`)}</script>
@@ -184,6 +191,7 @@ if (process.env.KRG_SHOT) {
   });
   await page.waitForTimeout(250);
   await (await page.$('.b-insp')).screenshot({ path: `${ROOT}/.captures/arbol-carta.png` });
+  await page.screenshot({ path: `${ROOT}/.captures/constructor-admin.png` });
   await page.evaluate(() => {
     const t = document.querySelector('.b-insp .tree-n.is-plato > .tree-h > .tree-t');
     if (t) t.click();
@@ -378,6 +386,51 @@ await page.waitForSelector('.b-insp', { timeout: 15000 });
 await page.waitForTimeout(600);
 const trasRecarga = (await geo()).der;
 comprueba(Math.abs(trasRecarga - despuesAncho) <= 1, `tras recargar el editor sigue igual de ancho: ${trasRecarga}px`);
+
+/* ================================================================== */
+console.log('\n--- Dentro del admin de WordPress todo cabe y se alcanza');
+const encaja = await page.evaluate(() => {
+  const r = document.querySelector('.b-root').getBoundingClientRect();
+  const der = document.querySelector('.b-right').getBoundingClientRect();
+  const barra = document.querySelector('.b-top');
+  const botones = [...document.querySelectorAll('.b-top [data-panel], .b-split-t')].map((b) => {
+    const c = b.getBoundingClientRect();
+    return { k: (b.dataset.panel || '') + (b.className.includes('split') ? '/borde' : '/barra'), dentro: c.right <= window.innerWidth + 1 && c.width > 0 };
+  });
+  return {
+    anchoRoot: Math.round(r.width),
+    hueco: Math.round(document.querySelector('#wpbody-content').getBoundingClientRect().width),
+    derFuera: Math.round(der.right - window.innerWidth),
+    barraCortada: barra.scrollWidth > barra.clientWidth + 1,
+    botones,
+  };
+});
+comprueba(encaja.anchoRoot <= encaja.hueco + 1, `el constructor no se sale de su hueco: ${encaja.anchoRoot} de ${encaja.hueco}px`);
+comprueba(encaja.derFuera <= 0, `el panel derecho entra entero en la pantalla (se pasa ${encaja.derFuera}px)`);
+comprueba(!encaja.barraCortada, 'la barra de arriba no esconde botones por el lado');
+comprueba(
+  encaja.botones.length === 4 && encaja.botones.every((b) => b.dentro),
+  `los 4 botones de plegar se ven y se alcanzan: ${encaja.botones.map((b) => b.k + (b.dentro ? '✔' : '✖')).join(' ')}`
+);
+
+console.log('\n--- Plegar desde el botón del borde del panel');
+await page.click('.b-split-t[data-panel="right"]');
+await page.waitForTimeout(200);
+let gb = await geo();
+comprueba(gb.der === 0, `el botón del borde esconde el panel derecho: ${gb.der}px`);
+await page.click('[data-show="right"]');
+await page.waitForTimeout(200);
+gb = await geo();
+comprueba(gb.der > 100, `y el raíl lo devuelve: ${gb.der}px`);
+
+// Pulsar el botón del borde no puede mover el panel de sitio.
+const anchoAntes = gb.der;
+await page.click('.b-split-t[data-panel="left"]');
+await page.waitForTimeout(150);
+await page.click('[data-show="left"]');
+await page.waitForTimeout(200);
+const gc = await geo();
+comprueba(gc.der === anchoAntes && gc.izq > 100, `plegar no descoloca los anchos: ${gc.izq} / ${gc.der}px`);
 
 comprueba(errores.length === 0, `sin errores de JavaScript${errores.length ? ': ' + errores.join(' | ') : ''}`);
 
