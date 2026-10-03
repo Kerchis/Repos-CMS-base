@@ -484,6 +484,93 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .rep-acts { flex: 0 0 auto; display: flex; }
 .b-rep > strong { display: block; font-size: 12px; }
 
+/* ------------------------------------------------------------------ */
+/* Árbol de la carta: categoría → platos → adiciones                   */
+/*                                                                      */
+/* Se lee como un explorador de archivos: cada rama tiene su botón de   */
+/* abrir y cerrar, y una guía vertical marca a quién pertenece lo que   */
+/* está dentro. Sin esa línea, tres niveles de sangría en un panel de   */
+/* 300 px se vuelven ilegibles.                                         */
+/* ------------------------------------------------------------------ */
+.b-tree { display: grid; gap: 6px; }
+.tree-n { border-radius: 8px; }
+.tree-n.is-cat { border: 1px solid var(--m-line); background: #fff; }
+.tree-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 6px 4px;
+  cursor: default;
+}
+.tree-n.is-cat > .tree-h { background: var(--m-surface); border-radius: 7px 7px 0 0; }
+.tree-n.is-cat.is-open > .tree-h { border-bottom: 1px solid var(--m-line); }
+.tree-t {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--m-line);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--m-muted);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tree-t:hover { border-color: var(--m-accent, #3f5e58); color: var(--m-ink, #111); }
+.tree-lbl {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tree-lbl.is-cat { font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-size: 11px; }
+.tree-price { flex: 0 0 auto; font-size: 11px; color: var(--m-muted); font-variant-numeric: tabular-nums; }
+.tree-c {
+  flex: 0 0 auto;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--m-surface);
+  color: var(--m-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+.tree-n.is-cat > .tree-h > .tree-c { background: #fff; }
+.tree-acts { flex: 0 0 auto; display: flex; }
+/* La guía cuelga del botón de plegar, no del borde de la caja: así se
+   ve de un vistazo qué pertenece a qué. La sangría es de 11+9 px y no
+   más, porque en un panel de 320 px tres niveles se comen el ancho. */
+.tree-b {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin-left: 11px;
+  padding: 8px 8px 10px 9px;
+  border-left: 1px solid var(--m-line);
+}
+.b-tree, .tree-n, .tree-h { min-width: 0; }
+/* Nada de dentro puede ser más ancho que su rama. */
+.tree-b input,
+.tree-b textarea,
+.tree-b select { box-sizing: border-box; max-width: 100%; }
+.tree-n.is-plato { border: 1px solid var(--m-line); background: #fff; }
+.tree-n.is-plato > .tree-h { background: #fcfcfc; border-radius: 7px 7px 0 0; }
+.tree-n.is-sub > .tree-h { padding-left: 0; }
+.tree-n.is-sub .tree-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--m-muted); }
+.tree-cat-fields { display: grid; gap: 8px; }
+.tree-row { display: flex; align-items: center; gap: 4px; }
+.tree-row input { flex: 0 1 72px; min-width: 0; }
+.tree-row input.is-wide { flex: 1 1 auto; }
+.tree-add { justify-self: start; font-size: 11px; padding: 4px 10px; }
+
 .b-range { display: grid; grid-template-columns: 1fr 64px auto; gap: 6px; align-items: center; }
 .b-range input[type="range"] { width: 100%; }
 .b-rt-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }

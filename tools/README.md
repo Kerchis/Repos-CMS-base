@@ -62,6 +62,7 @@ node tools/prueba-cortina.mjs
 node tools/prueba-motor.mjs
 node tools/prueba-caja.mjs
 node tools/prueba-estirar.mjs
+node tools/prueba-carta.mjs
 ```
 
 `tools/render.php` trae dos ayudantes para montar casos por el camino

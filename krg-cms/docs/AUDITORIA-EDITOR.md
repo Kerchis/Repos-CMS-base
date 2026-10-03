@@ -514,3 +514,71 @@ desmonta por dentro, salta.
 - `tools/prueba-motor.mjs` (41 → **58**): servidor falso con el saneador real,
   comprobación del **cuerpo del POST** y el ciclo completo de «Estirar».
 - `tools/sanear.php`: el saneador de verdad a disposición de los bancos.
+
+---
+
+# Parte 6 — La carta, como un árbol
+
+## 28. El problema: dos listas planas y un folio de scroll
+
+El inspector pintaba `categories` y `items` como dos repetidores
+independientes, todo abierto a la vez. Con cuatro categorías y veinte platos
+eso son cientos de píxeles de scroll, y para saber qué hay en «Postres» había
+que leerse los veinte platos y mirar el desplegable de cada uno.
+
+## 29. La decisión: cambiar la vista, no los datos
+
+`categories` sigue siendo una lista plana y cada plato sigue llevando su campo
+`category`. **Ninguna carta existente se migra y el frontend no se entera.**
+El árbol es sólo otra forma de enseñar los mismos datos: el `data-i` de cada
+control es el índice real en la lista plana, así que los manejadores de
+siempre (`data-rep`, `data-rep-move`, `data-rep-del`…) siguen valiendo tal
+cual, sin duplicar lógica.
+
+Tres niveles:
+
+```
+▾ DESAYUNOS                    2   ↑ ↓ ⧉ ✕     ← categoría (categories[ci])
+  │ Nombre de la categoría
+  │ ▾ Huevos benedictinos  24.9  +4  ↑ ↓ ⧉ ✕   ← plato (items[i])
+  │   │ Nombre, descripción, precio, categoría, foto…
+  │   │ ▾ ADICIONES              4             ← items[i].addons[j]
+  │   │   Huevo frito (x2)      10.9      ↑ ↓ ✕
+  │   │   + Añadir adición
+  │ + Añadir plato a «DESAYUNOS»
++ Añadir categoría
+```
+
+El contador de cada rama (`2`, `+4`) existe para no tener que abrirla: dice
+cuántos platos tiene la categoría y cuántas adiciones el plato.
+
+## 30. Lo que había que no perder
+
+Un plato con una categoría que ya no existe (porque se renombró o se borró)
+**no desaparece**: cae en un grupo final «Sin categoría» con el aviso de qué
+hacer. Antes seguía en la lista larga, invisible entre los demás, y en la web
+pública se renderiza igual — es decir, estaba publicado y no se podía
+encontrar. El banco lo comprueba.
+
+## 31. Adiciones
+
+Nuevas, en tres sitios:
+
+- **Datos:** `items[i].addons[] = { name, price }`. No hizo falta tocar el
+  saneador: `Sanitizer::field()` ya se llamaba a sí mismo cuando un subcampo
+  es un repetidor. Lo que no existía era la forma de escribirlo.
+- **Panel:** `subListHtml()` pinta la lista dentro del ítem en dos columnas
+  (nombre y precio), porque una adición no es una ficha: es una línea. Es
+  genérico, así que cualquier módulo puede anidar una lista a partir de ahora.
+- **Web:** `menu_addons()` imprime un `<ul>` dentro del `<li>` del plato, con
+  su título. Va **fuera** del enlace del plato: es información, no parte de lo
+  que se pulsa. El título se configura por bloque (`addonsLabel`).
+
+## 32. Banco
+
+`tools/prueba-carta.mjs` (23). No comprueba que el HTML tenga buena pinta;
+comprueba que los datos sobreviven: que cada plato sale bajo su categoría y
+sólo bajo la suya, que el huérfano no se pierde, que plegar **no** marca el
+documento como modificado, que «Añadir plato a Postres» lo crea ya en Postres,
+y que una adición escrita a mano **viaja en el cuerpo del POST**, vuelve tras
+recargar el editor y aparece en la página pública.

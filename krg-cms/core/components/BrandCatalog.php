@@ -1069,6 +1069,7 @@ class BrandCatalog {
 					'linkUrl'     => '',
 					'buttonStyle' => 'outline',
 					'emptyLabel'  => '',
+					'addonsLabel' => 'Adiciones',
 					'categories'  => [
 						[ 'label' => 'Entradas' ],
 						[ 'label' => 'Platos fuertes' ],
@@ -1161,7 +1162,10 @@ class BrandCatalog {
 						__( 'Categorías', 'meridian' ),
 						[
 							'maxItems'   => 60,
-							'help'       => __( 'El orden de esta lista es el orden de las pestañas. Cada plato se asigna a una categoría.', 'meridian' ),
+							// Las categorias no se pintan como lista aparte: el
+							// arbol de «Platos» las lleva dentro, cada una con
+							// sus platos colgando. Los datos no cambian.
+							'ui'         => 'inTree',
 							'itemFields' => [
 								self::f( 'label', 'text', 'content', __( 'Nombre de la categoría', 'meridian' ) ),
 								self::f( 'text', 'text', 'content', __( 'Descripción (opcional)', 'meridian' ) ),
@@ -1172,9 +1176,11 @@ class BrandCatalog {
 						'items',
 						'repeater',
 						'content',
-						__( 'Platos', 'meridian' ),
+						__( 'Carta', 'meridian' ),
 						[
 							'maxItems'   => 200,
+							'ui'         => 'menuTree',
+							'help'       => __( 'Cada categoría se abre y se cierra. Dentro van sus platos, y dentro de cada plato sus adiciones. El orden de las categorías es el de las pestañas.', 'meridian' ),
 							'itemFields' => [
 								self::f( 'title', 'text', 'content', __( 'Nombre del plato', 'meridian' ) ),
 								self::f( 'text', 'textarea', 'content', __( 'Descripción', 'meridian' ) ),
@@ -1195,9 +1201,23 @@ class BrandCatalog {
 								self::f( 'imageUrl', 'url', 'content', __( 'URL de la foto', 'meridian' ) ),
 								self::f( 'alt', 'text', 'content', __( 'Texto alternativo', 'meridian' ) ),
 								self::f( 'url', 'url', 'content', __( 'Enlace (opcional)', 'meridian' ) ),
+								self::f(
+									'addons',
+									'repeater',
+									'content',
+									__( 'Adiciones', 'meridian' ),
+									[
+										'maxItems'   => 40,
+										'itemFields' => [
+											self::f( 'name', 'text', 'content', __( 'Adición', 'meridian' ) ),
+											self::f( 'price', 'text', 'content', __( 'Precio', 'meridian' ) ),
+										],
+									]
+								),
 							],
 						]
 					),
+					self::f( 'addonsLabel', 'text', 'content', __( 'Título de las adiciones', 'meridian' ) ),
 					self::f( 'linkText', 'text', 'content', __( 'Texto del botón final', 'meridian' ) ),
 					self::f( 'linkUrl', 'url', 'content', __( 'URL del botón final', 'meridian' ) ),
 					self::f( 'buttonStyle', 'select', 'design', __( 'Estilo del botón', 'meridian' ), [ 'options' => [ 'outline', 'solid', 'ghost' ] ] ),

@@ -2664,6 +2664,198 @@
     `;
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Repetidores: un sub-campo, y listas dentro de listas                */
+  /*                                                                      */
+  /* Estaban escritos dentro del propio repetidor. Se sacan aqui porque   */
+  /* ahora los usan dos vistas distintas de los mismos datos: la lista de */
+  /* siempre y el arbol de la carta. Dos vistas, un solo sitio donde se   */
+  /* decide como se pinta y se escribe cada campo.                        */
+  /* ------------------------------------------------------------------ */
+
+  function repSubField(node, f, sf, it, i) {
+    if (sf.key === "imageUrl") return "";
+    if (sf.type === "repeater") return subListHtml(node, f, sf, it, i);
+    if (sf.type === "image") {
+      const url = it.imageUrl || "";
+      const id = Number(it[sf.key] || 0);
+      return `<div class="m-pick-label">${esc(sf.label)}
+        <div class="b-gal-item">
+          <div class="b-thumb">${url ? `<img src="${esc(url)}" alt="">` : `<span class="m-thumb-empty">${id ? "#" + id : "Sin foto"}</span>`}</div>
+          <div class="b-gal-meta">
+            <button type="button" class="m-btn" data-rep-media="${f.key}" data-i="${i}" data-k="${sf.key}">${id ? "Cambiar imagen" : "Añadir imagen"}</button>
+            ${id ? `<button type="button" class="m-btn ghost" data-rep-media-clear="${f.key}" data-i="${i}" data-k="${sf.key}">Quitar</button>` : ""}
+          </div>
+        </div>
+      </div>`;
+    }
+    // Opciones tomadas de otro repetidor del mismo bloque: así las
+    // categorías de la carta o las columnas del pie se eligen de una
+    // lista en vez de reescribirse a mano en cada ítem.
+    if (sf.optionsFrom) {
+      const src = Array.isArray(node.props?.[sf.optionsFrom]) ? node.props[sf.optionsFrom] : [];
+      const lk = sf.labelKey || "label";
+      const cur = String(it[sf.key] ?? "");
+      const opts = src.map((o) => String(o?.[lk] ?? "").trim()).filter(Boolean);
+      if (cur && !opts.includes(cur)) opts.push(cur);
+      return `<label>${esc(sf.label)} <select data-rep="${f.key}" data-i="${i}" data-k="${sf.key}">
+        <option value="">— Sin asignar —</option>
+        ${opts.map((o) => `<option value="${esc(o)}" ${cur === o ? "selected" : ""}>${esc(o)}</option>`).join("")}
+      </select></label>`;
+    }
+    if (sf.type === "textarea") {
+      return `<label>${esc(sf.label)} <textarea data-rep="${f.key}" data-i="${i}" data-k="${sf.key}">${esc(it[sf.key] ?? "")}</textarea></label>`;
+    }
+    if (sf.type === "toggle") {
+      return `<label class="rep-toggle">${esc(sf.label)} <input type="checkbox" data-rep-bool="${f.key}" data-i="${i}" data-k="${sf.key}" ${it[sf.key] ? "checked" : ""}></label>`;
+    }
+    if (sf.type === "number") {
+      return `<label>${esc(sf.label)} <input type="number" data-rep="${f.key}" data-i="${i}" data-k="${sf.key}" value="${esc(it[sf.key] ?? "")}" min="${sf.min ?? ""}" max="${sf.max ?? ""}"></label>`;
+    }
+    if (sf.type === "select") {
+      const opts = sf.options || [];
+      return `<label>${esc(sf.label)} <select data-rep="${f.key}" data-i="${i}" data-k="${sf.key}">${opts.map((o) => {
+        const v = typeof o === "object" ? (o.value ?? o.id ?? "") : o;
+        const l = typeof o === "object" ? (o.label ?? o.name ?? v) : o;
+        return `<option value="${esc(v)}" ${String(it[sf.key] ?? "") === String(v) ? "selected" : ""}>${esc(l)}</option>`;
+      }).join("")}</select></label>`;
+    }
+    return `<label>${esc(sf.label)} <input data-rep="${f.key}" data-i="${i}" data-k="${sf.key}" value="${esc(it[sf.key] ?? "")}"></label>`;
+  }
+
+  function repResumen(f, it) {
+    for (const sf of f.itemFields || []) {
+      if (["text", "textarea", "url"].includes(sf.type) && String(it[sf.key] ?? "").trim()) {
+        return String(it[sf.key]).trim().slice(0, 42);
+      }
+    }
+    return "";
+  }
+
+  /**
+   * Una lista dentro de un item de otra lista. Las adiciones de un plato.
+   *
+   * Los datos ya lo soportaban —`Sanitizer::field()` se llama a si mismo
+   * cuando un sub-campo es un repetidor—; lo que no existia era la forma
+   * de escribirlo. Va en dos columnas (nombre y precio) porque una
+   * adicion no es un item con ficha: es una linea.
+   */
+  function subListHtml(node, f, sf, it, i) {
+    const lista = Array.isArray(it[sf.key]) ? it[sf.key] : [];
+    const campos = sf.itemFields || [];
+    const abierto = CORE.isOpen(`tree.${node.id}.sub.${f.key}.${i}.${sf.key}`, lista.length > 0);
+    const filas = lista.map((sub, j) => `<div class="tree-row">
+      ${campos.map((cf) => `<input class="${cf.key === campos[0]?.key ? "is-wide" : ""}" data-sub="${f.key}" data-i="${i}" data-k="${sf.key}" data-j="${j}" data-sk="${cf.key}"
+        value="${esc(sub?.[cf.key] ?? "")}" placeholder="${esc(cf.label)}" aria-label="${esc(cf.label)}">`).join("")}
+      <button type="button" class="b-ico" data-sub-move="${f.key}" data-i="${i}" data-k="${sf.key}" data-j="${j}" data-dir="-1" title="Subir">↑</button>
+      <button type="button" class="b-ico" data-sub-move="${f.key}" data-i="${i}" data-k="${sf.key}" data-j="${j}" data-dir="1" title="Bajar">↓</button>
+      <button type="button" class="b-ico" data-sub-del="${f.key}" data-i="${i}" data-k="${sf.key}" data-j="${j}" title="Eliminar">✕</button>
+    </div>`).join("");
+    return `<div class="tree-n is-sub ${abierto ? "is-open" : ""}">
+      <div class="tree-h">
+        <button type="button" class="tree-t" data-tree-t="tree.${node.id}.sub.${f.key}.${i}.${sf.key}" aria-expanded="${abierto}">${abierto ? "−" : "+"}</button>
+        <span class="tree-lbl">${esc(sf.label)}</span>
+        <span class="tree-c">${lista.length}</span>
+      </div>
+      <div class="tree-b" ${abierto ? "" : "hidden"}>
+        ${filas}
+        <button type="button" class="m-btn ghost tree-add" data-sub-add="${f.key}" data-i="${i}" data-k="${sf.key}">Añadir ${esc(String(sf.label).toLowerCase())}</button>
+      </div>
+    </div>`;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* La carta como arbol: categoria → platos → adiciones                 */
+  /*                                                                      */
+  /* Los datos NO cambian: `categories` sigue siendo una lista plana y    */
+  /* cada plato sigue llevando su campo `category`. Esto es solo otra     */
+  /* forma de enseñarlos, asi que ninguna carta existente necesita        */
+  /* migrarse y el frontend no se entera. El `data-i` de cada control es  */
+  /* el indice real en la lista plana, de modo que los manejadores de     */
+  /* siempre (`data-rep`, `data-rep-move`…) siguen valiendo tal cual.     */
+  /*                                                                      */
+  /* Los platos sin categoria, o con una categoria que ya no existe, no   */
+  /* se pierden: caen en un grupo final «Sin categoria». Antes quedaban   */
+  /* invisibles en la lista larga y nadie los encontraba.                 */
+  /* ------------------------------------------------------------------ */
+  function menuTreeHtml(node, f) {
+    const cats = Array.isArray(node.props?.categories) ? node.props.categories : [];
+    const items = Array.isArray(node.props?.[f.key]) ? node.props[f.key] : [];
+    const catDef = (defOf(node.type)?.fields || []).find((x) => x.key === "categories") || { itemFields: [] };
+    const norm = (s) => String(s ?? "").trim().toLowerCase();
+    const conocidas = cats.map((c) => norm(c?.label));
+
+    const plato = (it, i) => {
+      const id = `tree.${node.id}.plato.${i}`;
+      const abierto = CORE.isOpen(id, false);
+      const nombre = String(it?.title ?? "").trim() || "Plato sin nombre";
+      const precio = String(it?.price ?? "").trim();
+      const nAd = Array.isArray(it?.addons) ? it.addons.length : 0;
+      return `<div class="tree-n is-plato ${abierto ? "is-open" : ""}">
+        <div class="tree-h">
+          <button type="button" class="tree-t" data-tree-t="${id}" aria-expanded="${abierto}">${abierto ? "−" : "+"}</button>
+          <span class="tree-lbl">${esc(nombre)}</span>
+          ${precio ? `<span class="tree-price">${esc(precio)}</span>` : ""}
+          ${nAd ? `<span class="tree-c" title="Adiciones">+${nAd}</span>` : ""}
+          <span class="tree-acts">
+            <button type="button" class="b-ico" data-rep-move="${f.key}" data-i="${i}" data-dir="-1" title="Subir">↑</button>
+            <button type="button" class="b-ico" data-rep-move="${f.key}" data-i="${i}" data-dir="1" title="Bajar">↓</button>
+            <button type="button" class="b-ico" data-rep-dup="${f.key}" data-i="${i}" title="Duplicar">⧉</button>
+            <button type="button" class="b-ico" data-rep-del="${f.key}" data-i="${i}" title="Eliminar">✕</button>
+          </span>
+        </div>
+        <div class="tree-b" ${abierto ? "" : "hidden"}>
+          ${(f.itemFields || []).map((sf) => repSubField(node, f, sf, it, i)).join("")}
+        </div>
+      </div>`;
+    };
+
+    const grupo = (titulo, idGrupo, dentro, cabecera, acciones, nPlatos) => {
+      const abierto = CORE.isOpen(idGrupo, true);
+      return `<div class="tree-n is-cat ${abierto ? "is-open" : ""}">
+        <div class="tree-h">
+          <button type="button" class="tree-t" data-tree-t="${idGrupo}" aria-expanded="${abierto}">${abierto ? "−" : "+"}</button>
+          <span class="tree-lbl is-cat">${esc(titulo)}</span>
+          <span class="tree-c">${nPlatos}</span>
+          <span class="tree-acts">${acciones}</span>
+        </div>
+        <div class="tree-b" ${abierto ? "" : "hidden"}>${cabecera}${dentro}</div>
+      </div>`;
+    };
+
+    let html = "";
+    cats.forEach((c, ci) => {
+      const etiqueta = String(c?.label ?? "").trim();
+      const mios = items.map((it, i) => [it, i]).filter(([it]) => norm(it?.category) === norm(etiqueta));
+      const campos = (catDef.itemFields || []).map((sf) => repSubField(node, catDef, sf, c, ci)).join("");
+      const acciones = `
+        <button type="button" class="b-ico" data-rep-move="categories" data-i="${ci}" data-dir="-1" title="Subir">↑</button>
+        <button type="button" class="b-ico" data-rep-move="categories" data-i="${ci}" data-dir="1" title="Bajar">↓</button>
+        <button type="button" class="b-ico" data-rep-dup="categories" data-i="${ci}" title="Duplicar">⧉</button>
+        <button type="button" class="b-ico" data-rep-del="categories" data-i="${ci}" title="Eliminar">✕</button>`;
+      const dentro = mios.map(([it, i]) => plato(it, i)).join("")
+        + `<button type="button" class="m-btn ghost tree-add" data-rep-add="${f.key}" data-preset-k="category" data-preset-v="${esc(etiqueta)}">Añadir plato a «${esc(etiqueta || "esta categoría")}»</button>`;
+      html += grupo(etiqueta || `Categoría ${ci + 1}`, `tree.${node.id}.cat.${ci}`, dentro, `<div class="tree-cat-fields">${campos}</div>`, acciones, mios.length);
+    });
+
+    const sueltos = items.map((it, i) => [it, i]).filter(([it]) => !conocidas.includes(norm(it?.category)));
+    if (sueltos.length) {
+      html += grupo(
+        "Sin categoría",
+        `tree.${node.id}.cat.sueltos`,
+        sueltos.map(([it, i]) => plato(it, i)).join(""),
+        `<p class="m-muted">Estos platos no están en ninguna categoría de la lista. Asígnales una desde «Categoría», dentro de cada plato.</p>`,
+        "",
+        sueltos.length
+      );
+    }
+
+    return `<div class="b-tree" data-tree="${f.key}">
+      ${html}
+      <button type="button" class="m-btn ghost" data-rep-add="categories">Añadir categoría</button>
+    </div>`;
+  }
+
   function fieldHtml(node, f) {
     const html = fieldControl(node, f);
     return f.help ? `${html}<p class="m-muted">${esc(f.help)}</p>` : html;
@@ -2752,64 +2944,12 @@
         </div>
       </label>`;
     }
+    if (f.ui === "inTree") return "";
+    if (f.ui === "menuTree") return menuTreeHtml(node, f);
     if (f.type === "repeater") {
       const items = Array.isArray(val) ? val : [];
-      const sub = (sf, it, i) => {
-        if (sf.type === "image") {
-          const url = it.imageUrl || "";
-          const id = Number(it[sf.key] || 0);
-          return `<div class="m-pick-label">${esc(sf.label)}
-            <div class="b-gal-item">
-              <div class="b-thumb">${url ? `<img src="${esc(url)}" alt="">` : `<span class="m-thumb-empty">${id ? "#" + id : "Sin foto"}</span>`}</div>
-              <div class="b-gal-meta">
-                <button type="button" class="m-btn" data-rep-media="${f.key}" data-i="${i}" data-k="${sf.key}">${id ? "Cambiar imagen" : "Añadir imagen"}</button>
-                ${id ? `<button type="button" class="m-btn ghost" data-rep-media-clear="${f.key}" data-i="${i}" data-k="${sf.key}">Quitar</button>` : ""}
-              </div>
-            </div>
-          </div>`;
-        }
-        if (sf.key === "imageUrl") return "";
-        // Opciones tomadas de otro repetidor del mismo bloque: así las
-        // categorías de la carta o las columnas del pie se eligen de una
-        // lista en vez de reescribirse a mano en cada ítem.
-        if (sf.optionsFrom) {
-          const src = Array.isArray(node.props?.[sf.optionsFrom]) ? node.props[sf.optionsFrom] : [];
-          const lk = sf.labelKey || "label";
-          const cur = String(it[sf.key] ?? "");
-          const opts = src.map((o) => String(o?.[lk] ?? "").trim()).filter(Boolean);
-          if (cur && !opts.includes(cur)) opts.push(cur);
-          return `<label>${esc(sf.label)} <select data-rep="${f.key}" data-i="${i}" data-k="${sf.key}">
-            <option value="">— Sin asignar —</option>
-            ${opts.map((o) => `<option value="${esc(o)}" ${cur === o ? "selected" : ""}>${esc(o)}</option>`).join("")}
-          </select></label>`;
-        }
-        if (sf.type === "textarea") {
-          return `<label>${esc(sf.label)} <textarea data-rep="${f.key}" data-i="${i}" data-k="${sf.key}">${esc(it[sf.key] ?? "")}</textarea></label>`;
-        }
-        if (sf.type === "toggle") {
-          return `<label class="rep-toggle">${esc(sf.label)} <input type="checkbox" data-rep-bool="${f.key}" data-i="${i}" data-k="${sf.key}" ${it[sf.key] ? "checked" : ""}></label>`;
-        }
-        if (sf.type === "number") {
-          return `<label>${esc(sf.label)} <input type="number" data-rep="${f.key}" data-i="${i}" data-k="${sf.key}" value="${esc(it[sf.key] ?? "")}" min="${sf.min ?? ""}" max="${sf.max ?? ""}"></label>`;
-        }
-        if (sf.type === "select") {
-          const opts = sf.options || [];
-          return `<label>${esc(sf.label)} <select data-rep="${f.key}" data-i="${i}" data-k="${sf.key}">${opts.map((o) => {
-            const v = typeof o === "object" ? (o.value ?? o.id ?? "") : o;
-            const l = typeof o === "object" ? (o.label ?? o.name ?? v) : o;
-            return `<option value="${esc(v)}" ${String(it[sf.key] ?? "") === String(v) ? "selected" : ""}>${esc(l)}</option>`;
-          }).join("")}</select></label>`;
-        }
-        return `<label>${esc(sf.label)} <input data-rep="${f.key}" data-i="${i}" data-k="${sf.key}" value="${esc(it[sf.key] ?? "")}"></label>`;
-      };
-      const resumen = (it) => {
-        for (const sf of f.itemFields || []) {
-          if (["text", "textarea", "url"].includes(sf.type) && String(it[sf.key] ?? "").trim()) {
-            return String(it[sf.key]).trim().slice(0, 42);
-          }
-        }
-        return "";
-      };
+      const sub = (sf, it, i) => repSubField(node, f, sf, it, i);
+      const resumen = (it) => repResumen(f, it);
       return `<div class="b-rep"><strong>${esc(f.label)}</strong>
         ${items.map((it, i) => `<div class="rep-item">
           <div class="rep-head">
@@ -3252,6 +3392,10 @@
             blank[sf.key] = typeof first === "object" ? (first?.value ?? "") : (first ?? "");
           } else blank[sf.key] = "";
         });
+        // «Añadir plato a Postres» tiene que crear el plato YA en
+        // Postres: si no, aparece en «Sin categoría» y hay que ir a
+        // buscarlo, que es justo el paseo que el árbol viene a quitar.
+        if (b.dataset.presetK) blank[b.dataset.presetK] = b.dataset.presetV || "";
         snapshot();
         h.node.props[b.dataset.repAdd] = h.node.props[b.dataset.repAdd] || [];
         h.node.props[b.dataset.repAdd].push(blank);
@@ -3297,6 +3441,90 @@
         render();
       };
     });
+    /* --- Listas dentro de un ítem (las adiciones de un plato) --- */
+    const subLista = (ds, crear) => {
+      const h = hit();
+      if (!h) return null;
+      const arr = h.node.props[ds.sub || ds.subAdd || ds.subDel || ds.subMove] || [];
+      const it = arr[Number(ds.i)];
+      if (!it) return null;
+      if (!Array.isArray(it[ds.k])) {
+        if (!crear) return null;
+        it[ds.k] = [];
+      }
+      return it[ds.k];
+    };
+    box.querySelectorAll("[data-sub]").forEach((inp) => {
+      const aplicar = () => {
+        const lista = subLista(inp.dataset, true);
+        if (!lista || !lista[Number(inp.dataset.j)]) return;
+        lista[Number(inp.dataset.j)][inp.dataset.sk] = inp.value;
+        markDirty();
+      };
+      inp.addEventListener("input", aplicar);
+      inp.addEventListener("change", aplicar);
+    });
+    box.querySelectorAll("[data-sub-add]").forEach((b) => {
+      b.onclick = () => {
+        const h = hit();
+        if (!h) return;
+        const def = defOf(h.node.type) || {};
+        const campo = (def.fields || []).find((x) => x.key === b.dataset.subAdd);
+        const sub = ((campo?.itemFields) || []).find((x) => x.key === b.dataset.k);
+        const blank = {};
+        ((sub?.itemFields) || []).forEach((cf) => { blank[cf.key] = ""; });
+        snapshot();
+        const lista = subLista(b.dataset, true);
+        if (!lista) return;
+        lista.push(blank);
+        CORE.setOpen(`tree.${h.node.id}.sub.${b.dataset.subAdd}.${b.dataset.i}.${b.dataset.k}`, true);
+        markDirty();
+        render();
+      };
+    });
+    box.querySelectorAll("[data-sub-del]").forEach((b) => {
+      b.onclick = () => {
+        snapshot();
+        const lista = subLista(b.dataset, false);
+        if (!lista) return;
+        lista.splice(Number(b.dataset.j), 1);
+        markDirty();
+        render();
+      };
+    });
+    box.querySelectorAll("[data-sub-move]").forEach((b) => {
+      b.onclick = () => {
+        const lista = subLista(b.dataset, false);
+        if (!lista) return;
+        const i = Number(b.dataset.j);
+        const j = i + Number(b.dataset.dir);
+        if (j < 0 || j >= lista.length) return;
+        snapshot();
+        const t = lista[i];
+        lista[i] = lista[j];
+        lista[j] = t;
+        markDirty();
+        render();
+      };
+    });
+
+    /* --- Plegar y desplegar ramas del árbol --- */
+    /* No repinta el inspector: enseña y esconde el cuerpo y lo apunta.
+       Repintar desde aquí mataría el campo que se acaba de tocar. */
+    box.querySelectorAll("[data-tree-t]").forEach((b) => {
+      b.onclick = () => {
+        const rama = b.closest(".tree-n");
+        if (!rama) return;
+        const abierto = !rama.classList.contains("is-open");
+        rama.classList.toggle("is-open", abierto);
+        b.setAttribute("aria-expanded", abierto ? "true" : "false");
+        b.textContent = abierto ? "−" : "+";
+        const cuerpo = rama.querySelector(":scope > .tree-b");
+        if (cuerpo) cuerpo.hidden = !abierto;
+        CORE.setOpen(b.dataset.treeT, abierto);
+      };
+    });
+
     box.querySelectorAll("[data-rep-media]").forEach((b) => {
       b.onclick = () => {
         if (!window.wp?.media) return;

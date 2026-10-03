@@ -1338,7 +1338,42 @@ class BrandRenders {
 	}
 
 	/** Un plato de la carta. */
-	private static function menu_item( RenderContext $ctx, array $it, bool $images, string $shape ): string {
+	/**
+	 * Las adiciones de un plato.
+	 *
+	 * Una lista corta de «nombre … precio» debajo del plato. Va en `<ul>`
+	 * dentro del `<li>` del plato porque eso es lo que es: una lista que
+	 * depende de otra. Un lector de pantalla lo anuncia como tal, y sin
+	 * el titulo delante no se entenderia de que son.
+	 */
+	private static function menu_addons( array $it, string $label ): string {
+		$addons = is_array( $it['addons'] ?? null ) ? $it['addons'] : [];
+		$filas  = '';
+		foreach ( $addons as $ad ) {
+			if ( ! is_array( $ad ) ) {
+				continue;
+			}
+			$name = trim( (string) ( $ad['name'] ?? '' ) );
+			if ( '' === $name ) {
+				continue;
+			}
+			$price  = trim( (string) ( $ad['price'] ?? '' ) );
+			$filas .= '<li class="m-carta-addon">'
+				. '<span class="m-carta-addon-name">' . esc_html( $name ) . '</span>'
+				. ( '' !== $price ? '<span class="m-carta-addon-price">' . esc_html( $price ) . '</span>' : '' )
+				. '</li>';
+		}
+		if ( '' === $filas ) {
+			return '';
+		}
+		$label = '' !== trim( $label ) ? $label : __( 'Adiciones', 'meridian' );
+		return '<div class="m-carta-addons">'
+			. '<p class="m-carta-addons-t">' . esc_html( $label ) . '</p>'
+			. '<ul class="m-carta-addon-list">' . $filas . '</ul>'
+			. '</div>';
+	}
+
+	private static function menu_item( RenderContext $ctx, array $it, bool $images, string $shape, string $addons_label = '' ): string {
 		$title = trim( (string) ( $it['title'] ?? '' ) );
 		$text  = trim( (string) ( $it['text'] ?? '' ) );
 		$price = trim( (string) ( $it['price'] ?? '' ) );
@@ -1372,6 +1407,9 @@ class BrandRenders {
 		if ( '' !== $url ) {
 			$inner = '<a class="m-carta-link" href="' . esc_url( $url ) . '">' . $inner . '</a>';
 		}
+		// Las adiciones van FUERA del enlace: son informacion del plato,
+		// no parte de lo que se pulsa.
+		$inner .= self::menu_addons( $it, $addons_label );
 
 		return '<li class="m-carta-item" data-cat="' . esc_attr( '' !== $cat ? sanitize_title( $cat ) : '' ) . '">' . $inner . '</li>';
 	}
@@ -1396,6 +1434,7 @@ class BrandRenders {
 		$shape  = self::opt( $props['imageShape'] ?? 'square', [ 'square', 'rounded', 'circle' ], 'square' );
 		$leader = self::opt( $props['leader'] ?? 'none', [ 'none', 'dotted', 'solid' ], 'none' );
 		$images = ! empty( $props['showImages'] );
+		$addons_label = (string) ( $props['addonsLabel'] ?? '' );
 		$cats   = self::menu_categories( is_array( $props['categories'] ?? null ) ? $props['categories'] : [], $items );
 
 		$style  = self::col_vars( $props, 2, 1, 1 ) . self::section_style( $props );
@@ -1455,7 +1494,7 @@ class BrandRenders {
 					if ( sanitize_title( (string) ( $it['category'] ?? '' ) ) !== $slug ) {
 						continue;
 					}
-					$list .= self::menu_item( $ctx, $it, $images, $shape );
+					$list .= self::menu_item( $ctx, $it, $images, $shape, $addons_label );
 				}
 				if ( '' === $list ) {
 					continue;
@@ -1471,7 +1510,7 @@ class BrandRenders {
 				if ( '' !== trim( (string) ( $it['category'] ?? '' ) ) ) {
 					continue;
 				}
-				$loose .= self::menu_item( $ctx, $it, $images, $shape );
+				$loose .= self::menu_item( $ctx, $it, $images, $shape, $addons_label );
 			}
 			if ( '' !== $loose ) {
 				$body .= '<section class="m-carta-group"><ul class="m-carta-grid">' . $loose . '</ul></section>';
@@ -1497,7 +1536,7 @@ class BrandRenders {
 			}
 			$list = '';
 			foreach ( $items as $it ) {
-				$list .= self::menu_item( $ctx, $it, $images, $shape );
+				$list .= self::menu_item( $ctx, $it, $images, $shape, $addons_label );
 			}
 			$empty = trim( (string) ( $props['emptyLabel'] ?? '' ) );
 			$body  = $tabs . '<ul class="m-carta-grid" data-carta-grid>' . $list . '</ul>'

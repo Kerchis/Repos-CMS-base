@@ -2186,6 +2186,45 @@ body.m-curtain-on .m-page::after {
 }
 .is-theme-forest .m-carta-desc,
 .is-theme-dark .m-carta-desc { color: var(--m-carta-desc-c, inherit); opacity: 0.82; }
+/* Adiciones: la letra pequeña del plato.
+   Sangradas y un punto más apagadas para que se lean como lo que son
+   —extras de ese plato— sin competir con el nombre ni con el precio.
+   Heredan los colores del plato, así que un tema oscuro no las deja
+   ilegibles. */
+.m-carta-addons {
+  margin-top: 10px;
+  padding-left: 14px;
+  border-left: 1px solid currentColor;
+  border-left-color: color-mix(in srgb, currentColor 22%, transparent);
+}
+.m-carta-addons-t {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--m-carta-cat-c, var(--m-carta-accent, inherit));
+  opacity: 0.9;
+}
+.m-carta-addon-list { margin: 0; padding: 0; list-style: none; }
+.m-carta-addon {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--m-carta-desc-c, var(--color-text-secondary, inherit));
+}
+.m-carta-addon + .m-carta-addon { margin-top: 2px; }
+.m-carta-addon-name { flex: 1 1 auto; min-width: 0; }
+.m-carta-addon-price {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--m-carta-price-c, inherit);
+}
+.is-theme-forest .m-carta-addon,
+.is-theme-dark .m-carta-addon { color: var(--m-carta-desc-c, inherit); opacity: 0.8; }
+
 .m-carta-empty { text-align: center; color: var(--color-text-secondary); padding-block: var(--spacing-xl, 48px); }
 .m-carta-empty[hidden] { display: none; }
 .m-carta-cta { display: flex; justify-content: center; margin-top: var(--spacing-xl, 48px); }
