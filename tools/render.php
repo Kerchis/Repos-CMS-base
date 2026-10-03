@@ -178,6 +178,9 @@ foreach (
 		'/core/render/ComponentRenders.php',
 		'/core/render/BrandRenders.php',
 		'/core/render/NodeRenderer.php',
+		'/core/security/Sanitizer.php',
+		'/core/style/Breakpoints.php',
+		'/core/style/DocumentCssCompiler.php',
 	] as $f
 ) {
 	if ( file_exists( $base . $f ) ) {
@@ -255,6 +258,38 @@ function fila_con_nodos( array $modulos, string $markup, RenderContext $ctx ): s
 	$row             = node( 'row', [], 'rn1' );
 	$row['children'] = [ $col ];
 	return ComponentRenders::row( $row, $row['props'], $celda, $ctx );
+}
+
+/**
+ * Documento completo por el camino real: saneado, CSS compilado y marcado.
+ *
+ * Por que: `fila()` y los casos de arriba llaman al renderizador a pelo, asi
+ * que no pasan por el saneador ni por DocumentCssCompiler. Los estilos que el
+ * usuario pone en el panel (fondo, relleno...) viven justo en ese tramo. Esto
+ * monta sección → fila → columna → módulo como lo hace el constructor, pasa el
+ * documento por el mismo saneador que la API y devuelve el CSS compilado
+ * delante del marcado, para poder medir en el navegador quién gana la cascada.
+ */
+function documento( array $secciones ): string {
+	global $ctx;
+	$doc  = \Meridian\Security\Sanitizer::document( [ 'sections' => $secciones ] );
+	$css  = \Meridian\Style\DocumentCssCompiler::compile( $doc );
+	$html = '';
+	foreach ( $doc['sections'] as $s ) {
+		$html .= \Meridian\Render\NodeRenderer::render( $s, $ctx );
+	}
+	return '<style id="krg-doc-css">' . $css . '</style>' . $html;
+}
+
+/** Sección → fila → columna → módulos, como los intercala el constructor. */
+function arbol( array $sec_props, array $modulos, string $sec_id = 'sec1' ): array {
+	$col             = node( 'column', [ 'span' => 12 ], 'col1' );
+	$col['children'] = $modulos;
+	$row             = node( 'row', [], 'row1' );
+	$row['children'] = [ $col ];
+	$sec             = node( 'section', $sec_props, $sec_id );
+	$sec['children'] = [ $row ];
+	return $sec;
 }
 
 /** Seccion de mapa tal y como la monta el constructor, con alto propio. */
@@ -774,6 +809,137 @@ $cases = [
 			$ctx
 		);
 	},
+
+	/* ---------------------------------------------------------------- */
+	/* Estilos del panel: ¿gana lo que el usuario escribe?               */
+	/* ---------------------------------------------------------------- */
+
+	'estilos-fondo-cta'    => function () {
+		$cta = node(
+			'statement-cta',
+			[ 'title' => 'Reserva gratis', 'text' => 'Mesa para dos en dos minutos.', 'buttonText' => 'Reservar', 'theme' => 'forest' ],
+			'cta1'
+		);
+		$cta['styles'] = [ 'desktop' => [ 'background' => '#D94E27' ] ];
+		return documento( [ arbol( [ 'width' => 'full' ], [ $cta ] ) ] );
+	},
+
+	'estilos-fondo-seccion' => function () {
+		$cta = node( 'statement-cta', [ 'title' => 'Reserva gratis', 'theme' => 'forest' ], 'cta2' );
+		$sec = arbol( [ 'width' => 'full' ], [ $cta ], 'sec2' );
+		$sec['styles'] = [ 'desktop' => [ 'background' => '#D94E27' ] ];
+		return documento( [ $sec ] );
+	},
+
+	'estilos-relleno-carta' => function () {
+		$carta           = node( 'menu-list', carta_props(), 'carta1' );
+		$carta['styles'] = [ 'desktop' => [ 'padding-top' => '40px', 'padding-bottom' => '40px' ] ];
+		return documento( [ arbol( [ 'width' => 'full' ], [ $carta ] ) ] );
+	},
+
+	'estilos-relleno-seccion-carta' => function () {
+		$carta         = node( 'menu-list', carta_props(), 'carta2' );
+		$sec           = arbol( [ 'width' => 'full' ], [ $carta ], 'sec3' );
+		$sec['styles'] = [ 'desktop' => [ 'padding-top' => '40px', 'padding-bottom' => '40px' ] ];
+		return documento( [ $sec ] );
+	},
+
+	'estilos-valign-carta'  => function () {
+		$carta = node( 'menu-list', carta_props(), 'carta3' );
+		return documento(
+			[
+				arbol(
+					[
+						'width'          => 'full',
+						'minHeight'      => 'custom',
+						'minHeightValue' => 1400,
+						'minHeightUnit'  => 'px',
+						'heightMode'     => 'min',
+						'vAlign'         => 'center',
+					],
+					[ $carta ],
+					'sec4'
+				),
+			]
+		);
+	},
+	/* ---------------------------------------------------------------- */
+	/* Colores propios del bloque, por encima del «Tema»                 */
+	/* ---------------------------------------------------------------- */
+
+	'colores-cta-propio'   => function () {
+		$cta = node(
+			'statement-cta',
+			[
+				'title'      => 'Reserva gratis',
+				'text'       => 'Mesa para dos en dos minutos.',
+				'buttonText' => 'Reservar',
+				'theme'      => 'forest',
+				'bgColor'    => [ 'mode' => 'custom', 'value' => '#D94E27' ],
+				'textColor'  => [ 'mode' => 'custom', 'value' => '#FFF9F0' ],
+				'padTop'     => 40,
+				'padBottom'  => 40,
+			],
+			'cta3'
+		);
+		return documento( [ arbol( [ 'width' => 'full' ], [ $cta ] ) ] );
+	},
+
+	'colores-cta-tema'     => function () {
+		$cta = node( 'statement-cta', [ 'title' => 'Reserva gratis', 'theme' => 'forest' ], 'cta4' );
+		return documento( [ arbol( [ 'width' => 'full' ], [ $cta ] ) ] );
+	},
+
+	'colores-carta'        => function () {
+		$props = array_merge(
+			carta_props(),
+			[
+				'theme'      => 'forest',
+				'groupMode'  => 'stacked',
+				'bgColor'    => [ 'mode' => 'custom', 'value' => '#101010' ],
+				'textColor'  => [ 'mode' => 'custom', 'value' => '#F2F2F2' ],
+				'titleColor' => [ 'mode' => 'custom', 'value' => '#FFD166' ],
+				'catColor'   => [ 'mode' => 'custom', 'value' => '#06D6A0' ],
+				'nameColor'  => [ 'mode' => 'custom', 'value' => '#118AB2' ],
+				'descColor'  => [ 'mode' => 'custom', 'value' => '#EF476F' ],
+				'priceColor' => [ 'mode' => 'custom', 'value' => '#073B4C' ],
+				'badgeColor' => [ 'mode' => 'custom', 'value' => '#8338EC' ],
+				'padTop'     => 50,
+				'padBottom'  => 70,
+			]
+		);
+		return documento( [ arbol( [ 'width' => 'full' ], [ node( 'menu-list', $props, 'carta4' ) ] ) ] );
+	},
+
+	'colores-carta-tema'   => function () {
+		return documento( [ arbol( [ 'width' => 'full' ], [ node( 'menu-list', carta_props(), 'carta5' ) ] ) ] );
+	},
+
+	'colores-pie-partido'  => function () {
+		$props = array_merge(
+			pie_props( 'left' ),
+			[
+				'theme'     => 'dark',
+				'bgColor'   => [ 'mode' => 'custom', 'value' => '#2B413D' ],
+				'textColor' => [ 'mode' => 'custom', 'value' => '#FEF6E7' ],
+			]
+		);
+		return documento( [ arbol( [ 'width' => 'full' ], [ node( 'footer-split', $props, 'fs3' ) ] ) ] );
+	},
+
+	'colores-token'        => function () {
+		$cta = node(
+			'statement-cta',
+			[
+				'title'   => 'Con token del sistema',
+				'theme'   => 'light',
+				'bgColor' => [ 'mode' => 'custom', 'value' => 'var(--color-primary)' ],
+			],
+			'cta5'
+		);
+		return documento( [ arbol( [ 'width' => 'full' ], [ $cta ] ) ] );
+	},
+
 ];
 
 $want = $argv[1] ?? '';

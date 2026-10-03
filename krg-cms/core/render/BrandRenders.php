@@ -179,7 +179,23 @@ class BrandRenders {
 		return [ 'data-header-skin' => \Meridian\Design\Contrast::for_theme( $theme ) ];
 	}
 
+	/**
+	 * Variables propias del bloque: espacio y colores.
+	 *
+	 * Se emiten sobre el mismo elemento que lleva la clase del tema, que
+	 * es quien declara `--m-th-bg` y `--m-th-fg`. Escribirlas aqui, en
+	 * linea, las pisa sin tocar la hoja de estilos y sin `!important`:
+	 * el tema sigue mandando mientras el campo este en blanco.
+	 *
+	 * Un campo en blanco no escribe nada, y por eso un 0 escrito a mano
+	 * si significa cero.
+	 */
 	private static function section_style( array $p ): string {
+		return self::pad_style( $p ) . self::theme_style( $p );
+	}
+
+	/** Solo el espacio propio: para bloques cuyo tema vive en un hijo. */
+	private static function pad_style( array $p ): string {
 		$style = '';
 		if ( isset( $p['padTop'] ) && '' !== $p['padTop'] ) {
 			$style .= '--m-pad-top:' . absint( $p['padTop'] ) . 'px;';
@@ -188,6 +204,26 @@ class BrandRenders {
 			$style .= '--m-pad-bottom:' . absint( $p['padBottom'] ) . 'px;';
 		}
 		return $style;
+	}
+
+	/** Fondo y texto propios del bloque, por encima del tema. */
+	private static function theme_style( array $p ): string {
+		$style = '';
+		$bg    = self::color_value( $p['bgColor'] ?? null );
+		$fg    = self::color_value( $p['textColor'] ?? null );
+		if ( '' !== $bg ) {
+			$style .= '--m-th-bg:' . $bg . ';';
+		}
+		if ( '' !== $fg ) {
+			$style .= '--m-th-fg:' . $fg . ';';
+		}
+		return $style;
+	}
+
+	/** Igual que `section_style()`, pero listo para un atributo style. */
+	private static function style_attr( array $p, string $extra = '' ): array {
+		$style = $extra . self::section_style( $p );
+		return '' === $style ? [] : [ 'style' => $style ];
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -417,9 +453,12 @@ class BrandRenders {
 			'div',
 			$inner,
 			array_merge(
-				[
-					'class' => 'm-bh is-' . $variant . ' is-h-' . $height . ' is-theme-' . $theme . ( ( $img || $img_m ) ? ' has-media' : '' ),
-				],
+				array_merge(
+					[
+						'class' => 'm-bh is-' . $variant . ' is-h-' . $height . ' is-theme-' . $theme . ( ( $img || $img_m ) ? ' has-media' : '' ),
+					],
+					self::style_attr( $props )
+				),
 				// Con imagen de fondo el velo oscurece: la cabecera va en claro.
 				( $img || $img_m ) ? [ 'data-header-skin' => 'light' ] : self::skin( $theme )
 			)
@@ -461,7 +500,10 @@ class BrandRenders {
 			'div',
 			'<div class="m-container m-sf-grid">' . $media . $copy . '</div>',
 			array_merge(
-				[ 'class' => 'm-sf is-img-' . $side . ' is-ratio-' . $ratio . ' is-theme-' . $theme ],
+				array_merge(
+					[ 'class' => 'm-sf is-img-' . $side . ' is-ratio-' . $ratio . ' is-theme-' . $theme ],
+					self::style_attr( $props )
+				),
 				self::skin( $theme )
 			)
 		);
@@ -511,7 +553,10 @@ class BrandRenders {
 			'div',
 			$inner . $body,
 			array_merge(
-				[ 'class' => 'm-sc is-theme-' . $theme . ( $bg ? ' has-media' : '' ) ],
+				array_merge(
+					[ 'class' => 'm-sc is-theme-' . $theme . ( $bg ? ' has-media' : '' ) ],
+					self::style_attr( $props )
+				),
 				$bg ? [ 'data-header-skin' => 'light' ] : self::skin( $theme )
 			)
 		);
@@ -883,7 +928,7 @@ class BrandRenders {
 			$inner,
 			[
 				'class' => 'm-st is-size-' . $size . ' is-theme-' . $theme,
-				'style' => '--m-st-max:' . $max . 'px;--m-st-count:' . count( $words ) . ';',
+				'style' => '--m-st-max:' . $max . 'px;--m-st-count:' . count( $words ) . ';' . self::section_style( $props ),
 			]
 		);
 	}
@@ -957,11 +1002,14 @@ class BrandRenders {
 			'div',
 			$inner,
 			array_merge(
-				[
-					'class'      => 'm-tr is-theme-' . $theme . ( $bg ? ' has-media' : '' ),
-					'data-trace' => '1',
-					'data-code'  => $code,
-				],
+				array_merge(
+					[
+						'class'      => 'm-tr is-theme-' . $theme . ( $bg ? ' has-media' : '' ),
+						'data-trace' => '1',
+						'data-code'  => $code,
+					],
+					self::style_attr( $props )
+				),
 				$bg ? [ 'data-header-skin' => 'light' ] : self::skin( $theme )
 			)
 		);
@@ -998,7 +1046,7 @@ class BrandRenders {
 			. ( '' !== $logos ? '<ul class="m-rs-list' . ( $gray ? ' is-gray' : '' ) . '">' . $logos . '</ul>' : '' )
 			. '</div>';
 
-		return ComponentRenders::wrap( $node, $ctx, 'div', $inner, [ 'class' => 'm-rs is-theme-' . $theme ] );
+		return ComponentRenders::wrap( $node, $ctx, 'div', $inner, array_merge( [ 'class' => 'm-rs is-theme-' . $theme ], self::style_attr( $props ) ) );
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -1030,7 +1078,7 @@ class BrandRenders {
 			. '</tr></thead><tbody>' . $body . '</tbody></table></div>'
 			. ( '' !== $caption ? '<p class="m-it-caption">' . esc_html( $caption ) . '</p>' : '' );
 
-		return ComponentRenders::wrap( $node, $ctx, 'div', $inner, [ 'class' => 'm-it is-theme-' . $theme ] );
+		return ComponentRenders::wrap( $node, $ctx, 'div', $inner, array_merge( [ 'class' => 'm-it is-theme-' . $theme ], self::style_attr( $props ) ) );
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -1105,7 +1153,9 @@ class BrandRenders {
 				. esc_html( (string) $props['buttonText'] ) . $arrow . '</a></div>';
 		}
 
-		$copy_panel = '<div class="m-sp-copy is-theme-' . $theme . ' is-align-' . $align . '">'
+		$panel_style = self::theme_style( $props );
+		$copy_panel  = '<div class="m-sp-copy is-theme-' . $theme . ' is-align-' . $align . '"'
+			. ( '' !== $panel_style ? ' style="' . esc_attr( $panel_style ) . '"' : '' ) . '>'
 			. '<div class="m-sp-copy-inner">' . $copy . '</div>'
 			. ( 'corner' === $bpos ? $badge_html : '' )
 			. '</div>';
@@ -1159,7 +1209,7 @@ class BrandRenders {
 				[
 					'class' => 'm-sp is-media-' . $side . ' is-ratio-' . $ratio . ' is-h-' . $height
 						. ( $media_panel ? '' : ' is-single' ),
-					'style' => trim( self::section_style( $props ) . ( $h_style ? ';' . $h_style : '' ), ';' ),
+					'style' => trim( self::pad_style( $props ) . ( $h_style ? ';' . $h_style : '' ), ';' ),
 				],
 				self::skin( $theme )
 			)
@@ -1225,16 +1275,21 @@ class BrandRenders {
 	}
 
 	/** Resuelve un campo `color` del esquema a un valor CSS usable. */
+	/**
+	 * Valor CSS de un campo de color: hexadecimal o variable del sistema.
+	 *
+	 * Devuelve cadena vacia cuando no hay color elegido («sin color»),
+	 * que es lo que deja mandar al tema.
+	 */
 	private static function color_value( $c ): string {
-		if ( ! is_array( $c ) ) {
+		if ( ! is_array( $c ) || 'none' === ( $c['mode'] ?? '' ) ) {
 			return '';
 		}
 		if ( ( $c['mode'] ?? '' ) === 'token' && ! empty( $c['token'] ) ) {
 			return \Meridian\Design\TokenCompiler::token_var( (string) $c['token'] );
 		}
 		if ( ! empty( $c['value'] ) ) {
-			$hex = sanitize_hex_color( (string) $c['value'] );
-			return $hex ? $hex : '';
+			return \Meridian\Security\Sanitizer::css_color( (string) $c['value'] );
 		}
 		return '';
 	}
@@ -1355,6 +1410,24 @@ class BrandRenders {
 		$accent = self::color_value( $props['accent'] ?? null );
 		if ( '' !== $accent ) {
 			$style .= '--m-carta-accent:' . $accent . ';';
+		}
+		// Color por tipo de texto. En blanco manda el tema; en cuanto hay
+		// color, la carta deja de depender del «Tema» para leerse bien
+		// sobre cualquier fondo.
+		foreach (
+			[
+				'titleColor' => '--m-carta-h-c',
+				'catColor'   => '--m-carta-cat-c',
+				'nameColor'  => '--m-carta-name-c',
+				'descColor'  => '--m-carta-desc-c',
+				'priceColor' => '--m-carta-price-c',
+				'badgeColor' => '--m-carta-badge-c',
+			] as $key => $var
+		) {
+			$c = self::color_value( $props[ $key ] ?? null );
+			if ( '' !== $c ) {
+				$style .= $var . ':' . $c . ';';
+			}
 		}
 
 		/* --- cabecera --- */
@@ -1502,7 +1575,7 @@ class BrandRenders {
 		$align  = self::align( $props['align'] ?? 'left' );
 		$track  = self::tracking( $props['tracking'] ?? 'normal' );
 
-		$style = self::section_style( $props );
+		$style = self::pad_style( $props );
 		if ( 'custom' === $height ) {
 			$unit   = ( ( $props['heightUnit'] ?? 'px' ) === 'vh' ) ? 'svh' : 'px';
 			$max    = 'px' === $unit ? 4000 : 400;
@@ -1658,7 +1731,9 @@ class BrandRenders {
 				. '</div>';
 		}
 
-		$panel = '<div class="m-fs-panel is-theme-' . $theme . ' is-align-' . $align . '">'
+		$panel_style = self::theme_style( $props );
+		$panel       = '<div class="m-fs-panel is-theme-' . $theme . ' is-align-' . $align . '"'
+			. ( '' !== $panel_style ? ' style="' . esc_attr( $panel_style ) . '"' : '' ) . '>'
 			. '<div class="m-fs-panel-inner">'
 			. ( '' !== $contact || '' !== $nav ? '<div class="m-fs-top">' . $contact . $nav . '</div>' : '' )
 			. $bottom

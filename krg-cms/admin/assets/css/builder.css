@@ -287,6 +287,9 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   align-items: center;
 }
 .m-pick-color { grid-template-columns: 42px minmax(0, 1fr); }
+/* Con color elegido aparece la aspa para volver al tema. */
+.m-pick-color:has([data-color-clear]) { grid-template-columns: 42px minmax(0, 1fr) 30px; }
+.m-pick-color [data-color-clear] { width: 30px; }
 .m-pick-font { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
 .m-pick-font .m-pick-val { grid-column: 1 / -1; }
 .m-pick-size { grid-template-columns: minmax(0, 1.1fr) 58px auto minmax(0, 1fr); }

@@ -92,6 +92,45 @@ echo "\nModulos nuevos\n";
 revisa( 'menu-list', [ 'groupMode' => 'stacked', 'imageShape' => 'circle', 'imageSize' => 120 ], [ 'groupMode' => 'stacked', 'imageShape' => 'circle', 'imageSize' => 120 ] );
 revisa( 'footer-split', [ 'mediaSide' => 'right', 'ratio' => 'copy-wide', 'height' => 'custom', 'heightValue' => 520, 'heightUnit' => 'px' ], [ 'mediaSide' => 'right', 'ratio' => 'copy-wide', 'height' => 'custom', 'heightValue' => 520, 'heightUnit' => 'px' ] );
 
+echo "\nColores propios del bloque (mandan sobre el «Tema»)\n";
+revisa(
+	'statement-cta',
+	[
+		'theme'     => 'forest',
+		'bgColor'   => [ 'mode' => 'custom', 'value' => '#D94E27' ],
+		'textColor' => [ 'mode' => 'custom', 'value' => 'var(--color-background)' ],
+	],
+	[
+		'theme'     => 'forest',
+		'bgColor'   => [ 'mode' => 'custom', 'token' => '', 'value' => '#D94E27' ],
+		// Un token del sistema tiene que sobrevivir: antes se tiraba.
+		'textColor' => [ 'mode' => 'custom', 'token' => '', 'value' => 'var(--color-background)' ],
+	]
+);
+revisa(
+	'statement-cta',
+	[ 'theme' => 'forest' ],
+	// Sin color elegido no se inventa ninguno: manda el tema.
+	[ 'bgColor' => [ 'mode' => 'none', 'token' => '', 'value' => '' ] ]
+);
+revisa(
+	'menu-list',
+	[
+		'titleColor' => [ 'mode' => 'custom', 'value' => '#FFD166' ],
+		'priceColor' => [ 'mode' => 'custom', 'value' => '#073B4C' ],
+	],
+	[
+		'titleColor' => [ 'mode' => 'custom', 'token' => '', 'value' => '#FFD166' ],
+		'priceColor' => [ 'mode' => 'custom', 'token' => '', 'value' => '#073B4C' ],
+	]
+);
+
+echo "\nEspacio del bloque: en blanco no es cero\n";
+revisa( 'menu-list', [ 'padTop' => 40, 'padBottom' => 0 ], [ 'padTop' => 40, 'padBottom' => 0 ] );
+revisa( 'menu-list', [], [ 'padTop' => '', 'padBottom' => '' ] );
+revisa( 'review-slider', [ 'padTop' => 24 ], [ 'padTop' => 24 ] );
+revisa( 'statement-cta', [ 'padBottom' => 90 ], [ 'padBottom' => 90 ] );
+
 echo "\nEstilos por nodo (los que compila DocumentCssCompiler)\n";
 $nodo = [
 	'id'     => 'n2',

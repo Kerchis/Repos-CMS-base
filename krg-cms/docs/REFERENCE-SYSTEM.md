@@ -116,6 +116,13 @@ tienen variantes y todos reciben su contenido por props.
 Convenciones de marcado:
 
 - prefijo `m-`, variantes `is-*`, temas de bloque `.is-theme-{light|cream|surface|forest|dark}`;
+- **un tema son dos variables, no dos colores fijos**: cada clase declara
+  `--m-th-bg` y `--m-th-fg`, y una sola regla (`[class*="is-theme-"]`) las
+  pinta. Un bloque puede pisar una de las dos en línea sin `!important` y sin
+  renunciar al tema; es lo que usan los campos «Color de fondo» y «Color del
+  texto» del panel. Las variables se heredan, pero un bloque anidado con su
+  propia clase de tema las vuelve a declarar sobre sí mismo, así que no se
+  contaminan;
 - cada componente emite `m-c-{tipo} m-n-{id}` (de `RenderContext::node_class()`),
   lo que permite estilos por nodo desde el inspector sin CSS inline;
 - el contenido se escapa en el punto de salida (`esc_html`, `esc_attr`, `esc_url`);
@@ -272,6 +279,13 @@ Sección → Diseño → **Efecto cortina**.
 - **Colores a medida**: Apariencia → Colores → Añadir un color. El nombre se
   convierte en slug y `TokenCompiler` lo publica como `--color-{slug}`. La
   lista `CORE_COLORS` de `app.js` protege los que usan los componentes.
+- **Colores por bloque**: `bgColor` / `textColor` en los veinte bloques de
+  marca (y, en la carta, uno por tipo de texto: `titleColor`, `catColor`,
+  `nameColor`, `descColor`, `priceColor`, `badgeColor`). Valor vacío =
+  manda el tema. Se aceptan hexadecimal y tokens (`var(--color-primary)`).
+  El renderizador los emite como variables en línea sobre el elemento que
+  lleva la clase del tema; `BrandRenders::theme_style()` y
+  `BrandRenders::pad_style()` son el único punto donde se decide eso.
 - **Colores del CMS** (`core/admin/Skin.php`): doce variables de `admin.css`
   guardadas en `meridian_admin_skin` e inyectadas con `wp_add_inline_style`.
   Si no hay nada personalizado no se emite ni un byte. No tocan el frontend.

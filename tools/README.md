@@ -22,6 +22,7 @@ bash tools/devenv.sh     # PHP 8.3 estático + Chromium + playwright-core en .to
 | `tools/prueba-vacias.mjs` | Contrato de secciones vacías: lo que no pinta nada ocupa 0 px en la web y sí se ve en el lienzo. |
 | `tools/prueba-preview.mjs` | Contrato de contextos: «Preview» tiene que salir byte a byte igual que la web pública, y el andamiaje solo en el lienzo. |
 | `tools/prueba-guardado.php` | Camino de guardado: pasa nodos por el saneador de verdad y comprueba qué propiedades sobreviven. |
+| `tools/prueba-estilos.mjs` | Contrato de «lo que escribes en el panel manda»: documento real → saneador → compilador de CSS → navegador, y se lee el color, el relleno y la posición calculados. |
 
 Chromium necesita sus librerías en el entorno:
 
@@ -29,7 +30,7 @@ Chromium necesita sus librerías en el entorno:
 export LD_LIBRARY_PATH="$PWD/.tools/chromium/lib/lib:$PWD/.tools/chromium/lib"
 ```
 
-Las tres pruebas devuelven código 1 si falla alguna comprobación, así que
+Las cuatro pruebas devuelven código 1 si falla alguna comprobación, así que
 sirven tal cual en un gancho de integración continua:
 
 ```sh
@@ -37,4 +38,12 @@ bash tools/lint-php.sh
 .tools/php/php tools/prueba-guardado.php
 node tools/prueba-preview.mjs
 node tools/prueba-vacias.mjs
+node tools/prueba-estilos.mjs
 ```
+
+`tools/render.php` trae dos ayudantes para montar casos por el camino
+completo: `arbol()` (sección → fila → columna → módulos, como los intercala
+el constructor) y `documento()` (pasa el árbol por `Sanitizer::document()`,
+compila el CSS con `DocumentCssCompiler` y lo devuelve delante del marcado).
+Son los que hacen falta para medir quién gana la cascada: llamar al
+renderizador a pelo se salta justo el tramo donde se pierden los estilos.

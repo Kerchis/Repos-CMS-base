@@ -127,11 +127,23 @@
 /* 2. Temas de bloque                                                  */
 /* ------------------------------------------------------------------ */
 
-.is-theme-light   { background: var(--color-surface-alt, #fff); color: var(--color-text); }
-.is-theme-cream   { background: var(--color-background); color: var(--color-text); }
-.is-theme-surface { background: var(--color-surface); color: var(--color-text); }
-.is-theme-forest  { background: var(--color-primary); color: var(--color-on-primary, #fff); }
-.is-theme-dark    { background: var(--color-secondary); color: var(--color-on-secondary, #fff); }
+/* Cada tema declara sus dos colores en variables y una sola regla los
+   pinta. Asi un bloque puede cambiar solo el fondo o solo el texto
+   (`--m-th-bg` / `--m-th-fg` en linea, desde el panel «Colores») sin
+   tener que renunciar al tema ni tocar CSS.
+
+   Las variables se heredan, pero eso no contamina los bloques anidados:
+   un hijo con su propia clase `is-theme-*` las vuelve a declarar sobre
+   si mismo, y una declaracion propia siempre gana a lo heredado. */
+.is-theme-light   { --m-th-bg: var(--color-surface-alt, #fff); --m-th-fg: var(--color-text); }
+.is-theme-cream   { --m-th-bg: var(--color-background);        --m-th-fg: var(--color-text); }
+.is-theme-surface { --m-th-bg: var(--color-surface);           --m-th-fg: var(--color-text); }
+.is-theme-forest  { --m-th-bg: var(--color-primary);           --m-th-fg: var(--color-on-primary, #fff); }
+.is-theme-dark    { --m-th-bg: var(--color-secondary);         --m-th-fg: var(--color-on-secondary, #fff); }
+
+/* Misma especificidad que las clases de tema (0,1,0) y justo detras, asi
+   que todo lo que ya pisaba un tema lo sigue pisando igual. */
+[class*="is-theme-"] { background: var(--m-th-bg, transparent); color: var(--m-th-fg, inherit); }
 
 .is-theme-forest .m-eyebrow,
 .is-theme-dark .m-eyebrow { color: inherit; opacity: 0.72; }
@@ -1993,7 +2005,7 @@ body.m-curtain-on .m-page::after {
 .m-carta-tab {
   border: 0;
   background: transparent;
-  color: inherit;
+  color: var(--m-carta-cat-c, inherit);
   font-family: var(--font-heading);
   font-size: 12px;
   font-weight: 700;
@@ -2045,8 +2057,8 @@ body.m-curtain-on .m-page::after {
   font-weight: 700;
   line-height: 1.3;
 }
-.m-carta-name { display: flex; align-items: baseline; gap: 10px; flex: 1 1 auto; min-width: 0; }
-.m-carta-price { margin-left: auto; white-space: nowrap; color: var(--m-carta-accent); }
+.m-carta-name { display: flex; align-items: baseline; gap: 10px; flex: 1 1 auto; min-width: 0; color: var(--m-carta-name-c, inherit); }
+.m-carta-price { margin-left: auto; white-space: nowrap; color: var(--m-carta-price-c, var(--m-carta-accent)); }
 /* Guía entre el nombre y el precio, como en una carta impresa. */
 .m-carta.is-leader-dotted .m-carta-name::after,
 .m-carta.is-leader-solid  .m-carta-name::after {
@@ -2061,6 +2073,7 @@ body.m-curtain-on .m-page::after {
 .m-carta-badge {
   display: inline-block;
   margin-top: 8px;
+  color: var(--m-carta-badge-c, inherit);
   font-family: var(--font-heading);
   font-size: 11px;
   font-weight: 700;
@@ -2074,12 +2087,12 @@ body.m-curtain-on .m-page::after {
 .m-carta-desc {
   display: block;
   margin-top: 8px;
-  color: var(--color-text-secondary, inherit);
+  color: var(--m-carta-desc-c, var(--color-text-secondary, inherit));
   font-size: 15px;
   line-height: 1.55;
 }
 .is-theme-forest .m-carta-desc,
-.is-theme-dark .m-carta-desc { color: inherit; opacity: 0.82; }
+.is-theme-dark .m-carta-desc { color: var(--m-carta-desc-c, inherit); opacity: 0.82; }
 .m-carta-empty { text-align: center; color: var(--color-text-secondary); padding-block: var(--spacing-xl, 48px); }
 .m-carta-empty[hidden] { display: none; }
 .m-carta-cta { display: flex; justify-content: center; margin-top: var(--spacing-xl, 48px); }
@@ -2096,7 +2109,15 @@ body.m-curtain-on .m-page::after {
   padding-bottom: 10px;
   border-bottom: 1px solid var(--color-border);
 }
-.m-carta-cat-text { margin: -6px 0 var(--spacing-md, 16px); color: var(--color-text-secondary); }
+.m-carta-cat-text { margin: -6px 0 var(--spacing-md, 16px); color: var(--m-carta-desc-c, var(--color-text-secondary)); }
+
+/* Color de los titulares de la carta.
+   Va en reglas propias (0,2,0) porque los temas oscuros traen un
+   `.is-theme-forest h2 { color: inherit }` que, con la misma
+   especificidad que `.m-carta-title`, se comia el color elegido.
+   Sin color elegido heredan, que es lo que hacian antes. */
+.m-carta .m-carta-title { color: var(--m-carta-h-c, inherit); }
+.m-carta .m-carta-cat   { color: var(--m-carta-cat-c, inherit); }
 
 /* ------------------------------------------------------------------ */
 /* footer-split                                                        */

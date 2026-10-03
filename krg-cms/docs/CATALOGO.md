@@ -170,6 +170,10 @@ es usar las flechas del ítem.
 - **Guía al precio**: ninguna, puntos o línea fina, como en una carta impresa.
 - Color de acento propio (precios y pestaña activa), tema, columnas por
   dispositivo, icono o logo sobre el título y botón final opcional.
+- **Color por tipo de texto**: título de la carta, categorías y pestañas,
+  nombre del plato, descripción, precio y etiqueta, cada uno con su campo.
+  En blanco manda el tema; en cuanto eliges un color, manda el color. Así la
+  carta se lee bien sobre cualquier fondo sin depender del desplegable «Tema».
 - Si un plato lleva una categoría que no está en la lista, se añade al final en
   vez de desaparecer.
 
@@ -285,6 +289,33 @@ partido, reseñas, CTA, acordeón, hitos y colección filtrable).
 
 ## 5. Mejoras del editor y del admin
 
+- **Colores propios en cada bloque de marca, por encima del «Tema»**. Los
+  veinte bloques traen «Color de fondo» y «Color del texto» en el grupo
+  *Colores*. El tema sigue siendo el atajo (cinco juegos coherentes) pero deja
+  de ser la única vía: en blanco manda el tema y, en cuanto hay color elegido,
+  manda el color. Se emite como variable en línea (`--m-th-bg` / `--m-th-fg`)
+  sobre el mismo elemento que lleva la clase del tema —en el panel partido y
+  en el pie partido, sobre el panel de texto—, así que no hace falta ningún
+  `!important` ni CSS a mano. La ✕ del campo devuelve el bloque al tema.
+- **Los campos de color aceptan tokens del sistema** (`var(--color-primary)`),
+  que es justo lo que el panel enseña cuando el color viene del diseño. Antes
+  el saneador solo admitía hexadecimal y tiraba el valor sin avisar: el color
+  «no se guardaba».
+- **Un número en blanco ya no es un cero.** En los espacios en píxeles,
+  «en blanco» significa «deja el ritmo del bloque» y un 0 escrito a mano
+  significa cero. Antes el saneador convertía el vacío en 0 en cada guardado,
+  así que bloques como la carta salían pegados al de arriba y el relleno por
+  defecto no se recuperaba nunca.
+- **Espacio superior/inferior en todos los bloques que ya lo entendían.**
+  Once bloques (carrusel de productos, rejilla, colección filtrable, reseñas,
+  lista numerada, lista de frases, bloque partido, llamada a la acción,
+  texto al scroll, trazabilidad y tira de tiendas) leían el ajuste en el CSS
+  pero no lo ofrecían en el panel, así que el valor se descartaba al guardar.
+- **Panel de diseño agrupado**: los campos del bloque se agrupan bajo
+  *Disposición*, *Diseño*, *Colores*, *Espaciado* y *Tipografía* en vez de
+  salir en una lista plana.
+- **El lienzo repinta colores y espacios al momento**, sin esperar al
+  guardado automático.
 - **Sub-campos de repeater**: los elementos repetibles ya aceptan listas
   desplegables, interruptores y campos numéricos, no solo texto. Antes, cosas
   como la puntuación de una reseña o el «obligatorio» de una casilla se

@@ -147,6 +147,13 @@ class Sanitizer {
 			case 'toggle':
 				return (bool) $value;
 			case 'number':
+				// Un numero en blanco no es un cero. Hay campos (los
+				// espacios en px) donde «sin valor» significa «deja el
+				// ritmo del modulo»; guardar 0 ahi aplastaba el relleno
+				// por defecto y el bloque salia pegado al de arriba.
+				if ( ! empty( $field['allowEmpty'] ) && ( null === $value || '' === $value ) ) {
+					return '';
+				}
 				$n = is_numeric( $value ) ? 0 + $value : 0;
 				if ( isset( $field['min'] ) ) {
 					$n = max( $field['min'], $n );
@@ -197,7 +204,7 @@ class Sanitizer {
 			case 'richtext':
 				return self::richtext( (string) $value );
 			case 'color':
-				return self::color( $value );
+				return self::color( $value, ! empty( $field['allowEmpty'] ) );
 			case 'spacing':
 				return self::spacing( $value );
 			case 'repeater':
@@ -237,22 +244,62 @@ class Sanitizer {
 		}
 	}
 
-	public static function color( $value ): array {
+	/**
+	 * Color de una propiedad.
+	 *
+	 * `$optional` es «sin color»: el campo puede quedarse en blanco y
+	 * entonces manda lo que diga el tema. Sin esa opcion todo campo de
+	 * color ausente volvia como el color primario, asi que un campo
+	 * nuevo habria pintado de primario media plantilla.
+	 *
+	 * El valor admite hexadecimal (#abc, #aabbcc) y variable del sistema
+	 * (`var(--color-primary)`), que es justo lo que el panel enseña
+	 * cuando el color viene de un token: antes `sanitize_hex_color()` lo
+	 * tiraba sin avisar y el color «no se guardaba».
+	 */
+	public static function color( $value, bool $optional = false ): array {
+		$none = [ 'mode' => 'none', 'token' => '', 'value' => '' ];
+		if ( null === $value || '' === $value ) {
+			return $optional ? $none : [ 'mode' => 'token', 'token' => 'color.primary' ];
+		}
 		if ( is_string( $value ) ) {
 			if ( str_starts_with( $value, 'token:' ) ) {
 				return [ 'mode' => 'token', 'token' => sanitize_text_field( substr( $value, 6 ) ) ];
 			}
-			return [ 'mode' => 'custom', 'value' => sanitize_hex_color( $value ) ?: '#000000' ];
+			$css = self::css_color( $value );
+			if ( '' === $css ) {
+				return $optional ? $none : [ 'mode' => 'custom', 'value' => '#000000' ];
+			}
+			return [ 'mode' => 'custom', 'value' => $css ];
 		}
 		if ( ! is_array( $value ) ) {
-			return [ 'mode' => 'token', 'token' => 'color.primary' ];
+			return $optional ? $none : [ 'mode' => 'token', 'token' => 'color.primary' ];
 		}
 		$mode = ( $value['mode'] ?? 'token' ) === 'custom' ? 'custom' : 'token';
+		if ( 'none' === ( $value['mode'] ?? '' ) ) {
+			return $none;
+		}
+		$css = self::css_color( (string) ( $value['value'] ?? '' ) );
+		if ( $optional && 'custom' === $mode && '' === $css ) {
+			return $none;
+		}
 		return [
 			'mode'  => $mode,
-			'token' => sanitize_text_field( $value['token'] ?? 'color.primary' ),
-			'value' => sanitize_hex_color( $value['value'] ?? '' ) ?: '',
+			'token' => sanitize_text_field( $value['token'] ?? ( $optional ? '' : 'color.primary' ) ),
+			'value' => $css,
 		];
+	}
+
+	/** Hexadecimal o variable del sistema; cualquier otra cosa se descarta. */
+	public static function css_color( string $value ): string {
+		$value = trim( $value );
+		if ( '' === $value ) {
+			return '';
+		}
+		if ( preg_match( '/^var\(\s*--[A-Za-z0-9_-]+\s*\)$/', $value ) ) {
+			return preg_replace( '/\s+/', '', $value );
+		}
+		return sanitize_hex_color( $value ) ?: '';
 	}
 
 	public static function spacing( $value ): array {

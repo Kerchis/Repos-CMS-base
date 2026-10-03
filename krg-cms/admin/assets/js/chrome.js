@@ -1193,7 +1193,10 @@
         const hit = state.fSel ? findF(fSections(), state.fSel) : null;
         if (!hit) return;
         hit.node.props = hit.node.props || {};
-        hit.node.props[inp.dataset.fprop] = inp.type === "checkbox" ? inp.checked : (inp.type === "number" ? Number(inp.value) : inp.value);
+        // Mismo criterio que el constructor: un numero en blanco es
+        // «sin valor», no un cero.
+        const num = inp.value === "" ? "" : Number(inp.value);
+        hit.node.props[inp.dataset.fprop] = inp.type === "checkbox" ? inp.checked : (inp.type === "number" ? num : inp.value);
         markDirty();
       };
       inp.addEventListener("input", go);

@@ -168,6 +168,15 @@
     state.timer = setTimeout(saveDraft, 1200);
   }
 
+  /** Valor CSS de un campo de color del panel: hex, var(--x) o nada. */
+  function cssColor(v) {
+    if (!v) return "";
+    if (typeof v === "string") return /^(#[0-9a-f]{3,8}|var\(--[\w-]+\))$/i.test(v.trim()) ? v.trim() : "";
+    if (v.mode === "none") return "";
+    if (v.mode === "token" && v.token) return `var(--${String(v.token).replace(".", "-")})`;
+    return cssColor(String(v.value || ""));
+  }
+
   function paintLiveCss() {
     const iframe = root.querySelector("iframe");
     const doc = iframe?.contentDocument;
@@ -213,6 +222,35 @@
           if (cc.before) css += `${sel}::before{content:"";display:block;${cc.before}}`;
           if (cc.after) css += `${sel}::after{content:"";display:block;${cc.after}}`;
           if (n.animDuration) css += `${sel}{--m-anim-dur:${n.animDuration}ms;animation-duration:${n.animDuration}ms;animation-delay:${n.animDelay || 0}ms;animation-timing-function:${n.animEasing || "ease"}}`;
+          // Colores y espacio propios del bloque de marca. El servidor los
+          // emite como variables en linea; aqui se repintan en el lienzo
+          // sin esperar al guardado, que es lo que hacia parecer que el
+          // panel de color «no actualizaba».
+          const vars = [];
+          const padVar = (k, v) => {
+            const raw = n.props?.[k];
+            if (raw === "" || raw === null || raw === undefined) return;
+            vars.push(`${v}:${Math.max(0, Number(raw) || 0)}px`);
+          };
+          padVar("padTop", "--m-pad-top");
+          padVar("padBottom", "--m-pad-bottom");
+          const themeVars = [];
+          [["bgColor", "--m-th-bg"], ["textColor", "--m-th-fg"]].forEach(([k, v]) => {
+            const c = cssColor(n.props?.[k]);
+            if (c) themeVars.push(`${v}:${c}`);
+          });
+          [["accent", "--m-carta-accent"], ["titleColor", "--m-carta-h-c"], ["catColor", "--m-carta-cat-c"],
+            ["nameColor", "--m-carta-name-c"], ["descColor", "--m-carta-desc-c"],
+            ["priceColor", "--m-carta-price-c"], ["badgeColor", "--m-carta-badge-c"]].forEach(([k, v]) => {
+            const c = cssColor(n.props?.[k]);
+            if (c) vars.push(`${v}:${c}`);
+          });
+          // En el panel partido y en el pie partido el tema vive en el
+          // panel de texto, no en la raiz: ahi hay que escribirlo.
+          const panelSel = n.type === "split-panel" ? `${sel} .m-sp-copy`
+            : n.type === "footer-split" ? `${sel} .m-fs-panel` : sel;
+          if (themeVars.length) css += `${panelSel}{${themeVars.join(";")}}`;
+          if (vars.length) css += `${sel}{${vars.join(";")}}`;
           if (n.type === "row") {
             const g = Number(n.props?.gap ?? 24);
             const va = ["start", "center", "end", "stretch"].includes(n.props?.vAlign) ? n.props.vAlign : "start";
@@ -2052,6 +2090,7 @@
         ${window.KrgUi.fontFamilyField("Familia", st["font-family"] || "", 'data-style="font-family"')}
         ${window.KrgUi.colorField("Color texto", st.color || "", 'data-style="color"')}
         ${window.KrgUi.colorField("Fondo", st.background || "", 'data-style="background"')}
+        <p class="m-muted">Estos dos pintan el bloque entero por encima de todo, incluido su tema. Para los colores propios del bloque (y los de cada texto, cuando los tenga) usa «Colores», más arriba.</p>
       </div>`;
     const spaceHtml = `
       <div class="acc"><h5>Espaciado (${state.bp})</h5>
@@ -2079,7 +2118,16 @@
         <label>Order <input data-style="order" value="${esc(st.order || "")}"></label>
       </div>`;
     const contentFields = (byGroup.content || []).map((f) => fieldHtml(node, f)).join("");
-    const designFields = ["layout", "design", "colors", "spacing", "typography"].flatMap((g) => byGroup[g] || []).map((f) => fieldHtml(node, f)).join("");
+    // Agrupado y con titulillo: con los colores por elemento la lista
+    // plana se hacia larguisima y «Colores» quedaba enterrado entre
+    // campos de disposicion.
+    const designFields = ["layout", "design", "colors", "spacing", "typography"]
+      .filter((g) => (byGroup[g] || []).length)
+      .map((g) => `<div class="acc"><h5>${groups[g] || g}</h5>
+        ${g === "colors" ? `<p class="m-muted">El «Tema» es el atajo. Si eliges un color aquí, manda el color: deja el campo en blanco (o pulsa la ✕) para volver al tema.</p>` : ""}
+        ${byGroup[g].map((f) => fieldHtml(node, f)).join("")}
+      </div>`)
+      .join("");
     const tab = state.inspTab || "content";
     const menuModes = node.type === "menu" ? navModeFields(node.props || {}, "data-prop-set") : "";
     let body = "";
@@ -2220,13 +2268,17 @@
       </div>`;
     }
     if (f.type === "color") {
-      const cssVar = val?.token ? `var(--${String(val.token).replace(".", "-")})` : "";
+      // Sin color elegido el campo se queda vacio: asi se ve de un vistazo
+      // que manda el tema. Antes se rellenaba con un color de ejemplo y
+      // parecia que el bloque ya tenia color propio.
+      const cssVar = val?.mode === "token" && val?.token ? `var(--${String(val.token).replace(".", "-")})` : "";
       const shown = (val?.mode === "custom" && val?.value) ? val.value : cssVar;
-      const hex = window.KrgUi ? window.KrgUi.hex(val?.value || cssVar) : "#D94E27";
+      const hex = window.KrgUi ? window.KrgUi.hex(shown || "#D94E27") : "#D94E27";
       return `<label class="m-pick-label">${esc(f.label)}
         <div class="m-pick m-pick-color">
           <input type="color" data-color-picker="${f.key}" value="${esc(hex)}" title="Selector de color">
-          <input data-color-custom="${f.key}" value="${esc(shown || hex)}" placeholder="#D94E27" class="m-pick-val">
+          <input data-color-custom="${f.key}" value="${esc(shown)}" placeholder="Sin color: manda el tema" class="m-pick-val">
+          ${shown ? `<button type="button" class="b-ico" data-color-clear="${f.key}" title="Quitar el color">✕</button>` : ""}
         </div>
       </label>`;
     }
@@ -2317,7 +2369,10 @@
         const h = hit();
         if (!h) return;
         let v = inp.type === "checkbox" ? inp.checked : inp.value;
-        if (inp.type === "number" || inp.type === "range") v = Number(v);
+        // Un campo numerico en blanco vale «sin valor», no cero: en los
+        // espacios en px eso es la diferencia entre «deja el ritmo del
+        // bloque» y «pegalo al de arriba».
+        if (inp.type === "number" || inp.type === "range") v = inp.value === "" ? "" : Number(v);
         if (inp.dataset.prop === "formId") v = Number(v) || 0;
         if (h.node.type === "map" && inp.dataset.prop === "url") v = extractMapsUrl(String(v || ""));
         h.node.props[inp.dataset.prop] = v;
@@ -2631,11 +2686,23 @@
         const key = inp.dataset.colorCustom;
         const h = hit();
         if (!h) return;
-        h.node.props[key] = { mode: "custom", token: "", value: inp.value };
+        const v = String(inp.value || "").trim();
+        h.node.props[key] = v
+          ? { mode: "custom", token: "", value: v }
+          : { mode: "none", token: "", value: "" };
         markDirty();
       };
       inp.addEventListener("change", apply);
       inp.addEventListener("input", apply);
+    });
+    box.querySelectorAll("[data-color-clear]").forEach((b) => {
+      b.onclick = () => {
+        const h = hit();
+        if (!h) return;
+        h.node.props[b.dataset.colorClear] = { mode: "none", token: "", value: "" };
+        markDirty();
+        render({ keepFrame: true });
+      };
     });
     box.querySelectorAll("[data-rep]").forEach((inp) => {
       const applyRep = () => {
