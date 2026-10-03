@@ -309,8 +309,17 @@
               } else {
                 els.style.removeProperty("--m-sec-h");
               }
-              ["start", "center", "end"].forEach((v) => {
+              // `stretch` faltaba en esta lista: el servidor sí lo
+              // imprimía, pero en el lienzo no pasaba nada hasta que el
+              // marco se recargaba, así que elegirlo parecía no hacer
+              // nada. Las tres clases de `is-sa-*` van detrás porque sólo
+              // tienen sentido estirando.
+              ["start", "center", "end", "stretch"].forEach((v) => {
                 els.classList.toggle("is-va-" + v, mh !== "auto" && va === v);
+              });
+              const sa = ["start", "center", "end"].includes(n.props?.stretchAlign) ? n.props.stretchAlign : "center";
+              ["start", "center", "end"].forEach((v) => {
+                els.classList.toggle("is-sa-" + v, mh !== "auto" && va === "stretch" && sa === v);
               });
               els.classList.toggle("is-curtain", n.props?.curtain === "on");
             }
@@ -472,7 +481,7 @@
     if (!saved || !Array.isArray(saved.sections) || !state.doc) return false;
     const antes = JSON.stringify(state.doc.sections);
     const urls = { previewUrl: state.doc.previewUrl, publicUrl: state.doc.publicUrl };
-    state.doc = Object.assign({}, saved);
+    state.doc = window.KrgBuilderCore.adoptDoc(Object.assign({}, saved));
     if (!state.doc.previewUrl) state.doc.previewUrl = urls.previewUrl;
     if (!state.doc.publicUrl) state.doc.publicUrl = urls.publicUrl;
     const cambio = antes !== JSON.stringify(state.doc.sections);
@@ -781,7 +790,7 @@
       if (ok && v && v !== hit.node.name) {
         snapshot();
         hit.node.name = v;
-        hit.node.props = hit.node.props || {};
+        hit.node.props = window.KrgBuilderCore.dict(hit.node, "props");
         if (hit.node.type === "section") hit.node.props.name = v;
         markDirty();
       }
@@ -1386,7 +1395,15 @@
           ["stretch", "Estirar: el contenido llena el alto"],
         ])}
       </label>
-      <p class="m-muted">Dónde va el contenido cuando ocupa menos que el alto de la sección. Con «Estirar» no queda franja de fondo vacía: el bloque crece hasta llenarla. Si lo único que hay dentro es un panel partido, una portada o un mapa, se estiran solos.</p>` : `<p class="m-muted">Con un alto fijo podrás centrar el contenido verticalmente.</p>`}`;
+      <p class="m-muted">Dónde va el contenido cuando ocupa menos que el alto de la sección. Con «Estirar» no queda franja de fondo vacía: el bloque crece hasta llenarla y pinta su fondo en todo el alto.</p>
+      ${(p.vAlign || "start") === "stretch" ? `<label>Contenido dentro del bloque estirado
+        ${selProp("stretchAlign", p.stretchAlign || "center", [
+          ["start", "Arriba"],
+          ["center", "Centro"],
+          ["end", "Abajo"],
+        ])}
+      </label>
+      <p class="m-muted">El bloque ya ocupa todo el alto; esto decide dónde queda su contenido dentro de él.</p>` : ""}` : `<p class="m-muted">Con un alto fijo podrás centrar el contenido verticalmente.</p>`}`;
   }
 
   function bodySectionHeader(node) {
@@ -2413,7 +2430,7 @@
         const color = h?.node?.styles?.[state.bp]?.["background-color"] || "";
         if (!h || !hijo || !color) return;
         snapshot();
-        hijo.node.props = hijo.node.props || {};
+        hijo.node.props = window.KrgBuilderCore.dict(hijo.node, "props");
         hijo.node.props.bgColor = color;
         if (hijo.node.type === "review-slider") hijo.node.props.cardColor = color;
         state.selected = hijo.node.id;
@@ -2918,10 +2935,9 @@
     const setStyle = (prop, value) => {
       const h = hit();
       if (!h) return;
-      h.node.styles = h.node.styles || { desktop: {}, tablet: {}, mobile: {} };
-      h.node.styles[state.bp] = h.node.styles[state.bp] || {};
-      if (value) h.node.styles[state.bp][prop] = value;
-      else delete h.node.styles[state.bp][prop];
+      const st = window.KrgBuilderCore.styleBucket(h.node, state.bp);
+      if (value) st[prop] = value;
+      else delete st[prop];
       markDirty();
     };
     box.querySelectorAll("[data-style]").forEach((inp) => {
@@ -2969,7 +2985,7 @@
       b.onclick = () => {
         const h = hit();
         if (!h) return;
-        h.node.props = h.node.props || {};
+        h.node.props = window.KrgBuilderCore.dict(h.node, "props");
         const key = b.dataset.propSet;
         const val = b.dataset.v;
         if (key === "distribute" && h.node.props[key] === val) h.node.props[key] = "none";
@@ -2977,9 +2993,7 @@
         if (key === "alignH" || key === "contentHAlign") {
           const map = { start: "left", center: "center", end: "right" };
           if (map[val]) {
-            h.node.styles = h.node.styles || {};
-            h.node.styles[state.bp] = h.node.styles[state.bp] || {};
-            h.node.styles[state.bp]["text-align"] = map[val];
+            window.KrgBuilderCore.styleBucket(h.node, state.bp)["text-align"] = map[val];
           }
         }
         markDirty();
@@ -2990,7 +3004,7 @@
       b.onclick = () => {
         const h = hit();
         if (!h?.parent) return;
-        h.parent.props = h.parent.props || {};
+        h.parent.props = window.KrgBuilderCore.dict(h.parent, "props");
         const key = b.dataset.parentProp;
         const val = b.dataset.v;
         h.parent.props[key] = h.parent.props[key] === val ? "none" : val;
@@ -3611,7 +3625,7 @@
       b.onclick = async () => {
         try {
           const doc = await api.post(`/pages/${id}/revisions/${b.dataset.rid}/restore`, {});
-          state.doc = doc;
+          state.doc = window.KrgBuilderCore.adoptDoc(doc);
           state.selected = null;
           wrap.remove();
           render();
@@ -3922,7 +3936,7 @@
     api.get("/menus").catch(() => []),
   ])
     .then(([doc, registry, templates, globals, pages, tokens, menus]) => {
-      state.doc = doc;
+      state.doc = window.KrgBuilderCore.adoptDoc(doc);
       state.registry = registry;
       state.templates = templates;
       state.globals = globals;

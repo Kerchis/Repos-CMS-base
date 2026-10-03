@@ -37,6 +37,22 @@ const PANEL = 'https://krg.test/wp-admin/krg-builder.html';
 const registry = JSON.parse(execFileSync(PHP, [`${ROOT}/tools/dump-registry.php`], { encoding: 'utf8' }));
 const dir = mkdtempSync(join(tmpdir(), 'krg-motor-'));
 
+/**
+ * El servidor del banco contesta lo que contestaria WordPress.
+ *
+ * Antes devolvia tal cual lo que el navegador le mandaba, asi que el
+ * banco no podia ver nada de lo que el servidor cambia al guardar. Y lo
+ * que cambia incluye la FORMA del JSON: un diccionario vacio sale de PHP
+ * como `[]`, que es una lista, y una lista no se puede escribir desde el
+ * panel sin que `JSON.stringify` tire el valor al guardar. Ese era el
+ * fallo que nadie veia.
+ */
+function sanear(doc) {
+  const archivo = join(dir, 'post.json');
+  writeFileSync(archivo, JSON.stringify(doc));
+  return JSON.parse(execFileSync(PHP, [`${ROOT}/tools/sanear.php`, archivo], { encoding: 'utf8' }));
+}
+
 function pintar(doc, modo) {
   const archivo = join(dir, 'doc.json');
   writeFileSync(archivo, JSON.stringify(doc));
@@ -76,6 +92,7 @@ const inicial = () => ({
 });
 
 let ultimo = null;
+let enviado = null;   // el cuerpo crudo del ultimo POST, antes de sanear
 let fallos = 0;
 let ok = 0;
 const comprueba = (cond, msg) => {
@@ -110,11 +127,11 @@ await page.route('**/krg.test/**', async (route) => {
     return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: pintar(ultimo || inicial(), 'canvas') });
   }
   if (req.method() === 'POST' && /\/pages\/1(\/save)?$/.test(url)) {
-    const cuerpo = JSON.parse(req.postData() || '{}');
-    ultimo = JSON.parse(JSON.stringify(cuerpo));
-    return json({ ...cuerpo, previewUrl: LIENZO, checksum: 'c' + Date.now() });
+    enviado = JSON.parse(req.postData() || '{}');
+    ultimo = sanear(enviado);
+    return json({ ...ultimo, previewUrl: LIENZO, checksum: 'c' + Date.now() });
   }
-  if (url === '/pages/1') return json({ ...(ultimo || inicial()), previewUrl: LIENZO });
+  if (url === '/pages/1') return json({ ...sanear(ultimo || inicial()), previewUrl: LIENZO });
   if (url === '/registry') return json(registry);
   if (url === '/tokens') return json({ data: { color: {}, font: {}, typography: {} } });
   return json([]);
@@ -232,6 +249,18 @@ for (const [id, titulo] of CASOS) {
 
   // 2. Lo que queda DESPUES del guardado y de la recarga del marco.
   await asentar();
+
+  // 2b. Lo que de verdad VIAJO por la red. Un bucket de estilos que llega
+  // de PHP como lista vacia acepta la propiedad en memoria —el lienzo la
+  // pinta— y `JSON.stringify` la descarta al guardar: se veia bien y no
+  // llegaba nunca. Esto lee el cuerpo del POST, que es el unico sitio
+  // donde esa diferencia se nota.
+  const buscar = (lista, nid) => (lista || []).reduce((h, n) => h || (n.id === nid ? n : buscar(n.children, nid)), null);
+  const enviadoNodo = buscar(enviado?.sections, id) || {};
+  const stEnv = (enviadoNodo.styles || {}).desktop || {};
+  comprueba(stEnv['background-color'] === '#3f5e58', `el fondo viaja en el guardado: ${JSON.stringify(stEnv['background-color'] ?? null)}`);
+  comprueba(stEnv['padding-top'] === '50px' && stEnv['margin-top'] === '50px', `el relleno y el margen viajan en el guardado: ${JSON.stringify([stEnv['padding-top'], stEnv['margin-top']])}`);
+  comprueba(!Array.isArray(enviadoNodo.styles) && !Array.isArray(stEnv), 'los estilos viajan como diccionario, no como lista');
   m = await calculado(`.m-n-${id}`, ['background-color', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
     'margin-top', 'margin-right', 'margin-bottom', 'margin-left']);
   comprueba(m['background-color'] === VERDE, `y SIGUE ahí tras guardar y recargar el marco: ${m['background-color']}`);
@@ -285,6 +314,47 @@ for (const [id, titulo] of CASOS) {
   m = await calculado(`.m-n-${id}`, ['background-color', 'padding-top', 'margin-top']);
   comprueba(m['background-color'] === VERDE, `y el lienzo recargado: ${m['background-color']}`);
 }
+
+/* ================================================================== */
+/* «Estirar» de punta a punta: inspector → lienzo → guardar → recargar  */
+console.log('\nEstirar un bloque que pinta, con el control de posición');
+await seleccionar('secCta', 'design');
+comprueba(
+  await page.evaluate(() => !document.querySelector('.b-insp [data-prop="stretchAlign"]')),
+  'sin estirar, el control de posición no se enseña'
+);
+await page.selectOption('.b-insp [data-prop="vAlign"]', 'stretch');
+await page.waitForTimeout(300);
+await abrirTodos();
+comprueba(
+  await page.evaluate(() => !!document.querySelector('.b-insp [data-prop="stretchAlign"]')),
+  'al elegir «Estirar» aparece «Contenido dentro del bloque estirado»'
+);
+
+let est = await calculado('.m-n-secCta', ['align-items']);
+comprueba(/is-va-stretch/.test(est.clases || ''), `el lienzo marca la sección al instante: ${(est.clases || '').split(' ').filter((c) => c.startsWith('is-va')).join('')}`);
+comprueba(/is-sa-center/.test(est.clases || ''), 'y con el centro por defecto');
+
+await page.selectOption('.b-insp [data-prop="stretchAlign"]', 'end');
+await page.waitForTimeout(250);
+est = await calculado('.m-n-secCta', ['align-items']);
+comprueba(/is-sa-end/.test(est.clases || ''), 'cambiar a «Abajo» se ve al instante en el lienzo');
+
+await asentar();
+const estirado = await calculado('.m-n-cta1', ['align-content', 'display']);
+const seccion = await calculado('.m-n-secCta', ['height']);
+comprueba(estirado.alto >= seccion.alto * 0.7, `tras guardar y recargar, el CTA llena la sección: ${estirado.alto} de ${seccion.alto}px`);
+comprueba(estirado['align-content'] === 'end', `y su contenido se coloca abajo: align-content ${estirado['align-content']}`);
+comprueba(estirado.display === 'block', `sin convertir el bloque en flex: display ${estirado.display}`);
+for (const [donde, f] of [['arriba', 0.06], ['abajo', 0.94]]) {
+  const visto = await queSeVe('.m-n-secCta', f);
+  comprueba(visto === VERDE, `el verde del bloque llega ${donde}: ${visto}`);
+}
+
+await abrirPanel();
+await seleccionar('secCta', 'design');
+const guardado = await page.evaluate(() => document.querySelector('.b-insp [data-prop="stretchAlign"]')?.value || '');
+comprueba(guardado === 'end', `tras recargar el editor, el inspector sigue diciendo «abajo»: ${guardado || '(no está)'}`);
 
 /* ================================================================== */
 console.log('\nLa cortina sigue funcionando después de todo');

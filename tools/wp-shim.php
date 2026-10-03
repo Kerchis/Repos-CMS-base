@@ -216,3 +216,31 @@ if ( ! function_exists( 'untrailingslashit' ) ) {
 if ( ! function_exists( 'wp_normalize_path' ) ) {
 	function wp_normalize_path( $p ) { return str_replace( '\\', '/', (string) $p ); }
 }
+
+if ( ! function_exists( 'wp_generate_uuid4' ) ) {
+	function wp_generate_uuid4() {
+		return sprintf(
+			'%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+			wp_rand( 0, 0xffff ), wp_rand( 0, 0xffff ),
+			wp_rand( 0, 0xffff ),
+			wp_rand( 0, 0x0fff ) | 0x4000,
+			wp_rand( 0, 0x3fff ) | 0x8000,
+			wp_rand( 0, 0xffff ), wp_rand( 0, 0xffff ), wp_rand( 0, 0xffff )
+		);
+	}
+}
+if ( ! function_exists( 'wp_rand' ) ) {
+	function wp_rand( $min = 0, $max = 0 ) {
+		return random_int( (int) $min, (int) $max );
+	}
+}
+
+if ( ! function_exists( 'wp_nonce_field' ) ) {
+	function wp_nonce_field( $action = -1, $name = '_wpnonce', $referer = true, $display = true ) {
+		$html = '<input type="hidden" name="' . $name . '" value="banco">';
+		if ( $display ) {
+			echo $html; // phpcs:ignore
+		}
+		return $html;
+	}
+}

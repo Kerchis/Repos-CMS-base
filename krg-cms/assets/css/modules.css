@@ -1640,6 +1640,48 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 }
 
 /* ------------------------------------------------------------------ */
+/* «Estirar» vale para cualquier bloque, no solo para los tres de       */
+/* arriba                                                               */
+/*                                                                      */
+/* Hasta aqui solo crecian `.m-sp`, `.m-bh` y `.m-map` —los que traen   */
+/* alto propio—, con el argumento de que estirar un titular lo separa   */
+/* sin sentido. El argumento falla en cuanto el bloque PINTA: un CTA    */
+/* con tema, una tarjeta con color de fondo o una imagen de fondo       */
+/* dejan una franja de fondo vacia que no hay forma de quitar desde el  */
+/* panel, y es justo el caso en el que alguien elige «Estirar».         */
+/*                                                                      */
+/* Asi que estira todo lo que haya en la columna. Lo que antes era el   */
+/* problema —un titular tan alto como la seccion— ahora se decide: el   */
+/* bloque crece, y DONDE queda su contenido dentro lo dice `is-sa-*`,   */
+/* el segundo eje que acompaña a «Estirar» en el panel.                 */
+/*                                                                      */
+/* Solo entra con `is-va-stretch`, que es una eleccion explicita. El    */
+/* camino automatico (`is-fill-height`) se queda exactamente como       */
+/* estaba, asi que ninguna pagina existente cambia sin que alguien lo   */
+/* haya pedido.                                                         */
+/*                                                                      */
+/* COLOCAR el contenido dentro del bloque estirado se hace con           */
+/* `align-content`, NO convirtiendo el bloque en una columna flex.       */
+/* Esa fue la primera version y la descarto el banco: volver flex una    */
+/* raiz que era un bloque cambia el flujo horizontal de sus hijos —un    */
+/* boton centrado en linea pasa a ocupar todo el ancho, un texto con     */
+/* `margin: 0 auto` se encoge—. `align-content` sobre un contenedor de   */
+/* bloque reparte el alto SOBRANTE sin tocar nada mas: los hijos siguen  */
+/* siendo bloques normales. En un navegador que todavia no lo entienda   */
+/* (es de 2024) el bloque se estira igual y el contenido se queda        */
+/* arriba, que es exactamente como estaba antes.                         */
+/* ------------------------------------------------------------------ */
+.m-c-section[class*="is-mh-"].is-va-stretch > .m-container > *,
+.m-c-section[class*="is-mh-"].is-va-stretch .m-c-column > * {
+  flex: 1 1 auto;
+  align-content: var(--m-sa, center);
+}
+
+.m-c-section.is-sa-start  { --m-sa: start; }
+.m-c-section.is-sa-center { --m-sa: center; }
+.m-c-section.is-sa-end    { --m-sa: end; }
+
+/* ------------------------------------------------------------------ */
 /* Secciones sin contenido                                             */
 /*                                                                      */
 /* En la web publica no llegan a existir: el renderizador no imprime    */

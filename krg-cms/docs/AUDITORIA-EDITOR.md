@@ -385,3 +385,132 @@ daban por bueno lo contrario y se han corregido.
   mirar, esperar al guardado automático **y a la recarga del marco**, volver a
   mirar, recargar el editor entero y mirar otra vez— sobre dos secciones
   distintas y en los tres tamaños.
+
+---
+
+# Parte 5 — El fondo que se veía, se guardaba «bien» y volvía atrás
+
+## 22. El síntoma, tal y como llegó
+
+Una sección con alto a medida (90 % de la pantalla) y un CTA dentro. Se elige
+el color de fondo: **el lienzo se pone verde**. Se guarda. El marco se recarga
+y la sección vuelve a beige, con el CTA pintado de verde en una franja en
+medio. **Y el campo del inspector sigue diciendo `#3f5e58`.**
+
+Tres turnos de diagnóstico se fueron detrás de la hipótesis equivocada —la
+cortina, la especificidad, la caché— porque el síntoma encaja con todas. Lo
+que cerró el caso fue el propio informe de **Avanzado → Revisar este bloque**:
+
+```
+1. Estado del editor: []
+6. No hay ningún estilo puesto en este tamaño: no hay nada que comprobar.
+```
+
+`[]`, no `{}`. El bloque **no tenía ningún estilo guardado**. No había que
+buscar quién pisaba el color: el color nunca salió del navegador.
+
+## 23. La causa: PHP no distingue lista de diccionario, JSON sí
+
+En PHP, un array vacío es las dos cosas a la vez. `wp_json_encode` tiene que
+elegir, y elige lista:
+
+```php
+$bp = [ 'desktop' => [], 'tablet' => [], 'mobile' => [] ];
+wp_json_encode( $bp );   // {"desktop":[],"tablet":[],"mobile":[]}
+```
+
+El panel recibía un **array** donde esperaba un objeto. Y en JavaScript eso no
+falla: falla al guardar.
+
+```js
+const a = [];                       // lo que llegó de PHP
+a["background-color"] = "#3f5e58";  // lo que escribió el panel
+a["background-color"]               // → "#3f5e58"   (el campo lo enseña)
+Object.keys(a)                      // → ["background-color"]  (el lienzo lo pinta)
+JSON.stringify(a)                   // → "[]"        ← aquí se pierde
+```
+
+`JSON.stringify` **descarta las propiedades con nombre de un array**. El valor
+viajaba hasta el borde de la red y se evaporaba sin un solo error, en ninguna
+capa. Por eso se veía en el lienzo (que pinta desde la memoria), seguía en el
+inspector (que lee de la memoria) y no estaba en la base de datos.
+
+Y por eso el mismo fallo afectaba a **relleno, margen, tipografía, borde,
+sombra y a `props`**: a todo lo que cayera en un bucket que hubiera llegado
+vacío. Un nodo que ya tenía algún estilo funcionaba perfectamente —su bucket
+era un objeto de verdad—, lo que explica que el sistema pareciera funcionar a
+ratos.
+
+## 24. El arreglo, en los dos extremos
+
+**Navegador** (`builder-core.js`, lo que arregla los documentos ya guardados):
+`dict()` convierte el array en objeto conservando lo que le hubieran colgado, y
+`adoptDoc()` recorre el documento entero en cuanto entra en el editor. Los tres
+puntos de entrada —carga inicial, respuesta del guardado y revisión
+restaurada— pasan por ahí, en `builder.js` y en `chrome.js`.
+
+**Servidor** (`Sanitizer::styles()` y `BoxStyles::migrate_node()`): un tamaño
+sin nada ya no se guarda como `[]`, se omite. El JSON deja de mentir.
+
+No hace falta tocar nada más: ni la hoja del documento, ni la especificidad, ni
+la caché, ni el orden de carga. Todo eso ya estaba bien.
+
+## 25. Por qué catorce bancos en verde no vieron nada
+
+El servidor falso de `prueba-motor.mjs` devolvía **tal cual** lo que el
+navegador le mandaba, y sus documentos de prueba traían `styles: {desktop: {}}`
+escrito a mano en JavaScript: objetos de verdad desde el principio. El banco
+no podía ver el fallo porque no reproducía ni la forma del JSON ni el saneador.
+
+Ahora `tools/sanear.php` pasa cada POST por `Sanitizer::document()` +
+`BoxStyles::migrate_document()` + `wp_json_encode`, igual que WordPress, y el
+banco comprueba **el cuerpo del POST**, no sólo lo que se ve:
+
+```
+FALLA el fondo viaja en el guardado: null
+FALLA y SIGUE ahí tras guardar y recargar el marco: rgb(254, 246, 231)
+```
+
+Eso es lo que da el código anterior. Con el arreglo, 58/58.
+
+**Regla que queda:** un banco que simula el servidor no prueba el guardado.
+Si el servidor falso no corre el código del servidor de verdad, lo único que
+se está probando es que el navegador habla consigo mismo.
+
+## 26. «Estirar» servía para tres módulos de sesenta
+
+Al elegir «Alineación vertical: estirar», sólo crecían `.m-sp`, `.m-bh` y
+`.m-map`. Con cualquier otro bloque el control no hacía nada visible. Además
+el lienzo del constructor **ni siquiera sincronizaba la clase**: la lista de
+`is-va-*` tenía `start`, `center` y `end`, y `stretch` faltaba.
+
+Ahora estira cualquier bloque, y hay un segundo eje —**«Contenido dentro del
+bloque estirado»**, arriba / centro / abajo— porque un bloque que ocupa todo
+el alto necesita decir dónde va su contenido.
+
+Tres detalles que costaron:
+
+1. **No se convierte el bloque en flex.** Fue la primera versión y la tumbó el
+   banco: volver flex una raíz que era bloque cambia el flujo horizontal de
+   sus hijos (un botón centrado en línea pasa a ocupar todo el ancho; un texto
+   con `margin: 0 auto` se encoge). Se usa `align-content`, que reparte el alto
+   sobrante sin tocar el flujo. En un navegador que aún no lo soporte el bloque
+   se estira igual y el contenido se queda arriba: exactamente como estaba.
+2. **La fila escribe su `align-items` en la hoja del documento**, que no está
+   en ninguna capa y le gana a cualquier regla del tema. Había que propagar el
+   estirado por el árbol en `DocumentCssCompiler`.
+3. **`align-items` no bastaba.** La fila es una rejilla: el elemento se estira
+   dentro de *su pista*, y la pista seguía midiendo lo que el contenido. Hacía
+   falta `align-content: stretch` para que la pista llenara la rejilla.
+
+`tools/prueba-estirar.mjs` renderiza **los 47 módulos del registro** dos veces,
+con y sin estirar, y compara su reparto horizontal interno. Si algún módulo se
+desmonta por dentro, salta.
+
+## 27. Bancos nuevos y ampliados
+
+- `tools/prueba-estirar.mjs` (18): los 47 módulos estirados y sin estirar, las
+  tres posiciones del contenido, dos columnas que no deben desalinearse.
+- `tools/prueba-motor.mjs` (41 → **58**): servidor falso con el saneador real,
+  comprobación del **cuerpo del POST** y el ciclo completo de «Estirar».
+- `tools/sanear.php`: el saneador de verdad a disposición de los bancos.

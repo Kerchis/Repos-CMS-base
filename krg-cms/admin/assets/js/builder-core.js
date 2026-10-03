@@ -221,7 +221,86 @@
     if (btn) btn.click();
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Diccionarios que llegan como lista vacia                            */
+  /*                                                                      */
+  /* PHP no distingue «lista vacia» de «diccionario vacio»: las dos son   */
+  /* `[]`, y `wp_json_encode` las escribe igual. Asi que un nodo sin      */
+  /* estilos llega al navegador como `"styles":{"desktop":[]}` y el       */
+  /* panel recibe un ARRAY donde espera un objeto.                        */
+  /*                                                                      */
+  /* En memoria no se nota —`a["background-color"]="#3f5e58"` funciona    */
+  /* sobre un array, y `Object.keys` lo devuelve, asi que el lienzo pinta */
+  /* el color— pero al guardar:                                          */
+  /*                                                                      */
+  /*   JSON.stringify(a)  →  "[]"                                        */
+  /*                                                                      */
+  /* `JSON.stringify` descarta las propiedades con nombre de un array.   */
+  /* El valor se perdia entre el panel y el servidor sin un solo error:   */
+  /* se veia en el lienzo, seguia en el campo, y no llegaba a la base de  */
+  /* datos. Lo mismo le pasaba a `props`, al historial de deshacer y a    */
+  /* cualquier cosa que viajara en un bucket vacio.                       */
+  /*                                                                      */
+  /* `dict()` convierte ese array en un objeto de verdad, conservando lo  */
+  /* que ya le hubieran colgado. `adoptDoc()` lo hace de una pasada en    */
+  /* cuanto un documento entra en el editor, que es el unico sitio por el */
+  /* que pasan la carga inicial, el guardado adoptado y una revision      */
+  /* restaurada.                                                          */
+  /* ------------------------------------------------------------------ */
+
+  const BUCKETS = ["desktop", "tablet", "mobile"];
+
+  /** Devuelve `obj[key]` como objeto, convirtiendolo en el sitio si hace falta. */
+  function dict(obj, key) {
+    if (!obj || typeof obj !== "object") return {};
+    const v = obj[key];
+    if (v && typeof v === "object" && !Array.isArray(v)) return v;
+    const out = {};
+    if (Array.isArray(v)) {
+      // Si alguien ya le habia colgado propiedades antes de normalizar,
+      // se rescatan: son justo las que `JSON.stringify` iba a tirar.
+      Object.keys(v).forEach((k) => {
+        if (!/^\d+$/.test(k)) out[k] = v[k];
+      });
+    }
+    obj[key] = out;
+    return out;
+  }
+
+  /** Estilos de un nodo en un tamaño, siempre como objeto escribible. */
+  function styleBucket(node, bp) {
+    return dict(dict(node, "styles"), bp);
+  }
+
+  function normalizeNode(node) {
+    if (!node || typeof node !== "object") return node;
+    if (node.styles !== undefined) {
+      const st = dict(node, "styles");
+      BUCKETS.forEach((bp) => {
+        if (st[bp] !== undefined) dict(st, bp);
+      });
+    }
+    if (node.props !== undefined) dict(node, "props");
+    if (Array.isArray(node.children)) node.children.forEach(normalizeNode);
+    return node;
+  }
+
+  /** Normaliza un documento entero recien llegado del servidor. */
+  function adoptDoc(doc) {
+    if (!doc || typeof doc !== "object") return doc;
+    ["seo", "settings", "theme"].forEach((k) => {
+      if (doc[k] !== undefined) dict(doc, k);
+    });
+    if (Array.isArray(doc.sections)) doc.sections.forEach(normalizeNode);
+    if (Array.isArray(doc.children)) doc.children.forEach(normalizeNode);
+    return doc;
+  }
+
   window.KrgBuilderCore = {
+    dict: dict,
+    styleBucket: styleBucket,
+    normalizeNode: normalizeNode,
+    adoptDoc: adoptDoc,
     registerControl: registerControl,
     setSchema: setSchema,
     schemaFor: schemaFor,

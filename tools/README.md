@@ -17,6 +17,7 @@ bash tools/devenv.sh     # PHP 8.3 estático + Chromium + playwright-core en .to
 | `tools/wp-shim.php` | El mínimo de WordPress que necesitan catálogo, registro, saneador y renderizadores. Todo con `function_exists`. |
 | `tools/render.php` | Imprime el marcado real de un caso. `.tools/php/php tools/render.php` lista los casos. Tres contextos: sin nada = web pública, `KRG_PREVIEW=1` = pestaña «Preview», `KRG_CANVAS=1` = lienzo del constructor. |
 | `tools/harness.mjs` | Monta una página completa con los CSS del tema alrededor de un caso y la deja en `.captures/`. |
+| `tools/sanear.php` | Pasa un documento por `Sanitizer::document()` + `BoxStyles::migrate_document()` y lo imprime como JSON, igual que contestaría la API. Lo usa el servidor falso de `prueba-motor.mjs` para que el banco vea lo que el servidor cambia al guardar —incluida la forma del JSON. |
 | `tools/medir.mjs` | Mide las cajas de las secciones de un caso: `node tools/medir.mjs <caso> [ancho] [alto]`. |
 | `tools/shoot.mjs` | Captura a 1440/834/390 e informa de errores de consola: `node tools/shoot.mjs <archivo|url> [carpeta]`. |
 | `tools/prueba-vacias.mjs` | Contrato de secciones vacías: lo que no pinta nada ocupa 0 px en la web y sí se ve en el lienzo. |
@@ -60,6 +61,7 @@ node tools/prueba-matriz.mjs
 node tools/prueba-cortina.mjs
 node tools/prueba-motor.mjs
 node tools/prueba-caja.mjs
+node tools/prueba-estirar.mjs
 ```
 
 `tools/render.php` trae dos ayudantes para montar casos por el camino

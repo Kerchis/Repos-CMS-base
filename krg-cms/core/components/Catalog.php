@@ -75,6 +75,7 @@ class Catalog {
 					'minHeightUnit'  => 'vh',
 					'heightMode'     => 'exact',
 					'vAlign'     => 'start',
+					'stretchAlign' => 'center',
 					'headerSkin' => 'auto',
 					'curtain'    => 'off',
 				],
@@ -146,6 +147,20 @@ class Catalog {
 								[ 'value' => 'stretch', 'label' => __( 'Estirar: el contenido llena el alto', 'meridian' ) ],
 							],
 							'help'    => __( 'Dónde se coloca el contenido cuando ocupa menos que el alto de la sección. Con «Estirar» no sobra fondo: el bloque crece hasta llenarla.', 'meridian' ),
+						]
+					),
+					self::f(
+						'stretchAlign',
+						'select',
+						'design',
+						__( 'Contenido dentro del bloque estirado', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'start', 'label' => __( 'Arriba', 'meridian' ) ],
+								[ 'value' => 'center', 'label' => __( 'Centro', 'meridian' ) ],
+								[ 'value' => 'end', 'label' => __( 'Abajo', 'meridian' ) ],
+							],
+							'help'    => __( 'Sólo con «Estirar». El bloque ocupa todo el alto; esto decide dónde queda su contenido dentro de él.', 'meridian' ),
 						]
 					),
 					self::f(

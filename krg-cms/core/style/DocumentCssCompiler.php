@@ -115,7 +115,14 @@ class DocumentCssCompiler {
 		$mob     = [];
 		$extra   = [];
 
-		$walk = static function ( array $nodes ) use ( &$walk, &$base, &$tab, &$mob, &$extra ) {
+		// `$estirar` baja por el arbol desde la seccion. Hace falta porque
+		// la fila escribe su propio `align-items` en ESTA hoja, que no
+		// esta en ninguna capa y por tanto le gana a cualquier regla del
+		// tema: sin esto, una seccion con «Estirar» no podia estirar a la
+		// columna que lleva dentro, y el bloque se quedaba con su alto.
+		// Mandar la seccion es deliberado: «Estirar» es una eleccion
+		// explicita y la alineacion de la fila es un valor por defecto.
+		$walk = static function ( array $nodes, bool $estirar = false ) use ( &$walk, &$base, &$tab, &$mob, &$extra ) {
 			foreach ( $nodes as $n ) {
 				$id = sanitize_html_class( $n['id'] ?? '' );
 				if ( $id ) {
@@ -135,13 +142,27 @@ class DocumentCssCompiler {
 					self::push_styles( $sel, $n['styles']['tablet'] ?? [], $tab );
 					self::push_styles( $sel, $n['styles']['mobile'] ?? [], $mob );
 					$type = $n['type'] ?? '';
+					if ( 'section' === $type ) {
+						$p_mh = (string) ( $n['props']['minHeight'] ?? 'auto' );
+						$p_va = (string) ( $n['props']['vAlign'] ?? 'start' );
+						$estirar = ( 'auto' !== $p_mh && 'stretch' === $p_va );
+					}
 					if ( 'row' === $type ) {
 						$g       = max( 0, (int) ( $n['props']['gap'] ?? 24 ) );
 						$va      = (string) ( $n['props']['vAlign'] ?? 'start' );
 						if ( ! in_array( $va, [ 'start', 'center', 'end', 'stretch' ], true ) ) {
 							$va = 'start';
 						}
-						$extra[] = "{$sel}{display:grid;gap:{$g}px;grid-template-columns:repeat(12,minmax(0,1fr));align-items:{$va};}";
+						// `align-items` estira el elemento dentro de SU pista;
+						// `align-content` estira las pistas automaticas hasta
+						// llenar la rejilla. Sin la segunda, la fila medía el
+						// alto de la seccion pero su unica fila interior seguia
+						// midiendo lo que el contenido, y la columna con ella.
+						$estira_css = $estirar ? 'align-content:stretch;' : '';
+						if ( $estirar ) {
+							$va = 'stretch';
+						}
+						$extra[] = "{$sel}{display:grid;gap:{$g}px;grid-template-columns:repeat(12,minmax(0,1fr));align-items:{$va};{$estira_css}}";
 					}
 					if ( 'column' === $type ) {
 						$d       = max( 1, min( 12, (int) ( $n['props']['span'] ?? 12 ) ) );
@@ -210,7 +231,7 @@ class DocumentCssCompiler {
 					}
 				}
 				if ( ! empty( $n['children'] ) ) {
-					$walk( $n['children'] );
+					$walk( $n['children'], $estirar );
 				}
 			}
 		};

@@ -282,6 +282,16 @@ class ComponentRenders {
 		$class = ( 'boxed' === $width ? 'is-boxed' : 'is-full' ) . ' is-w-' . $width;
 		if ( 'auto' !== $mh ) {
 			$class .= ' is-mh-' . $mh . $mh_mode . ' is-va-' . $va;
+			// Con «Estirar» el bloque ocupa todo el alto, asi que donde
+			// queda su contenido deja de decidirlo `is-va-*`: hace falta
+			// un segundo eje. Solo se imprime cuando sirve para algo.
+			if ( 'stretch' === $va ) {
+				$sa = sanitize_html_class( (string) ( $props['stretchAlign'] ?? 'center' ) );
+				if ( ! in_array( $sa, [ 'start', 'center', 'end' ], true ) ) {
+					$sa = 'center';
+				}
+				$class .= ' is-sa-' . $sa;
+			}
 		}
 		// Llegar aqui vacio solo pasa en el lienzo del constructor: la
 		// marca sirve para colapsar el alto configurado y dejar en su sitio

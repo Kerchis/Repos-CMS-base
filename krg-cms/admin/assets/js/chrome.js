@@ -120,8 +120,8 @@
   }
   function applyPack(raw) {
     const s = JSON.parse(raw);
-    state.header = s.header;
-    state.footer = s.footer;
+    state.header = window.KrgBuilderCore.adoptDoc(s.header);
+    state.footer = window.KrgBuilderCore.adoptDoc(s.footer);
   }
   function pushHistory(label) {
     state.history.unshift({
@@ -240,10 +240,10 @@
         putChrome("/footer", payloadF),
       ]);
       if (header && typeof header === "object" && (header.ctaText !== undefined || header.background !== undefined)) {
-        state.header = { ...state.header, ...header };
+        state.header = window.KrgBuilderCore.adoptDoc({ ...state.header, ...header });
       }
       if (footer && typeof footer === "object" && (footer.text !== undefined || footer.background !== undefined)) {
-        state.footer = { ...state.footer, ...footer };
+        state.footer = window.KrgBuilderCore.adoptDoc({ ...state.footer, ...footer });
       }
       state.save = "Guardado";
       state.dirty = false;
@@ -986,13 +986,13 @@
     paintChrome();
   }
   function applyRowLayout(row, spans) {
-    row.props = row.props || {};
+    row.props = window.KrgBuilderCore.dict(row, "props");
     row.props.layout = spans.join("-");
     row.children = row.children || [];
     while (row.children.length < spans.length) row.children.push(makeNode("column"));
     if (row.children.length > spans.length) row.children = row.children.slice(0, spans.length);
     row.children.forEach((c, i) => {
-      c.props = c.props || {};
+      c.props = window.KrgBuilderCore.dict(c, "props");
       c.props.span = spans[i];
       c.props.spanTablet = spans[i] >= 6 ? 6 : 12;
       c.props.spanMobile = 12;
@@ -1275,7 +1275,7 @@
       const go = () => {
         const hit = state.fSel ? findF(fSections(), state.fSel) : null;
         if (!hit) return;
-        hit.node.props = hit.node.props || {};
+        hit.node.props = window.KrgBuilderCore.dict(hit.node, "props");
         // Mismo criterio que el constructor: un numero en blanco es
         // «sin valor», no un cero.
         const num = inp.value === "" ? "" : Number(inp.value);
@@ -1289,10 +1289,9 @@
       const go = () => {
         const hit = state.fSel ? findF(fSections(), state.fSel) : null;
         if (!hit) return;
-        hit.node.styles = hit.node.styles || { desktop: {}, tablet: {}, mobile: {} };
-        hit.node.styles[state.bp] = hit.node.styles[state.bp] || {};
-        if (inp.value) hit.node.styles[state.bp][inp.dataset.fstyle] = inp.value;
-        else delete hit.node.styles[state.bp][inp.dataset.fstyle];
+        const stb = window.KrgBuilderCore.styleBucket(hit.node, state.bp);
+        if (inp.value) stb[inp.dataset.fstyle] = inp.value;
+        else delete stb[inp.dataset.fstyle];
         markDirty();
       };
       inp.addEventListener("input", go);
@@ -1332,7 +1331,7 @@
       b.onclick = () => {
         const hit = state.fSel ? findF(fSections(), state.fSel) : null;
         if (!hit) return;
-        hit.node.props = hit.node.props || {};
+        hit.node.props = window.KrgBuilderCore.dict(hit.node, "props");
         hit.node.props[b.dataset.fpropSet] = b.dataset.v;
         markDirty();
         paintInspector();
@@ -1350,7 +1349,7 @@
     const repArr = (key) => {
       const hit = state.fSel ? findF(fSections(), state.fSel) : null;
       if (!hit) return null;
-      hit.node.props = hit.node.props || {};
+      hit.node.props = window.KrgBuilderCore.dict(hit.node, "props");
       if (!Array.isArray(hit.node.props[key])) hit.node.props[key] = [];
       return hit.node.props[key];
     };
@@ -1451,7 +1450,7 @@
           const att = frame.state().get("selection").first().toJSON();
           const hit = state.fSel ? findF(fSections(), state.fSel) : null;
           if (!hit) return;
-          hit.node.props = hit.node.props || {};
+          hit.node.props = window.KrgBuilderCore.dict(hit.node, "props");
           hit.node.props[b.dataset.fpropMedia] = att.id;
           markDirty();
           paintInspector();
@@ -1722,8 +1721,8 @@
 
   Promise.all([api.get("/header"), api.get("/footer"), api.get("/menus"), api.get("/tokens").catch(() => ({})), api.get("/registry").catch(() => [])])
     .then(([header, footer, menus, tokens, registry]) => {
-      state.header = header;
-      state.footer = footer;
+      state.header = window.KrgBuilderCore.adoptDoc(header);
+      state.footer = window.KrgBuilderCore.adoptDoc(footer);
       if (!state.footer.sections) state.footer.sections = [];
       state.menus = menus;
       state.registry = Array.isArray(registry) ? registry : (registry?.components || []);
@@ -1732,8 +1731,8 @@
         const raw = localStorage.getItem("krg-chrome-draft");
         if (raw) {
           const draft = JSON.parse(raw);
-          if (draft?.header) state.header = { ...header, ...draft.header };
-          if (draft?.footer) state.footer = { ...footer, ...draft.footer };
+          if (draft?.header) state.header = window.KrgBuilderCore.adoptDoc({ ...header, ...draft.header });
+          if (draft?.footer) state.footer = window.KrgBuilderCore.adoptDoc({ ...footer, ...draft.footer });
           state.dirty = true;
           state.save = "Sin guardar";
         }

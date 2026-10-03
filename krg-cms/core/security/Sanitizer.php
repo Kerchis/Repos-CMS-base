@@ -341,15 +341,35 @@ class Sanitizer {
 		return '';
 	}
 
+	/**
+	 * Estilos de los tres tamanos.
+	 *
+	 * Los tamanos sin nada se DESCARTAN en vez de guardarse vacios, y la
+	 * razon no es el tamano del documento: es que PHP escribe un array
+	 * vacio como `[]`, que en JSON es una LISTA, no un diccionario. El
+	 * panel recibia `"styles":{"desktop":[]}`, le colgaba la propiedad al
+	 * array —en memoria funciona, el lienzo pintaba el color— y al
+	 * guardar `JSON.stringify` descartaba las propiedades con nombre de
+	 * un array: el valor se perdia entre el navegador y el servidor sin
+	 * un solo error. Se veia en el lienzo, seguia en el campo del
+	 * inspector y nunca llegaba a la base de datos.
+	 *
+	 * El navegador tambien se defiende solo ({@see builder-core.js},
+	 * `dict()`), que es lo que arregla los documentos ya guardados. Esto
+	 * evita crear nuevos.
+	 */
 	public static function styles( $styles ): array {
-		$bp  = [ 'desktop' => [], 'tablet' => [], 'mobile' => [] ];
+		$out = [];
 		if ( ! is_array( $styles ) ) {
-			return $bp;
+			return $out;
 		}
-		foreach ( $bp as $k => $_ ) {
-			$bp[ $k ] = is_array( $styles[ $k ] ?? null ) ? self::style_props( $styles[ $k ] ) : [];
+		foreach ( [ 'desktop', 'tablet', 'mobile' ] as $k ) {
+			$limpio = is_array( $styles[ $k ] ?? null ) ? self::style_props( $styles[ $k ] ) : [];
+			if ( $limpio ) {
+				$out[ $k ] = $limpio;
+			}
 		}
-		return $bp;
+		return $out;
 	}
 
 	/**

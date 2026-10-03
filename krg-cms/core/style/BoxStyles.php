@@ -216,6 +216,16 @@ class BoxStyles {
 			unset( $props[ $old ] );
 		}
 
+		// Un tamano sin nada se quita en vez de viajar como `[]`: en JSON
+		// eso es una lista, y el panel no puede escribir dentro de una
+		// lista sin que `JSON.stringify` lo tire al guardar. Ver la nota
+		// larga en Sanitizer::styles().
+		foreach ( self::BREAKPOINTS as $bp ) {
+			if ( empty( $styles[ $bp ] ) ) {
+				unset( $styles[ $bp ] );
+			}
+		}
+
 		$node['styles'] = $styles;
 		$node['props']  = $props;
 		if ( ! empty( $node['children'] ) && is_array( $node['children'] ) ) {
