@@ -660,6 +660,47 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .tree-row { display: flex; align-items: center; gap: 4px; }
 .tree-row input { flex: 0 1 72px; min-width: 0; }
 .tree-row input.is-wide { flex: 1 1 auto; }
+/* Fotos del plato: se eligen con el ojo, no leyendo IDs. */
+.tree-fotos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tree-foto {
+  position: relative;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.tree-foto img,
+.tree-foto-vacia {
+  display: block;
+  width: 100%;
+  height: 62px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--m-line, #ddd);
+  background: var(--m-bg2, #f2f2f2);
+}
+.tree-foto-vacia { display: grid; place-items: center; font-size: 11px; color: var(--m-muted); }
+.tree-foto-acts {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.tree-foto:hover .tree-foto-acts,
+.tree-foto:focus-within .tree-foto-acts { opacity: 1; }
+.tree-foto-acts .b-ico {
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border-color: transparent;
+}
+.tree-foto-alt { font-size: 11px; padding: 2px 4px; }
 .tree-add { justify-self: start; font-size: 11px; padding: 4px 10px; }
 
 .b-range { display: grid; grid-template-columns: 1fr 64px auto; gap: 6px; align-items: center; }

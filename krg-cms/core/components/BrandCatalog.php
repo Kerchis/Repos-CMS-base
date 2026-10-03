@@ -1070,6 +1070,8 @@ class BrandCatalog {
 					'buttonStyle' => 'outline',
 					'emptyLabel'  => '',
 					'addonsLabel' => 'Adiciones',
+					'currency'    => '$',
+					'zoom'        => true,
 					'categories'  => [
 						[ 'label' => 'Entradas' ],
 						[ 'label' => 'Platos fuertes' ],
@@ -1220,6 +1222,23 @@ class BrandCatalog {
 								self::f( 'alt', 'text', 'content', __( 'Texto alternativo', 'meridian' ) ),
 								self::f( 'url', 'url', 'content', __( 'Enlace (opcional)', 'meridian' ) ),
 								self::f(
+									'photos',
+									'repeater',
+									'content',
+									__( 'Fotos del plato', 'meridian' ),
+									[
+										'maxItems'   => 12,
+										'ui'         => 'photos',
+										'addLabel'   => __( 'Añadir fotos', 'meridian' ),
+										'help'       => __( 'Se ven al pulsar la foto del plato. Si no pones ninguna se amplía la foto principal.', 'meridian' ),
+										'itemFields' => [
+											self::f( 'imageId', 'image', 'content', __( 'Imagen', 'meridian' ) ),
+											self::f( 'imageUrl', 'url', 'content', __( 'URL', 'meridian' ) ),
+											self::f( 'alt', 'text', 'content', __( 'Texto alternativo', 'meridian' ) ),
+										],
+									]
+								),
+								self::f(
 									'addons',
 									'repeater',
 									'content',
@@ -1237,6 +1256,20 @@ class BrandCatalog {
 						]
 					),
 					self::f( 'addonsLabel', 'text', 'content', __( 'Título de las adiciones', 'meridian' ) ),
+					self::f(
+						'currency',
+						'text',
+						'content',
+						__( 'Símbolo de la moneda', 'meridian' ),
+						[ 'help' => __( 'Se pone solo delante de cada precio, también en las adiciones: escribe 24.9 y sale $24.9. Déjalo en blanco para no poner ninguno.', 'meridian' ) ]
+					),
+					self::f(
+						'zoom',
+						'toggle',
+						'design',
+						__( 'Al pulsar la foto, abrir las imágenes del plato', 'meridian' ),
+						[ 'help' => __( 'Se abre una ventana con las fotos del plato. Si el plato no tiene fotos extra, se amplía la suya.', 'meridian' ) ]
+					),
 					self::f( 'linkText', 'text', 'content', __( 'Texto del botón final', 'meridian' ) ),
 					self::f( 'linkUrl', 'url', 'content', __( 'URL del botón final', 'meridian' ) ),
 					self::f( 'buttonStyle', 'select', 'design', __( 'Estilo del botón', 'meridian' ), [ 'options' => [ 'outline', 'solid', 'ghost' ] ] ),

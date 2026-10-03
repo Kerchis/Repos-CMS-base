@@ -30,6 +30,7 @@ bash tools/devenv.sh     # PHP 8.3 estático + Chromium + playwright-core en .to
 | `tools/prueba-lienzo.mjs` | El tramo que faltaba: el constructor entero con su iframe de verdad. Teclea en el panel y lee el color que **se ve** dentro del lienzo (33). |
 | `tools/prueba-caja.mjs` | Contrato de fondo, relleno y margen: seis tipos de sección × tres tamaños × web pública / «Preview» / lienzo, herencia hacia abajo, sección vacía con relleno, cero `!important` y comparación letra por letra entre el PHP y el editor (72). |
 | `tools/prueba-matriz.mjs` | La matriz del encargo: los tres anchos de sección (full/padded/boxed) × fondo, relleno y margen × escritorio/tableta/móvil × web pública/«Preview»/lienzo, más fila, columna y módulo con caja propia, sección sin nada escrito (manda el token), sección vacía, transparencia y «lo del panel gana al tema» (91). |
+| `tools/prueba-carta.mjs` | La carta de restaurante de punta a punta: el árbol del inspector (categoría → plato → adiciones → fotos), los dos paneles del constructor dentro del admin de WordPress y, en la página pública, la pestaña «Todo» sin adiciones, el símbolo de la moneda y el visor de fotos del plato (87). |
 | `tools/prueba-tokens.php` | El token que el tema no puede perder: detecta un `spacing.section` inservible, lo rellena al leer, lo repara una sola vez en la base de datos, no toca jamás un valor del usuario y comprueba que el panel y el CSS dicen lo mismo (32). |
 | `tools/prueba-cortina.mjs` | El motor de secciones con la cortina encendida: siete tipos de sección detrás de una sección cortina × fondo, relleno y margen × tres tamaños × tres modos, con `public.js` y `modules.js` cargados de verdad. Comprueba que la cortina sigue tapando lo transparente y que NO escribe nada sobre las secciones (83). |
 | `tools/prueba-motor.mjs` | El protocolo del encargo en el editor real: altura 90vh + fondo + relleno 50 + margen 50 en dos secciones distintas, midiendo antes de guardar, **después** del guardado automático y de la recarga del marco, y otra vez tras recargar el editor entero; más los tres tamaños (41). |
@@ -62,7 +63,7 @@ node tools/prueba-cortina.mjs
 node tools/prueba-motor.mjs
 node tools/prueba-caja.mjs
 node tools/prueba-estirar.mjs
-node tools/prueba-carta.mjs            # KRG_SHOT=1 deja además la captura del árbol
+node tools/prueba-carta.mjs            # KRG_SHOT=1 deja además las capturas del árbol y del visor
 ```
 
 `tools/render.php` trae dos ayudantes para montar casos por el camino

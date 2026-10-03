@@ -696,3 +696,118 @@ vez de abrirlo de nuevo, pulsar un bloque en el árbol de estructura no lo
 selecciona. **Pasa igual con el código anterior a estos cambios** —se
 comprobó volviendo a `HEAD`—, así que no es una regresión de esta tanda y se
 deja anotado para mirarlo aparte.
+
+
+---
+
+# Parte 8 — La carta: «Todo» limpio, precios con moneda y fotos del plato
+
+## 38. «Todo» enseña platos, no adiciones
+
+**Lo que pedía el encargo:** en la pestaña «Todo» no puede salir ninguna
+adición —ni las de un plato ni las de una categoría—; solo platos. Las
+adiciones viven en la pestaña de su categoría.
+
+El filtro de pestañas ya existía (`initMenuList`) y se limitaba a comparar
+`data-cat`. En «Todo» (`*`) enseñaba *todo*, incluidos los bloques de
+adiciones de categoría, que viajan dentro de la rejilla como un ítem más.
+
+**Arreglo, en el filtro que ya había:**
+
+- Los ítems `.is-addons` (adiciones de categoría) se esconden cuando el
+  filtro es `*`, y además dejan de contar para el mensaje de «no hay
+  platos»: no son platos.
+- El JS marca la carta con `is-todo`, y una sola regla esconde las
+  adiciones de cada plato:
+  `.m-carta.is-todo .m-carta-item > .m-carta-addons { display: none }`.
+
+Sin pestañas (carta en bloques) la clase no se pone nunca, así que ese modo
+queda exactamente como estaba. Ni datos nuevos, ni marcado nuevo, ni un
+segundo sistema de filtrado.
+
+## 39. El símbolo de la moneda lo pone la carta
+
+El usuario escribe `24.9` y la página muestra `$24.9`. Lo pone el
+renderizador, no el panel, para que nadie tenga que teclearlo ni recordarlo,
+y para que cambiar de símbolo sea un campo y no una revisión de cien precios.
+
+`BrandRenders::menu_price()` se aplica al precio del plato **y** a los de las
+adiciones. Reglas:
+
+- Campo vacío → sigue vacío (no aparece un `$` suelto).
+- Si el texto ya empieza por algo que no es un número (`$`, `€`, `COP`) o
+  lleva letras (`Gratis`, `s/n`) → se deja tal cual. **Nunca sale `$$`.**
+- El símbolo es editable (`currency`, por defecto `$`); en blanco, no se
+  pone ninguno.
+
+## 40. Las fotos del plato se abren en grande
+
+**Datos:** cada plato gana `photos`, una sublista con la **misma forma que la
+galería del tema** (`imageId` / `imageUrl` / `alt`). No hay tipo de campo
+nuevo ni almacenamiento nuevo: `Sanitizer::field()` ya recorre repetidores
+anidados, así que el guardado funcionaba antes de escribir una línea.
+
+**Inspector:** dentro de cada plato, una rama «Fotos del plato» que enseña
+miniaturas —no IDs— con flechas para ordenar, ✕ para quitar y un campo de
+texto alternativo por foto. El botón «Añadir fotos» abre la mediateca en modo
+múltiple: se eligen seis de una vez. Reutiliza los manejadores que ya había
+(`data-sub-move`, `data-sub-del`, `data-sub` para el alt); lo único nuevo es
+`data-sub-fotos`.
+
+**Página pública:** la foto del plato pasa a ser un `<button>` con la imagen
+dentro y las fotos en un `<template>`. El `<template>` es inerte: **el
+navegador no descarga esas imágenes hasta que se abre el visor**, así que un
+plato con seis fotos no pesa más que uno con una. Si el plato no tiene fotos
+extra, se amplía la suya.
+
+El visor es un `<dialog>` modal —el mismo patrón que el de las reseñas—, así
+que el foco queda atrapado, `Escape` cierra y el fondo queda inerte sin una
+línea de JS de accesibilidad. Lleva flechas, teclado (← →), miniaturas,
+contador «2 / 3», arrastre lateral en el móvil, y el nombre, el precio y la
+descripción del plato debajo. Con una sola foto no pinta flechas ni
+miniaturas.
+
+Dos detalles que eran trampas:
+
+- **Un `<button>` no puede ir dentro de un `<a>`.** Si el plato tiene enlace
+  *y* foto ampliable, el enlace envuelve solo el texto y la foto se queda
+  fuera. Antes el marcado habría sido inválido.
+- **En el lienzo del constructor no se pinta el botón**: ahí pulsar una foto
+  tiene que seleccionar el módulo, no abrir una ventana.
+
+## 41. De paso: las adiciones del plato ya no compiten por la fila
+
+Las adiciones son hermanas del cuerpo dentro de un `li` en `flex`, así que
+se colocaban como una tercera columna. Ahora el plato envuelve
+(`flex-wrap`) y las adiciones ocupan la línea entera, sangradas al ancho de
+la foto. Es el mismo marcado; solo el CSS que faltaba.
+
+## 42. Pruebas
+
+`tools/prueba-carta.mjs` pasa de 43 a **87** comprobaciones. Las nuevas
+cubren los tres encargos en la página de verdad (render público completo con
+su CSS y su JS, fotos servidas por la red del banco):
+
+- «Todo»: 4 platos, 0 adiciones de plato, 0 bloques de categoría; en
+  «Desayunos» vuelven las dos; volver a «Todo» las esconde otra vez.
+- Moneda: los cuatro precios y los tres de adiciones salen con `$`, el
+  `24.9` del usuario se ve `$24.9` y nunca hay `$$`.
+- Visor: se abre, es modal de verdad (`:modal`), trae las 3 fotos con nombre
+  y precio, flechas, teclado, vuelta circular, miniaturas, `Escape`, ✕, el
+  caso de una sola foto y el `<template>` que no descarga nada.
+- Inspector: la rama de fotos con su cuenta, sus miniaturas y su alt.
+- Guardado: el saneador conserva las tres fotos con su id y su alt.
+- Lienzo: ahí **no** hay botón de ampliar.
+
+Verificado al revés: con los seis archivos anteriores (`git checkout
+origin/<rama>`), **11 de esas comprobaciones fallan**.
+
+Barrido completo tras el cambio: lint 61 · guardado 63 · tokens 32 ·
+estilos 82 · panel 35 · lienzo 37 · matriz 91 · caja 72 · inspector 77 ·
+chrome 31 · cortina 83 · motor 58 · estirar 18 · **carta 87** · vacías ·
+preview. Todo en verde.
+
+**Nota de herramientas:** `tools/wp-shim.php` no tenía
+`wp_get_attachment_image()`, así que ningún banco podía usar un plato con
+foto sin morir. Ya está. Es la misma clase de hueco de siempre: un banco que
+no puede representar el caso, no lo prueba.

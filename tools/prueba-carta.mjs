@@ -37,6 +37,7 @@ const PHP = `${ROOT}/.tools/php/php`;
 const REST = 'https://krg.test/wp-json/krg/v1';
 const LIENZO = 'https://krg.test/pagina-de-prueba/';
 const PANEL = 'https://krg.test/wp-admin/krg-builder.html';
+const PUBLICO = 'https://krg.test/carta-publica/';
 
 const registry = JSON.parse(execFileSync(PHP, [`${ROOT}/tools/dump-registry.php`], { encoding: 'utf8' }));
 const dir = mkdtempSync(join(tmpdir(), 'krg-carta-'));
@@ -51,14 +52,30 @@ function pintar(doc) {
   writeFileSync(f, JSON.stringify(doc));
   return execFileSync(PHP, [`${ROOT}/tools/render-doc.php`, f], { encoding: 'utf8', env: { ...process.env, KRG_CANVAS: '1' } });
 }
+/** La misma carta tal y como la ve el visitante: sin lienzo y con su JS. */
+function pintarPublico(doc) {
+  const f = join(dir, 'pub-page.json');
+  writeFileSync(f, JSON.stringify(doc));
+  return execFileSync(PHP, [`${ROOT}/tools/render-doc.php`, f], { encoding: 'utf8' });
+}
+/** La carta de la prueba, pero en modo pestañas y con la pestaña «Todo». */
+function docPestanas() {
+  const d = JSON.parse(JSON.stringify(inicial()));
+  const carta = d.sections[0].children[0].children[0].children[0];
+  carta.props.groupMode = 'tabs';
+  carta.props.showAll = true;
+  carta.props.items[0].addons = [{ name: 'Extra beicon', price: '6' }];
+  return d;
+}
 
 const nodo = (id, type, props = {}, children = []) => ({
   id, type, name: type, visible: true, source: 'local', globalId: 0,
   props, styles: {}, children,
 });
 
-const plato = (title, price, category, addons = []) => ({
+const plato = (title, price, category, addons = [], extra = {}) => ({
   title, price, category, addons, text: '', badge: '', imageId: 0, imageUrl: '', alt: '', url: '',
+  photos: [], ...extra,
 });
 
 const inicial = () => ({
@@ -71,13 +88,23 @@ const inicial = () => ({
           title: 'Nuestra carta',
           groupMode: 'stacked',
           addonsLabel: 'Adiciones',
+          showImages: true,
+          currency: '$',
+          zoom: true,
                   categories: [
             { label: 'Desayunos', text: '', addons: [{ name: 'Huevo frito o revuelto (x2)', price: '10.9' }, { name: 'Porción de frutas (180g)', price: '9.9' }] },
             { label: 'Postres', text: '', addons: [] },
           ],
           items: [
-            plato('Huevos benedictinos', '24.9', 'Desayunos'),
-            plato('Tostada de aguacate', '18.0', 'Desayunos'),
+            plato('Huevos benedictinos', '24.9', 'Desayunos', [], {
+              imageId: 11, alt: 'Huevos benedictinos', text: 'Con salsa holandesa.',
+              photos: [
+                { imageId: 11, imageUrl: 'https://ejemplo.test/uploads/foto-11-large.jpg', alt: 'El plato entero' },
+                { imageId: 12, imageUrl: 'https://ejemplo.test/uploads/foto-12-large.jpg', alt: 'De cerca' },
+                { imageId: 13, imageUrl: 'https://ejemplo.test/uploads/foto-13-large.jpg', alt: 'En la mesa' },
+              ],
+            }),
+            plato('Tostada de aguacate', '18.0', 'Desayunos', [], { imageId: 14, alt: 'Tostada' }),
             plato('Tiramisú', '12.0', 'Postres'),
             plato('Plato huérfano', '7.0', 'Categoría borrada'),
           ],
@@ -121,11 +148,27 @@ const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const errores = [];
 page.on('pageerror', (e) => errores.push(String(e).split('\n')[0]));
 
+// Las fotos de la mediateca falsa: se sirven de verdad para que el
+// navegador las descargue, las mida y la captura ensene algo. Sin esto
+// el visor se mediria con imagenes rotas, que no es lo que ve nadie.
+await page.route('**/ejemplo.test/uploads/**', async (route) => {
+  const n = Number((route.request().url().match(/foto-(\d+)/) || [])[1] || 0);
+  const tonos = ['#3f5e58', '#8c6b3f', '#b3452f', '#2f4858', '#6b7f3f'];
+  const c = tonos[n % tonos.length];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800">
+    <rect width="1200" height="800" fill="${c}"/>
+    <text x="600" y="430" font-family="sans-serif" font-size="90" fill="#fef6e7" text-anchor="middle">Foto ${n}</text></svg>`;
+  return route.fulfill({ status: 200, contentType: 'image/svg+xml', body: svg });
+});
+
 await page.route('**/krg.test/**', async (route) => {
   const req = route.request();
   const url = req.url().replace(REST, '');
   const json = (d) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(d) });
   if (req.url() === PANEL) return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: html });
+  if (req.url().startsWith(PUBLICO)) {
+    return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: pintarPublico(docPestanas()) });
+  }
   if (req.url().startsWith(LIENZO)) {
     return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: pintar(ultimo || inicial()) });
   }
@@ -270,21 +313,20 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(150);
 comprueba(
-  await page.evaluate(() => !!document.querySelector('.b-insp .tree-n.is-plato .tree-n.is-sub')),
+  await page.evaluate(() => !!document.querySelector('.b-insp .tree-n.is-plato [data-sub-add]')),
   'dentro del plato hay una rama de adiciones'
 );
 await page.evaluate(() => document.querySelector('.b-insp .tree-n.is-plato [data-sub-add]').click());
 await page.waitForTimeout(250);
 await page.evaluate(() => {
-  const p = document.querySelector('.b-insp .tree-n.is-plato .tree-n.is-sub');
-  p.querySelector('[data-sk="name"]').focus();
+  document.querySelector('.b-insp .tree-n.is-plato [data-sk="name"]').focus();
 });
-await page.fill('.b-insp .tree-n.is-plato .tree-n.is-sub [data-sk="name"]', 'Huevo frito o revuelto (x2)');
-await page.fill('.b-insp .tree-n.is-plato .tree-n.is-sub [data-sk="price"]', '10.9');
+await page.fill('.b-insp .tree-n.is-plato [data-sk="name"]', 'Huevo frito o revuelto (x2)');
+await page.fill('.b-insp .tree-n.is-plato [data-sk="price"]', '10.9');
 await page.waitForTimeout(150);
 
 const enPantalla = await page.evaluate(() => {
-  const n = document.querySelector('.b-insp .tree-n.is-plato .tree-n.is-sub [data-sk="name"]');
+  const n = document.querySelector('.b-insp .tree-n.is-plato [data-sk="name"]');
   return { i: n.dataset.i, j: n.dataset.j, k: n.dataset.k, campo: n.dataset.sub };
 });
 comprueba(enPantalla.campo === 'items' && enPantalla.k === 'addons', `el control apunta al sitio correcto: items[${enPantalla.i}].addons[${enPantalla.j}]`);
@@ -303,7 +345,7 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(200);
 const trasRecargar = await page.evaluate(() => {
-  const n = document.querySelector('.b-insp .tree-n.is-plato .tree-n.is-sub [data-sk="name"]');
+  const n = document.querySelector('.b-insp .tree-n.is-plato [data-sk="name"]');
   return n ? n.value : '(no está)';
 });
 comprueba(trasRecargar === 'Huevo frito o revuelto (x2)', `tras recargar el editor, la adición sigue en el inspector: ${trasRecargar}`);
@@ -323,7 +365,7 @@ const publico = execFileSync(PHP, [`${ROOT}/tools/render-doc.php`, (() => {
 })()], { encoding: 'utf8' });
 comprueba(/m-carta-addons/.test(publico), 'el HTML público lleva el bloque de adiciones');
 comprueba(/Huevo frito o revuelto \(x2\)/.test(publico), 'con el nombre de la adición');
-comprueba(/m-carta-addon-price">10\.9</.test(publico), 'y con su precio');
+comprueba(/m-carta-addon-price">\$10\.9</.test(publico), 'y con su precio, con el símbolo puesto por la carta');
 comprueba(
   (publico.match(/class="m-carta-addons"/g) || []).length === 1,
   `solo el plato que tiene adiciones las pinta: ${(publico.match(/class="m-carta-addons"/g) || []).length} bloque(s)`
@@ -431,6 +473,202 @@ await page.click('[data-show="left"]');
 await page.waitForTimeout(200);
 const gc = await geo();
 comprueba(gc.der === anchoAntes && gc.izq > 100, `plegar no descoloca los anchos: ${gc.izq} / ${gc.der}px`);
+
+
+/* ================================================================== */
+/* La carta que ve el visitante: pestañas, precios y fotos             */
+/* ================================================================== */
+await page.goto(PUBLICO);
+await page.waitForSelector('.m-carta[data-carta]', { timeout: 15000 });
+await page.waitForTimeout(300);
+
+console.log('\n--- «Todo» enseña platos, no adiciones');
+const verCarta = () => page.evaluate(() => {
+  const alto = (s) => [...document.querySelectorAll(s)].filter((e) => e.getBoundingClientRect().height > 0).length;
+  return {
+    todo: document.querySelector('.m-carta').classList.contains('is-todo'),
+    platos: alto('.m-carta-item:not(.is-addons)'),
+    adicionesPlato: alto('.m-carta-item > .m-carta-addons:not(.is-cat)'),
+    adicionesCat: alto('.m-carta-item.is-addons'),
+  };
+});
+let v = await verCarta();
+comprueba(v.todo, 'la pestaña «Todo» marca la carta como tal');
+comprueba(v.platos === 4, `en «Todo» se ven los ${v.platos} platos`);
+comprueba(v.adicionesPlato === 0, `y NINGUNA adición de plato: ${v.adicionesPlato} visibles`);
+comprueba(v.adicionesCat === 0, `ni el bloque de adiciones de la categoría: ${v.adicionesCat} visibles`);
+
+await page.click('.m-carta-tab[data-carta-filter="desayunos"]');
+await page.waitForTimeout(200);
+v = await verCarta();
+comprueba(!v.todo, 'al elegir una categoría se quita la marca de «Todo»');
+comprueba(v.platos === 2, `en «Desayunos» quedan sus ${v.platos} platos`);
+comprueba(v.adicionesPlato === 1, `y vuelven las adiciones del plato: ${v.adicionesPlato}`);
+comprueba(v.adicionesCat === 1, `y las de la categoría: ${v.adicionesCat}`);
+
+await page.click('.m-carta-tab[data-carta-filter="*"]');
+await page.waitForTimeout(200);
+v = await verCarta();
+comprueba(v.platos === 4 && v.adicionesPlato === 0 && v.adicionesCat === 0, 'y volver a «Todo» las esconde otra vez');
+
+console.log('\n--- El símbolo de la moneda lo pone la carta, no el usuario');
+const precios = await page.evaluate(() => ({
+  platos: [...document.querySelectorAll('.m-carta-price')].map((e) => e.textContent.trim()),
+  adiciones: [...document.querySelectorAll('.m-carta-addon-price')].map((e) => e.textContent.trim()),
+}));
+comprueba(
+  precios.platos.length === 4 && precios.platos.every((p) => p.startsWith('$')),
+  `todos los precios salen con $: ${precios.platos.join(' · ')}`
+);
+comprueba(precios.platos.includes('$24.9'), 'el 24.9 que escribió el usuario se ve como $24.9');
+comprueba(
+  precios.adiciones.length > 0 && precios.adiciones.every((p) => p.startsWith('$')),
+  `y las adiciones también: ${precios.adiciones.join(' · ')}`
+);
+comprueba(
+  !precios.platos.some((p) => p.startsWith('$$')) && !precios.adiciones.some((p) => p.startsWith('$$')),
+  'y nunca sale el símbolo dos veces'
+);
+
+console.log('\n--- Las fotos del plato se abren en grande');
+const hayBoton = await page.evaluate(() => ({
+  botones: document.querySelectorAll('.m-carta-media.is-zoom').length,
+  dentroDeEnlace: !!document.querySelector('a .m-carta-media.is-zoom'),
+  plantillas: document.querySelectorAll('template.m-carta-fotos').length,
+  pesan: document.querySelectorAll('.m-carta-lb-img').length,
+  etiqueta: document.querySelector('.m-carta-media.is-zoom')?.getAttribute('aria-label') || '',
+}));
+comprueba(hayBoton.botones === 2, `las fotos de los platos se pueden pulsar: ${hayBoton.botones} botones`);
+comprueba(!hayBoton.dentroDeEnlace, 'y ningún botón queda metido dentro de un enlace (HTML inválido)');
+comprueba(hayBoton.plantillas === 2, 'cada uno lleva sus fotos en un <template>');
+comprueba(hayBoton.pesan === 0, 'que el navegador NO descarga hasta que se abre');
+comprueba(/Ver fotos de Huevos benedictinos/.test(hayBoton.etiqueta), `con nombre para el lector de pantalla: «${hayBoton.etiqueta}»`);
+
+await page.click('.m-carta-item:first-child .m-carta-media.is-zoom');
+await page.waitForTimeout(350);
+const visor = () => page.evaluate(() => {
+  const d = document.querySelector('.m-carta-lb');
+  if (!d) return null;
+  const fig = [...d.querySelectorAll('.m-carta-lb-fig')];
+  const on = fig.findIndex((f) => f.classList.contains('is-on'));
+  return {
+    abierto: d.open,
+    modal: d.matches(':modal'),
+    fotos: fig.length,
+    actual: on,
+    cuenta: d.querySelector('[data-lb-n]').textContent.trim(),
+    titulo: d.querySelector('[data-lb-t]').textContent.trim(),
+    precio: d.querySelector('[data-lb-p]').textContent.trim(),
+    miniaturas: d.querySelectorAll('.m-carta-lb-th').length,
+    alto: Math.round(d.getBoundingClientRect().height),
+  };
+});
+let w = await visor();
+comprueba(!!w && w.abierto, 'al pulsar la foto se abre el visor');
+comprueba(w.modal, 'y lo hace como ventana modal de verdad (<dialog>, foco atrapado, Esc incluido)');
+comprueba(w.fotos === 3, `con las ${w.fotos} fotos del plato`);
+comprueba(w.titulo === 'Huevos benedictinos' && w.precio === '$24.9', `y el nombre y el precio del plato: ${w.titulo} ${w.precio}`);
+comprueba(w.cuenta === '1 / 3', `enseña en cuál va: «${w.cuenta}»`);
+comprueba(w.miniaturas === 3, 'y una miniatura por foto para saltar a la que sea');
+
+await page.click('.m-carta-lb [data-lb-go="1"]');
+await page.waitForTimeout(200);
+w = await visor();
+comprueba(w.actual === 1 && w.cuenta === '2 / 3', `la flecha pasa a la siguiente: «${w.cuenta}»`);
+await page.keyboard.press('ArrowRight');
+await page.waitForTimeout(200);
+w = await visor();
+comprueba(w.actual === 2, 'el teclado también pasa de foto');
+await page.keyboard.press('ArrowRight');
+await page.waitForTimeout(200);
+w = await visor();
+comprueba(w.actual === 0, 'y de la última vuelve a la primera');
+await page.click('.m-carta-lb .m-carta-lb-th[data-lb-i="2"]');
+await page.waitForTimeout(200);
+w = await visor();
+comprueba(w.actual === 2, 'la miniatura salta a su foto');
+
+if (process.env.KRG_SHOT) {
+  await page.click('.m-carta-lb .m-carta-lb-th[data-lb-i="0"]');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${ROOT}/.captures/visor-carta.png` });
+}
+
+await page.keyboard.press('Escape');
+await page.waitForTimeout(250);
+comprueba(!(await visor()).abierto, 'Escape cierra el visor');
+
+await page.click('.m-carta-item:first-child .m-carta-media.is-zoom');
+await page.waitForTimeout(250);
+await page.click('.m-carta-lb [data-lb-x]');
+await page.waitForTimeout(250);
+comprueba(!(await visor()).abierto, 'y la ✕ también');
+
+// Un plato con foto pero sin fotos extra: se amplía la suya, y una sola
+// foto no pinta flechas que no llevan a ningún sitio.
+await page.click('.m-carta-item:nth-child(2) .m-carta-media.is-zoom');
+await page.waitForTimeout(250);
+const sola = await page.evaluate(() => {
+  const d = document.querySelector('.m-carta-lb');
+  const nav = d.querySelector('.m-carta-lb-nav');
+  return {
+    abierto: d.open,
+    fotos: d.querySelectorAll('.m-carta-lb-fig').length,
+    flechas: nav.getBoundingClientRect().height,
+    minis: d.querySelector('.m-carta-lb-thumbs').getBoundingClientRect().height,
+    titulo: d.querySelector('[data-lb-t]').textContent.trim(),
+  };
+});
+comprueba(sola.abierto && sola.fotos === 1, `un plato sin fotos extra amplía la suya: ${sola.fotos} foto`);
+comprueba(sola.flechas === 0 && sola.minis === 0, 'y no enseña flechas ni miniaturas de adorno');
+comprueba(sola.titulo === 'Tostada de aguacate', `con su nombre: ${sola.titulo}`);
+await page.keyboard.press('Escape');
+await page.waitForTimeout(200);
+
+console.log('\n--- En el editor la foto no abre nada: se selecciona');
+const enLienzo = pintar(docPestanas());
+// Ojo: el guion publico va incrustado en la pagina y menciona el
+// atributo, asi que hay que buscar el BOTON, no el texto suelto.
+comprueba(!/<button[^>]*data-carta-zoom/.test(enLienzo), 'el lienzo del constructor no pinta el botón de ampliar');
+comprueba(/m-carta-media/.test(enLienzo), 'pero la foto del plato sigue ahí');
+
+console.log('\n--- Fotos del plato en el inspector');
+await abrirPanel();
+await seleccionarCarta();
+await page.evaluate(() => {
+  document.querySelector('.b-insp .b-tree > .tree-n.is-cat > .tree-b > .tree-n.is-plato > .tree-h > .tree-t').click();
+});
+await page.waitForTimeout(250);
+const rama = await page.evaluate(() => {
+  const p = document.querySelector('.b-insp .tree-n.is-plato');
+  const subs = [...p.querySelectorAll(':scope > .tree-b > .tree-n.is-sub')];
+  const fotos = subs.find((s) => /Fotos/.test(s.querySelector('.tree-lbl').textContent));
+  if (!fotos) return null;
+  const b = fotos.querySelector('.tree-b');
+  if (b.hidden) fotos.querySelector('.tree-t').click();
+  return {
+    cuenta: fotos.querySelector('.tree-c').textContent.trim(),
+    miniaturas: fotos.querySelectorAll('.tree-foto img').length,
+    boton: !!fotos.querySelector('[data-sub-fotos]'),
+    alt: fotos.querySelector('.tree-foto-alt')?.value || '',
+  };
+});
+comprueba(!!rama, 'cada plato tiene su rama «Fotos del plato»');
+comprueba(rama?.cuenta === '3', `que dice cuántas hay sin abrirla: ${rama?.cuenta}`);
+comprueba(rama?.miniaturas === 3, `y las enseña como miniaturas, no como IDs: ${rama?.miniaturas}`);
+comprueba(rama?.alt === 'El plato entero', `con su texto alternativo editable: «${rama?.alt}»`);
+comprueba(rama?.boton, 'y un botón para añadir varias de una vez');
+
+console.log('\n--- Las fotos sobreviven al guardado');
+const saneado = sanear(docPestanas());
+const mod = (function buscarN(lista) {
+  return (lista || []).reduce((h, n) => h || (n.id === 'm' ? n : buscarN(n.children)), null);
+})(saneado.sections);
+const fotosGuardadas = mod?.props?.items?.[0]?.photos || [];
+comprueba(fotosGuardadas.length === 3, `el saneador conserva las ${fotosGuardadas.length} fotos del plato`);
+comprueba(fotosGuardadas[1]?.imageId === 12, `con su id de imagen: ${fotosGuardadas[1]?.imageId}`);
+comprueba(fotosGuardadas[0]?.alt === 'El plato entero', `y su texto alternativo: ${fotosGuardadas[0]?.alt}`);
+comprueba(mod?.props?.currency === '$', `y el símbolo de la moneda: «${mod?.props?.currency}»`);
 
 comprueba(errores.length === 0, `sin errores de JavaScript${errores.length ? ': ' + errores.join(' | ') : ''}`);
 

@@ -2740,7 +2740,44 @@
    * de escribirlo. Va en dos columnas (nombre y precio) porque una
    * adicion no es un item con ficha: es una linea.
    */
+  /* Una sublista de imagenes no se edita escribiendo: se ve. Misma
+     forma de datos que la galeria del tema (`imageId/imageUrl/alt`) y
+     mismos manejadores (`data-sub-move|del` y `data-sub` para el alt),
+     asi que esto es solo otra pintura, no otro sistema. */
+  function subFotosHtml(node, f, sf, it, i) {
+    const lista = Array.isArray(it[sf.key]) ? it[sf.key] : [];
+    const abierto = CORE.isOpen(`tree.${node.id}.sub.${f.key}.${i}.${sf.key}`, lista.length > 0);
+    const com = (j) => `data-sub-move="${f.key}" data-i="${i}" data-k="${sf.key}" data-j="${j}"`;
+    const fotos = lista.map((sub, j) => {
+      const url = String(sub?.imageUrl ?? "");
+      const id = Number(sub?.imageId ?? 0);
+      return `<figure class="tree-foto">
+        ${url ? `<img src="${esc(url)}" alt="">` : `<span class="tree-foto-vacia">${id ? "#" + id : "?"}</span>`}
+        <span class="tree-foto-acts">
+          <button type="button" class="b-ico" ${com(j)} data-dir="-1" title="Antes">←</button>
+          <button type="button" class="b-ico" ${com(j)} data-dir="1" title="Después">→</button>
+          <button type="button" class="b-ico" data-sub-del="${f.key}" data-i="${i}" data-k="${sf.key}" data-j="${j}" title="Quitar">✕</button>
+        </span>
+        <input class="tree-foto-alt" data-sub="${f.key}" data-i="${i}" data-k="${sf.key}" data-j="${j}" data-sk="alt"
+          value="${esc(sub?.alt ?? "")}" placeholder="Texto alternativo" aria-label="Texto alternativo de la foto ${j + 1}">
+      </figure>`;
+    }).join("");
+    return `<div class="tree-n is-sub ${abierto ? "is-open" : ""}">
+      <div class="tree-h">
+        <button type="button" class="tree-t" data-tree-t="tree.${node.id}.sub.${f.key}.${i}.${sf.key}" aria-expanded="${abierto}">${abierto ? "−" : "+"}</button>
+        <span class="tree-lbl">${esc(sf.label)}</span>
+        <span class="tree-c">${lista.length}</span>
+      </div>
+      <div class="tree-b" ${abierto ? "" : "hidden"}>
+        ${sf.help ? `<p class="m-muted">${esc(sf.help)}</p>` : ""}
+        ${fotos ? `<div class="tree-fotos">${fotos}</div>` : ""}
+        <button type="button" class="m-btn ghost tree-add" data-sub-fotos="${f.key}" data-i="${i}" data-k="${sf.key}">${esc(sf.addLabel || "Añadir fotos")}</button>
+      </div>
+    </div>`;
+  }
+
   function subListHtml(node, f, sf, it, i) {
+    if (sf.ui === "photos") return subFotosHtml(node, f, sf, it, i);
     const lista = Array.isArray(it[sf.key]) ? it[sf.key] : [];
     const campos = sf.itemFields || [];
     const abierto = CORE.isOpen(`tree.${node.id}.sub.${f.key}.${i}.${sf.key}`, lista.length > 0);
@@ -3451,7 +3488,7 @@
     const subLista = (ds, crear) => {
       const h = hit();
       if (!h) return null;
-      const arr = h.node.props[ds.sub || ds.subAdd || ds.subDel || ds.subMove] || [];
+      const arr = h.node.props[ds.sub || ds.subAdd || ds.subDel || ds.subMove || ds.subFotos] || [];
       const it = arr[Number(ds.i)];
       if (!it) return null;
       if (!Array.isArray(it[ds.k])) {
@@ -3486,6 +3523,31 @@
         CORE.setOpen(`tree.${h.node.id}.sub.${b.dataset.subAdd}.${b.dataset.i}.${b.dataset.k}`, true);
         markDirty();
         render();
+      };
+    });
+    box.querySelectorAll("[data-sub-fotos]").forEach((b) => {
+      b.onclick = () => {
+        if (!window.wp?.media) return;
+        const frame = wp.media({ title: "Fotos del plato", multiple: "add", library: { type: "image" } });
+        frame.on("select", () => {
+          const sel = frame.state().get("selection").toJSON();
+          if (!sel.length) return;
+          snapshot();
+          const lista = subLista(b.dataset, true);
+          if (!lista) return;
+          sel.forEach((att) => {
+            lista.push({
+              imageId: att.id,
+              imageUrl: att.sizes?.large?.url || att.url || att.sizes?.full?.url || "",
+              alt: att.alt || "",
+            });
+          });
+          const h = hit();
+          if (h) CORE.setOpen(`tree.${h.node.id}.sub.${b.dataset.subFotos}.${b.dataset.i}.${b.dataset.k}`, true);
+          markDirty();
+          render();
+        });
+        frame.open();
       };
     });
     box.querySelectorAll("[data-sub-del]").forEach((b) => {

@@ -819,10 +819,16 @@
 
         function apply(filter) {
           var shown = 0;
+          var todo = filter === "*";
+          // En «Todo» la carta ensena solo platos. Las adiciones son de
+          // cada categoria, asi que se quedan en su pestana: aqui se
+          // esconde el bloque de categoria y, por CSS, las del plato.
+          el.classList.toggle("is-todo", todo);
           items.forEach(function (it) {
-            var ok = filter === "*" || it.getAttribute("data-cat") === filter;
+            var esAdiciones = it.classList.contains("is-addons");
+            var ok = todo ? !esAdiciones : it.getAttribute("data-cat") === filter;
             it.hidden = !ok;
-            if (ok) shown++;
+            if (ok && !esAdiciones) shown++;
           });
           if (empty) empty.hidden = shown !== 0;
         }
@@ -846,6 +852,125 @@
   }
 
   /* ---------------------------------------------------------------- */
+  /* Fotos del plato                                                    */
+  /* ---------------------------------------------------------------- */
+
+  var lbCaja = null;
+
+  function cartaVisor() {
+    if (lbCaja) return lbCaja;
+    var d = document.createElement("dialog");
+    d.className = "m-carta-lb krg-root";
+    d.setAttribute("aria-label", "Fotos del plato");
+    d.innerHTML =
+      '<div class="m-carta-lb-box">' +
+      '<button type="button" class="m-carta-lb-x" data-lb-x aria-label="Cerrar">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+      '<div class="m-carta-lb-stage">' +
+      '<button type="button" class="m-carta-lb-nav is-prev" data-lb-go="-1" aria-label="Foto anterior">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 5l-7 7 7 7"/></svg></button>' +
+      '<div class="m-carta-lb-slides" data-lb-slides></div>' +
+      '<button type="button" class="m-carta-lb-nav is-next" data-lb-go="1" aria-label="Foto siguiente">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7"/></svg></button>' +
+      '<p class="m-carta-lb-n" data-lb-n aria-live="polite"></p>' +
+      "</div>" +
+      '<div class="m-carta-lb-foot">' +
+      '<div class="m-carta-lb-txt"><p class="m-carta-lb-t" data-lb-t></p><p class="m-carta-lb-d" data-lb-d></p></div>' +
+      '<p class="m-carta-lb-p" data-lb-p></p>' +
+      "</div>" +
+      '<div class="m-carta-lb-thumbs" data-lb-thumbs></div>' +
+      "</div>";
+    document.body.appendChild(d);
+    lbCaja = d;
+    return d;
+  }
+
+  function abrirFotos(btn) {
+    var tpl = btn.querySelector("template.m-carta-fotos");
+    var figs = tpl ? Array.prototype.slice.call(tpl.content.querySelectorAll(".m-carta-lb-fig")) : [];
+    if (!figs.length) return;
+
+    var d = cartaVisor();
+    var slides = d.querySelector("[data-lb-slides]");
+    var thumbs = d.querySelector("[data-lb-thumbs]");
+    var cuenta = d.querySelector("[data-lb-n]");
+    var item = btn.closest(".m-carta-item");
+    var txt = function (sel) {
+      var n = item && item.querySelector(sel);
+      return n ? n.textContent.trim() : "";
+    };
+
+    d.querySelector("[data-lb-t]").textContent = txt(".m-carta-name");
+    d.querySelector("[data-lb-p]").textContent = txt(".m-carta-price");
+    d.querySelector("[data-lb-d]").textContent = txt(".m-carta-desc");
+
+    slides.textContent = "";
+    thumbs.textContent = "";
+    figs.forEach(function (fig, i) {
+      var copia = fig.cloneNode(true);
+      copia.className = "m-carta-lb-fig" + (i === 0 ? " is-on" : "");
+      slides.appendChild(copia);
+      var img = copia.querySelector("img");
+      var t = document.createElement("button");
+      t.type = "button";
+      t.className = "m-carta-lb-th" + (i === 0 ? " is-on" : "");
+      t.setAttribute("data-lb-i", String(i));
+      t.setAttribute("aria-label", "Foto " + (i + 1));
+      t.innerHTML = '<img alt="" src="' + (img ? img.getAttribute("src") || "" : "") + '">';
+      thumbs.appendChild(t);
+    });
+
+    var uno = figs.length < 2;
+    d.classList.toggle("is-una", uno);
+    thumbs.hidden = uno;
+
+    var i = 0;
+    var ir = function (n) {
+      i = (n + figs.length) % figs.length;
+      Array.prototype.forEach.call(slides.children, function (el, k) { el.classList.toggle("is-on", k === i); });
+      Array.prototype.forEach.call(thumbs.children, function (el, k) { el.classList.toggle("is-on", k === i); });
+      cuenta.textContent = uno ? "" : i + 1 + " / " + figs.length;
+    };
+    ir(0);
+
+    d.onclick = function (e) {
+      var go = e.target.closest("[data-lb-go]");
+      if (go) { ir(i + Number(go.getAttribute("data-lb-go"))); return; }
+      var th = e.target.closest("[data-lb-i]");
+      if (th) { ir(Number(th.getAttribute("data-lb-i"))); return; }
+      // Fuera de la caja (el fondo) o la X: se cierra.
+      if (e.target.closest("[data-lb-x]") || !e.target.closest(".m-carta-lb-box")) d.close();
+    };
+    d.onkeydown = function (e) {
+      if (uno) return;
+      if (e.key === "ArrowRight") { e.preventDefault(); ir(i + 1); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); ir(i - 1); }
+    };
+    var x0 = null;
+    slides.onpointerdown = function (e) { x0 = e.clientX; };
+    slides.onpointerup = function (e) {
+      if (x0 === null || uno) return;
+      var dx = e.clientX - x0;
+      x0 = null;
+      if (Math.abs(dx) > 40) ir(i + (dx < 0 ? 1 : -1));
+    };
+
+    if (typeof d.showModal === "function") d.showModal();
+    else d.setAttribute("open", "");
+  }
+
+  function initCartaFotos(root) {
+    each(
+      "[data-carta-zoom]",
+      function (btn) {
+        if (!once(btn, "krgCartaZoom")) return;
+        btn.addEventListener("click", function () { abrirFotos(btn); });
+      },
+      root
+    );
+  }
+
+  /* ---------------------------------------------------------------- */
   /* Arranque                                                           */
   /* ---------------------------------------------------------------- */
 
@@ -857,6 +982,7 @@
     initReviews(root);
     initFilterCollection(root);
     initMenuList(root);
+    initCartaFotos(root);
     initTrace(root);
     initSplitPanel(root);
     initStickyHeader();

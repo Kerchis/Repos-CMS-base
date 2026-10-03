@@ -171,6 +171,33 @@ if ( ! function_exists( 'get_categories' ) ) {
 if ( ! function_exists( 'get_post_meta' ) ) {
 	function get_post_meta( ...$a ) { return ''; }
 }
+// Imagenes de la mediateca. Sin esto cualquier banco que use un plato
+// con foto muere con «undefined function», que es justo la clase de
+// hueco que hace que una prueba mida una pagina que no existe.
+if ( ! function_exists( 'wp_get_attachment_image_url' ) ) {
+	function wp_get_attachment_image_url( $id, $size = 'thumbnail', $icon = false ) {
+		$id = (int) $id;
+		return $id ? 'https://ejemplo.test/uploads/foto-' . $id . '-' . (string) ( is_array( $size ) ? 'custom' : $size ) . '.jpg' : '';
+	}
+}
+if ( ! function_exists( 'wp_get_attachment_image' ) ) {
+	function wp_get_attachment_image( $id, $size = 'thumbnail', $icon = false, $attr = [] ) {
+		$id = (int) $id;
+		if ( ! $id ) {
+			return '';
+		}
+		$attr['src'] = wp_get_attachment_image_url( $id, $size );
+		$attr['alt'] = (string) ( $attr['alt'] ?? '' );
+		$out         = '';
+		foreach ( $attr as $k => $v ) {
+			if ( '' === $v && 'alt' !== $k ) {
+				continue;
+			}
+			$out .= ' ' . $k . '="' . esc_attr( (string) $v ) . '"';
+		}
+		return '<img' . $out . ' width="1200" height="800">';
+	}
+}
 if ( ! function_exists( 'number_format_i18n' ) ) {
 	function number_format_i18n( $n, $d = 0 ) { return number_format( (float) $n, (int) $d ); }
 }

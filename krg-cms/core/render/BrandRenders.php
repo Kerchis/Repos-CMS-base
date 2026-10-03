@@ -1341,6 +1341,25 @@ class BrandRenders {
 
 	/** Un plato de la carta. */
 	/**
+	 * El precio con su simbolo delante.
+	 *
+	 * Se pone aqui y no en el panel para que el usuario escriba `24.9` y
+	 * se olvide. No se duplica: si el texto ya trae un simbolo o lleva
+	 * letras (`Gratis`, `COP 20`, `s/n`) se deja tal cual, porque
+	 * entonces no es un numero suelto esperando moneda.
+	 */
+	private static function menu_price( string $raw, string $cur ): string {
+		$raw = trim( $raw );
+		if ( '' === $raw || '' === trim( $cur ) ) {
+			return $raw;
+		}
+		if ( preg_match( '/\p{L}/u', $raw ) || preg_match( '/^[^\d\s]/u', $raw ) ) {
+			return $raw;
+		}
+		return $cur . $raw;
+	}
+
+	/**
 	 * Las adiciones de un plato.
 	 *
 	 * Una lista corta de «nombre … precio» debajo del plato. Va en `<ul>`
@@ -1348,7 +1367,7 @@ class BrandRenders {
 	 * depende de otra. Un lector de pantalla lo anuncia como tal, y sin
 	 * el titulo delante no se entenderia de que son.
 	 */
-	private static function menu_addons( array $it, string $label, string $extra = '' ): string {
+	private static function menu_addons( array $it, string $label, string $extra = '', string $cur = '' ): string {
 		$addons = is_array( $it['addons'] ?? null ) ? $it['addons'] : [];
 		$filas  = '';
 		foreach ( $addons as $ad ) {
@@ -1359,7 +1378,7 @@ class BrandRenders {
 			if ( '' === $name ) {
 				continue;
 			}
-			$price  = trim( (string) ( $ad['price'] ?? '' ) );
+			$price  = self::menu_price( (string) ( $ad['price'] ?? '' ), $cur );
 			$filas .= '<li class="m-carta-addon">'
 				. '<span class="m-carta-addon-name">' . esc_html( $name ) . '</span>'
 				. ( '' !== $price ? '<span class="m-carta-addon-price">' . esc_html( $price ) . '</span>' : '' )
@@ -1375,10 +1394,10 @@ class BrandRenders {
 			. '</div>';
 	}
 
-	private static function menu_item( RenderContext $ctx, array $it, bool $images, string $shape, string $addons_label = '' ): string {
+	private static function menu_item( RenderContext $ctx, array $it, bool $images, string $shape, string $addons_label = '', string $cur = '', bool $zoom = false ): string {
 		$title = trim( (string) ( $it['title'] ?? '' ) );
 		$text  = trim( (string) ( $it['text'] ?? '' ) );
-		$price = trim( (string) ( $it['price'] ?? '' ) );
+		$price = self::menu_price( (string) ( $it['price'] ?? '' ), $cur );
 		$badge = trim( (string) ( $it['badge'] ?? '' ) );
 		$url   = (string) ( $it['url'] ?? '' );
 		$img   = absint( $it['imageId'] ?? 0 );
@@ -1387,9 +1406,35 @@ class BrandRenders {
 
 		$media = '';
 		if ( $images && $img ) {
-			$media = '<span class="m-carta-media is-' . esc_attr( $shape ) . '">'
-				. self::media( $ctx, $img, $alt, 'm-carta-img', 'medium' )
-				. '</span>';
+			// Las fotos extra viajan en un <template>: el navegador no las
+			// descarga hasta que se abre la ventana, asi que un plato con
+			// seis fotos no pesa mas que uno con una.
+			$fotos = is_array( $it['photos'] ?? null ) ? $it['photos'] : [];
+			$extra = '';
+			foreach ( $fotos as $ph ) {
+				$pid = absint( is_array( $ph ) ? ( $ph['imageId'] ?? 0 ) : 0 );
+				if ( ! $pid ) {
+					continue;
+				}
+				$extra .= '<figure class="m-carta-lb-fig">'
+					. self::media( $ctx, $pid, (string) ( $ph['alt'] ?? $title ), 'm-carta-lb-img', 'large' )
+					. '</figure>';
+			}
+			$abre = $zoom && ! $ctx->isCanvas;
+			$dentro = self::media( $ctx, $img, $alt, 'm-carta-img', 'medium' );
+			if ( $abre ) {
+				$primera = '' === $extra
+					? '<figure class="m-carta-lb-fig">' . self::media( $ctx, $img, $alt, 'm-carta-lb-img', 'large' ) . '</figure>'
+					: '';
+				$media = '<button type="button" class="m-carta-media is-' . esc_attr( $shape ) . ' is-zoom" data-carta-zoom'
+					. ' aria-label="' . esc_attr( sprintf( /* translators: %s: nombre del plato */ __( 'Ver fotos de %s', 'meridian' ), $title ) ) . '">'
+					. $dentro
+					. '<span class="m-carta-zoom" aria-hidden="true"></span>'
+					. '<template class="m-carta-fotos">' . $primera . $extra . '</template>'
+					. '</button>';
+			} else {
+				$media = '<span class="m-carta-media is-' . esc_attr( $shape ) . '">' . $dentro . '</span>';
+			}
 		}
 
 		$head = '<span class="m-carta-row">'
@@ -1405,13 +1450,20 @@ class BrandRenders {
 			$body .= '<span class="m-carta-desc">' . nl2br( esc_html( $text ) ) . '</span>';
 		}
 
-		$inner = $media . '<span class="m-carta-body">' . $body . '</span>';
+		// Un boton no puede ir dentro de un enlace. Cuando el plato tiene
+		// las dos cosas, el enlace envuelve solo el texto y la foto se
+		// queda fuera con su propia funcion.
+		$abrible = false !== strpos( $media, 'data-carta-zoom' );
+		$cuerpo  = '<span class="m-carta-body">' . $body . '</span>';
 		if ( '' !== $url ) {
-			$inner = '<a class="m-carta-link" href="' . esc_url( $url ) . '">' . $inner . '</a>';
+			$cuerpo = '<a class="m-carta-link" href="' . esc_url( $url ) . '">' . ( $abrible ? '' : $media ) . $cuerpo . '</a>';
+			$inner  = ( $abrible ? $media : '' ) . $cuerpo;
+		} else {
+			$inner = $media . $cuerpo;
 		}
 		// Las adiciones van FUERA del enlace: son informacion del plato,
 		// no parte de lo que se pulsa.
-		$inner .= self::menu_addons( $it, $addons_label );
+		$inner .= self::menu_addons( $it, $addons_label, '', $cur );
 
 		return '<li class="m-carta-item" data-cat="' . esc_attr( '' !== $cat ? sanitize_title( $cat ) : '' ) . '">' . $inner . '</li>';
 	}
@@ -1437,6 +1489,8 @@ class BrandRenders {
 		$leader = self::opt( $props['leader'] ?? 'none', [ 'none', 'dotted', 'solid' ], 'none' );
 		$images = ! empty( $props['showImages'] );
 		$addons_label = (string) ( $props['addonsLabel'] ?? '' );
+		$cur          = trim( (string) ( $props['currency'] ?? '$' ) );
+		$zoom         = ! empty( $props['zoom'] );
 		$cats   = self::menu_categories( is_array( $props['categories'] ?? null ) ? $props['categories'] : [], $items );
 
 		$style  = self::col_vars( $props, 2, 1, 1 ) . self::section_style( $props );
@@ -1496,7 +1550,7 @@ class BrandRenders {
 					if ( sanitize_title( (string) ( $it['category'] ?? '' ) ) !== $slug ) {
 						continue;
 					}
-					$list .= self::menu_item( $ctx, $it, $images, $shape, $addons_label );
+					$list .= self::menu_item( $ctx, $it, $images, $shape, $addons_label, $cur, $zoom );
 				}
 				if ( '' === $list ) {
 					continue;
@@ -1508,7 +1562,7 @@ class BrandRenders {
 					// Las adiciones de toda la categoria cierran el bloque:
 					// valen para cualquiera de sus platos, asi que no pueden
 					// colgar de uno.
-					. self::menu_addons( $cat, $addons_label, 'is-cat' )
+					. self::menu_addons( $cat, $addons_label, 'is-cat', $cur )
 					. '</section>';
 			}
 			$loose = '';
@@ -1516,7 +1570,7 @@ class BrandRenders {
 				if ( '' !== trim( (string) ( $it['category'] ?? '' ) ) ) {
 					continue;
 				}
-				$loose .= self::menu_item( $ctx, $it, $images, $shape, $addons_label );
+				$loose .= self::menu_item( $ctx, $it, $images, $shape, $addons_label, $cur, $zoom );
 			}
 			if ( '' !== $loose ) {
 				$body .= '<section class="m-carta-group"><ul class="m-carta-grid">' . $loose . '</ul></section>';
@@ -1542,13 +1596,13 @@ class BrandRenders {
 			}
 			$list = '';
 			foreach ( $items as $it ) {
-				$list .= self::menu_item( $ctx, $it, $images, $shape, $addons_label );
+				$list .= self::menu_item( $ctx, $it, $images, $shape, $addons_label, $cur, $zoom );
 			}
 			// Las adiciones de categoria entran en la rejilla como un item
 			// mas con su `data-cat`: asi el filtro de las pestañas, que ya
 			// existia, las enseña y las esconde sin una linea de JS nueva.
 			foreach ( $cats as $slug => $cat ) {
-				$bloque = self::menu_addons( $cat, $addons_label, 'is-cat' );
+				$bloque = self::menu_addons( $cat, $addons_label, 'is-cat', $cur );
 				if ( '' === $bloque ) {
 					continue;
 				}

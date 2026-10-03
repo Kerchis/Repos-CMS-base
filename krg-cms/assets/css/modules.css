@@ -2126,6 +2126,15 @@ body.m-curtain-on .m-page::after {
 .m-carta-item[hidden] { display: none; }
 .m-carta-item,
 .m-carta-link { display: flex; align-items: flex-start; gap: clamp(14px, 1.6vw, 22px); }
+/* Las adiciones del plato y la foto cuando es botón son hermanas del
+   cuerpo, no van dentro: el plato envuelve para que caigan debajo y no
+   se peleen por el ancho de la fila. */
+.m-carta-item { flex-wrap: wrap; }
+.m-carta-link { flex: 1 1 260px; }
+.m-carta-item > .m-carta-addons { flex: 1 0 100%; }
+.m-carta-item:has(> .m-carta-media) > .m-carta-addons {
+  margin-left: calc(var(--m-carta-img) + clamp(14px, 1.6vw, 22px));
+}
 .m-carta-link { width: 100%; color: inherit; text-decoration: none; }
 .m-carta-link:hover .m-carta-name { color: var(--m-carta-accent); }
 .m-carta-media {
@@ -2244,6 +2253,212 @@ body.m-curtain-on .m-page::after {
   display: grid;
   grid-template-columns: repeat(var(--m-cols, 2), minmax(0, 1fr));
   gap: 2px clamp(24px, 4vw, 64px);
+}
+
+/* «Todo» enseña la carta entera de platos; las adiciones son de cada
+   categoría, así que solo salen en su pestaña. Lo decide el JS poniendo
+   `is-todo`: sin pestañas (carta en bloques) nunca aparece. */
+.m-carta.is-todo .m-carta-item > .m-carta-addons { display: none; }
+
+/* Foto que se puede ampliar: el botón no se disfraza de botón, solo
+   añade la lupa al pasar por encima y el foco visible del teclado. */
+.m-carta-media.is-zoom {
+  position: relative;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  cursor: zoom-in;
+  color: inherit;
+}
+.m-carta-media.is-zoom .m-carta-img { transition: transform 420ms var(--m-ease); }
+.m-carta-media.is-zoom:hover .m-carta-img,
+.m-carta-media.is-zoom:focus-visible .m-carta-img { transform: scale(1.06); }
+.m-carta-media.is-zoom:focus-visible { outline: 2px solid var(--m-carta-accent, currentColor); outline-offset: 2px; }
+.m-carta-zoom {
+  position: absolute;
+  inset: auto 6px 6px auto;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 200ms var(--m-ease), transform 200ms var(--m-ease);
+}
+.m-carta-zoom::before,
+.m-carta-zoom::after {
+  content: "";
+  position: absolute;
+  background: #fff;
+}
+.m-carta-zoom::before { width: 11px; height: 1.5px; }
+.m-carta-zoom::after { width: 1.5px; height: 11px; }
+.m-carta-media.is-zoom:hover .m-carta-zoom,
+.m-carta-media.is-zoom:focus-visible .m-carta-zoom { opacity: 1; transform: none; }
+
+/* Visor de fotos del plato */
+.m-carta-lb {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  max-width: min(1040px, 94vw);
+  max-height: 94vh;
+  width: 100%;
+  color: var(--color-text, #000);
+  overflow: visible;
+}
+.m-carta-lb::backdrop {
+  background: rgba(12, 12, 12, 0.72);
+  backdrop-filter: blur(6px);
+}
+.m-carta-lb[open] { animation: krg-lb-in 260ms var(--m-ease, cubic-bezier(0.22, 1, 0.36, 1)) both; }
+@keyframes krg-lb-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.m-carta-lb-box {
+  position: relative;
+  display: grid;
+  gap: 14px;
+  background: var(--color-background, #fff);
+  border-radius: var(--radius-cards, 10px);
+  padding: clamp(14px, 2vw, 22px);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+.m-carta-lb-x {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--m-carta-accent, var(--color-primary, #000));
+  color: var(--color-on-primary, #fff);
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+.m-carta-lb-x svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; }
+.m-carta-lb-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  background: var(--color-surface, #f3f3f3);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  min-height: 220px;
+}
+.m-carta-lb-slides { display: grid; width: 100%; }
+.m-carta-lb-slides > .m-carta-lb-fig {
+  grid-area: 1 / 1;
+  margin: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 260ms var(--m-ease);
+}
+.m-carta-lb-slides > .m-carta-lb-fig.is-on { opacity: 1; visibility: visible; }
+.m-carta-lb-img {
+  display: block;
+  width: 100%;
+  max-height: min(62vh, 620px);
+  object-fit: contain;
+  margin: 0 auto;
+}
+.m-carta-lb-nav {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #111;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  transition: background-color 200ms var(--m-ease), transform 200ms var(--m-ease);
+}
+.m-carta-lb-nav:hover { background: #fff; transform: translateY(-1px); }
+.m-carta-lb-nav svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.m-carta-lb-nav.is-prev { left: 10px; }
+.m-carta-lb-nav.is-next { right: 10px; }
+.m-carta-lb-n {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  margin: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.m-carta-lb.is-una .m-carta-lb-nav,
+.m-carta-lb.is-una .m-carta-lb-n { display: none; }
+.m-carta-lb-foot {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.m-carta-lb-txt { flex: 1 1 260px; min-width: 0; }
+.m-carta-lb-t {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(18px, 1.6vw, 24px);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.m-carta-lb-t:empty, .m-carta-lb-d:empty, .m-carta-lb-p:empty { display: none; }
+.m-carta-lb-d { margin: 6px 0 0; font-size: 14px; line-height: 1.6; color: var(--color-text-secondary, inherit); }
+.m-carta-lb-p {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(16px, 1.4vw, 20px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--m-carta-accent, var(--color-primary, inherit));
+}
+.m-carta-lb-thumbs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.m-carta-lb-thumbs[hidden] { display: none; }
+.m-carta-lb-th {
+  width: 60px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  opacity: 0.55;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: opacity 200ms var(--m-ease), outline-color 200ms var(--m-ease);
+}
+.m-carta-lb-th img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.m-carta-lb-th:hover { opacity: 0.85; }
+.m-carta-lb-th.is-on { opacity: 1; outline-color: var(--m-carta-accent, var(--color-primary, #000)); }
+@media (max-width: 640px) {
+  .m-carta-lb-x { top: -10px; right: -6px; width: 34px; height: 34px; }
+  .m-carta-lb-nav { width: 36px; height: 36px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .m-carta-lb[open] { animation: none; }
+  .m-carta-lb-slides > .m-carta-lb-fig,
+  .m-carta-media.is-zoom .m-carta-img { transition: none; }
 }
 
 .m-carta-empty { text-align: center; color: var(--color-text-secondary); padding-block: var(--spacing-xl, 48px); }
