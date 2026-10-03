@@ -242,23 +242,17 @@ class DocumentCssCompiler {
 	/**
 	 * Estilos de un nodo listos para el atributo `style` del elemento.
 	 *
-	 * Ojo: fondo, relleno y margen ya no pasan por aqui. Estaban en el
-	 * atributo Y en la hoja, dos copias del mismo valor que solo coincidian
-	 * por casualidad: la de escritorio ganaba desde el atributo y las de
-	 * tablet y movil tenian que ponerse `!important` para ganar desde la
-	 * hoja. Ahora las tres salen de la hoja, iguales entre si.
+	 * YA NO SE USA al pintar: lo dejamos porque describe el formato que
+	 * esperan las herramientas de diagnostico, pero el unico emisor de
+	 * estilos del usuario es la hoja del documento.
 	 *
-	 * Por que en linea y no solo en la hoja del documento: la hoja viaja
-	 * aparte (`wp_add_inline_style`), y cualquier capa intermedia que
-	 * agrupe, cachee o reordene el CSS puede dejarla vieja o fuera. Lo
-	 * que el usuario escribe en el panel es justo lo que no puede
-	 * perderse, asi que viaja pegado al elemento. La hoja sigue
-	 * compilandose igual —dice lo mismo y cubre lo que no pasa por
-	 * `wrap()`—, y los tamanos tablet y movil siguen siendo reglas con
-	 * `@media`, que en linea no caben.
+	 * Por que se dejo de usar: copiaba el tamaño de escritorio al
+	 * atributo del elemento ADEMAS de la hoja. Dos copias del mismo
+	 * valor, y la del atributo gana siempre, asi que las reglas de
+	 * tablet y movil tenian que llevar `!important` solo para poder
+	 * corregir a su propia pareja. Con un emisor unico eso sobra.
 	 *
-	 * Solo el tamano base (escritorio). Las declaraciones que apuntan a
-	 * los hijos (titulares, imagenes) se quedan en la hoja.
+	 * @deprecated Un solo emisor: \Meridian\Style\DocumentCssCompiler::compile().
 	 */
 	public static function inline_styles( array $node ): string {
 		$styles = $node['styles']['desktop'] ?? [];
@@ -296,7 +290,10 @@ class DocumentCssCompiler {
 			if ( $val === '' ) {
 				continue;
 			}
-			$decl = $prop . ':' . $val . '!important';
+			// Sin `!important`. La hoja del documento no esta en ninguna
+			// capa y el tema entero si (`@layer krg`), asi que esto gana
+			// por arquitectura y no por fuerza bruta.
+			$decl = $prop . ':' . $val;
 			if ( in_array( $prop, [ 'color', 'font-size', 'font-weight', 'font-family', 'font-style', 'letter-spacing', 'line-height', 'text-transform', 'text-decoration' ], true ) ) {
 				$text[] = $decl;
 			} else {

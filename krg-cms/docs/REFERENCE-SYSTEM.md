@@ -125,12 +125,15 @@ Convenciones de marcado:
   contaminan;
 - cada componente emite `m-c-{tipo} m-n-{id}` (de `RenderContext::node_class()`),
   que es el enganche de los estilos por nodo del inspector;
-- esos estilos salen **dos veces a propósito**: el tamaño base, en el atributo
-  `style` del elemento (`DocumentCssCompiler::inline_styles()`, aplicado en
-  `ComponentRenders::wrap()`), y todos los tamaños en la hoja del documento
-  con `!important`. La hoja viaja aparte y puede llegar vieja o no llegar
-  —caches y plugins que agrupan CSS—; el atributo viaja pegado al HTML. Dicen
-  lo mismo, así que no compiten, y tablet/móvil siguen pudiendo pisar al base;
+- esos estilos salen **una sola vez**, en la hoja del documento, sin
+  `!important` y en los tres tamaños. Antes salían dos veces —el tamaño base
+  también en el atributo `style`— y como el atributo gana siempre, las reglas
+  de tablet y móvil necesitaban `!important` para poder corregir a su propia
+  pareja. Lo que garantiza que esa hoja mande no es el orden de carga ni la
+  especificidad, sino la capa: las tres hojas del tema viven en `@layer krg` y
+  la del documento no vive en ninguna, y en CSS lo que no está en una capa gana
+  a lo que sí lo está. Por eso el atributo `style` de un bloque solo lleva lo
+  suyo (`--m-sec-h`, parallax) y nunca relleno, margen ni fondo;
 - el contenido se escapa en el punto de salida (`esc_html`, `esc_attr`, `esc_url`);
   el richtext pasa por `Sanitizer::richtext()`.
 

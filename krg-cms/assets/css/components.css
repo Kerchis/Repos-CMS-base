@@ -1,3 +1,18 @@
+/* ------------------------------------------------------------------ */
+/* Todo este archivo vive en la capa `krg`.                            */
+/*                                                                     */
+/* Por que: lo que el usuario escribe en el panel viaja en la hoja del */
+/* documento, que NO esta en ninguna capa. En CSS, cualquier regla sin */
+/* capa le gana a cualquier regla con capa, por especificidad que      */
+/* tenga esta ultima. Asi `.m-n-xxxx{padding-top:50px}` (una clase) le */
+/* gana a `.m-c-section[class*="is-mh-"].is-no-content{padding-block:0}`
+   (dos clases y un atributo) sin necesidad de `!important`.           */
+/*                                                                     */
+/* Dentro de la capa manda lo de siempre: orden y especificidad. Las   */
+/* tres hojas (base, components, modules) comparten la MISMA capa y se */
+/* cargan en ese orden, asi que entre ellas nada cambia.               */
+/* ------------------------------------------------------------------ */
+@layer krg {
 /* Component skins — tokens only. */
 .m-btn {
   display: inline-flex;
@@ -688,4 +703,5 @@ body.krg-canvas [data-krg-id].is-hovered,
 body.krg-canvas [data-krg-chrome].is-hovered {
   outline: 1px dashed var(--color-tertiary);
   outline-offset: 4px;
+}
 }

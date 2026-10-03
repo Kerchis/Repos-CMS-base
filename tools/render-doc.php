@@ -21,6 +21,7 @@ foreach (
 	[
 		'/core/render/RenderContext.php',
 		'/core/design/Contrast.php',
+		'/core/design/TokenDefaults.php',
 		'/core/design/TokenRepository.php',
 		'/core/design/TokenCompiler.php',
 		'/core/security/UrlValidator.php',

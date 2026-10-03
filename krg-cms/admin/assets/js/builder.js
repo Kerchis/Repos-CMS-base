@@ -216,14 +216,20 @@
           const img = [];
           Object.entries(st).forEach(([p, v]) => {
             if (!v || CAJA_PROPS.includes(p)) return;
-            const d = `${p}:${v}!important`;
+            // Sin `!important`, igual que el servidor: esta hoja se
+            // inyecta la ultima del documento y el tema entero vive en
+            // `@layer krg`, asi que gana sin forzar nada. Si aqui se
+            // forzara y alla no, el lienzo y la web dejarian de ser lo
+            // mismo en cuanto algo compitiera.
+            const d = `${p}:${v}`;
             if (textProps.includes(p)) text.push(d);
             else box.push(d);
             if (imgProps.includes(p)) img.push(d);
           });
           const sel = `.m-n-${id}`;
-          // La caja, primero y sin `!important`: esta hoja es la ultima del
-          // documento, asi que gana por orden. Lo demas sigue como estaba.
+          // Un solo emisor y una sola forma de escribirlo: lo mismo que
+          // pone DocumentCssCompiler en la web, con el mismo orden de
+          // reglas y sin `!important` en ninguna.
           const caja = cssCaja(st);
           if (caja.length) css += `${sel}{${caja.join(";")}}`;
           if (box.length) css += `${sel}{${box.join(";")}}`;
@@ -232,7 +238,7 @@
           const fl = n.filters || {};
           const hasF = n.filters && (Number(fl.hue) || Number(fl.sat) !== 100 || Number(fl.brightness) !== 100 || Number(fl.contrast) !== 100 || Number(fl.invert) || Number(fl.sepia));
           if (hasF) {
-            css += `${sel}{filter:hue-rotate(${fl.hue || 0}deg) saturate(${fl.sat ?? 100}%) brightness(${fl.brightness ?? 100}%) contrast(${fl.contrast ?? 100}%) invert(${fl.invert || 0}%) sepia(${fl.sepia || 0}%)!important}`;
+            css += `${sel}{filter:hue-rotate(${fl.hue || 0}deg) saturate(${fl.sat ?? 100}%) brightness(${fl.brightness ?? 100}%) contrast(${fl.contrast ?? 100}%) invert(${fl.invert || 0}%) sepia(${fl.sepia || 0}%)}`;
           }
           const cc = n.customCss || {};
           if (cc.main) css += `${sel}{${cc.main}}`;

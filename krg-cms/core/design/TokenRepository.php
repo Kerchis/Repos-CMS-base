@@ -33,7 +33,14 @@ class TokenRepository {
 	public static function get(): array {
 		self::ensure_defaults();
 		$data = get_option( MERIDIAN_OPTION_TOKENS, [] );
-		return is_array( $data ) ? $data : [];
+		if ( ! is_array( $data ) ) {
+			$data = [];
+		}
+		// Un token imprescindible que falte o valga cero se rellena aqui,
+		// al leer, y no en veinte sitios distintos. Asi el panel de
+		// tokens, el compilador de CSS y el frontend ven exactamente el
+		// mismo valor: una sola fuente de verdad.
+		return TokenDefaults::fill( $data );
 	}
 
 	public static function normalize_payload( array $data ): array {

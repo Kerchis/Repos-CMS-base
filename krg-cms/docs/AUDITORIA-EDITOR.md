@@ -179,3 +179,103 @@ no han cambiado: `bindInspector()` y el guardado siguen igual.
   núcleo, con sus envíos a `/header` y `/footer`.
 - `prueba-panel` (35) y `prueba-lienzo` (36) siguen pasando: abren los grupos
   antes de escribir, como haría una persona.
+
+---
+
+# Parte 3 — Prioridad de estilos y el token `section`
+
+## 13. El fallo del token: por qué `0px` lo rompía todo
+
+El ritmo vertical de **todas** las secciones sale de una línea de `base.css`:
+
+```css
+:where(.m-c-section) { padding-block: var(--spacing-section, 96px); }
+```
+
+El `96px` del final no es «el valor por defecto»: es lo que se usa **solo si la
+variable no existe**. Si en la base de datos `tokens.spacing.section` vale
+`0px`, la variable existe y vale cero, el respaldo no entra, y el sitio entero
+se queda sin aire. Y no se nota: el inspector de un bloque no enseña tokens, y
+el panel de tokens enseña el `0px` como si alguien lo hubiera decidido.
+
+Ningún archivo del tema escribe `0px` en ese token —se buscó en `Installer`,
+`Seeder`, `ReferenceSeeder`, `PresetStore`, `TokenRepository`, `TokenCompiler`,
+el panel de administración y los tres presets—. Lo que sí había es un sistema
+que acepta ese valor, lo guarda y no sabe volver atrás.
+
+**Lo que ahora existe:** `core/design/TokenDefaults.php`.
+
+- `REQUIRED` es la única lista de «tokens sin los que el tema se ve roto», con
+  su respaldo. Ese número es el mismo que el de `var(--spacing-section, 96px)`,
+  y hay una comprobación que falla si dejan de coincidir.
+- `is_empty()` decide qué es «aquí no hay nada»: vacío, `0`, `0px`, `0rem`,
+  `none`…
+- `fill()` se aplica **al leer** (`TokenRepository::get()`), así que el panel,
+  el compilador de CSS y el frontend ven exactamente el mismo valor sin que
+  nadie tenga que pulsar Guardar.
+- `repair_once()` repara el valor en la base de datos **una sola vez**
+  (marca en opciones `meridian_tokens_fix_section`) desde `maybe_upgrade()`.
+  Si después se pone cero a propósito, se queda en cero: esa pasada no vuelve.
+- El respaldo se busca primero en el preset activo, luego en el preset del
+  tema y solo al final en la constante.
+
+Un valor del usuario —`40px`, `72px`, `8vh`, `clamp(64px, 9vw, 132px)`— no se
+toca jamás, ni al leer ni al reparar.
+
+## 14. La prioridad: una capa, no `!important`
+
+El problema de fondo era de arquitectura. Lo que escribe el usuario viaja en la
+hoja del documento; lo que trae el tema, en tres archivos CSS. Las dos cosas
+competían por **especificidad y orden**, y el tema tiene selectores de dos y
+tres clases:
+
+```css
+.m-c-section[class*="is-mh-"].is-no-content { padding-block: 0 }   /* (0,3,0) */
+.m-n-7f3a2b { padding-top: 50px }                                   /* (0,1,0) */
+```
+
+Ganaba el tema. La respuesta de siempre era `!important`, que soluciona esta
+pelea y crea la siguiente.
+
+Ahora las tres hojas del tema están dentro de `@layer krg { … }` y la hoja del
+documento no está en ninguna capa. En CSS, **lo que no está en una capa gana a
+lo que sí lo está, por especificidad que tenga**. Resultado:
+
+- `.m-n-xxxx{padding-top:50px}` gana a cualquier regla del tema sin forzar nada;
+- deja de importar el orden de carga: aunque un plugin de caché reordene las
+  hojas, lo del panel sigue ganando;
+- entre las tres hojas del tema no cambia nada: comparten la misma capa y el
+  mismo orden de siempre;
+- los `!important` que quedan en el tema son los justificados —
+  `prefers-reduced-motion`, los controles nativos de vídeo, la cabecera
+  transparente— y siguen funcionando: un `!important` dentro de una capa sigue
+  ganando.
+
+`is-no-content` se queda como está y sigue colapsando el **alto** configurado de
+una sección vacía (que es lo que haría inmanejable el lienzo), pero ya no puede
+comerse el relleno que haya escrito el usuario.
+
+## 15. Un solo emisor
+
+`DocumentCssCompiler::inline_styles()` copiaba el tamaño de escritorio al
+atributo `style` del elemento **además** de la hoja. Dos emisores del mismo
+valor: el atributo gana siempre, así que las reglas de tablet y móvil llevaban
+`!important` solo para poder corregir a su propia pareja.
+
+Ya no se usa al pintar. El único emisor es la hoja del documento, los tres
+tamaños compiten en igualdad y no hay ningún `!important` en los estilos del
+usuario —ni en PHP (`push_styles()`) ni en el editor (`paintLiveCss()`), que
+ahora escriben exactamente lo mismo—. El atributo `style` se queda para lo que
+es del bloque: `--m-sec-h`, el parallax, las variables de tema.
+
+## 16. Bancos nuevos
+
+- `tools/prueba-tokens.php` (32): el token inservible se detecta, se rellena al
+  leer y se repara una vez; el valor del usuario nunca se toca; el panel y el
+  CSS dicen lo mismo; el respaldo del CSS y el del PHP son el mismo número.
+- `tools/prueba-matriz.mjs` (91): los tres anchos de sección × fondo, relleno y
+  margen por los cuatro lados × escritorio/tableta/móvil × web pública,
+  «Preview» y lienzo —exigiendo que los tres modos den el **mismo** número—,
+  más fila, columna y módulo con caja propia, sección sin nada escrito (manda
+  el token), sección vacía (cero en la web, visible y fiel en el lienzo),
+  transparencia, ancho completo de borde a borde y «lo del panel gana al tema».

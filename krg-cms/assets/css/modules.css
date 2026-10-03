@@ -1,3 +1,18 @@
+/* ------------------------------------------------------------------ */
+/* Todo este archivo vive en la capa `krg`.                            */
+/*                                                                     */
+/* Por que: lo que el usuario escribe en el panel viaja en la hoja del */
+/* documento, que NO esta en ninguna capa. En CSS, cualquier regla sin */
+/* capa le gana a cualquier regla con capa, por especificidad que      */
+/* tenga esta ultima. Asi `.m-n-xxxx{padding-top:50px}` (una clase) le */
+/* gana a `.m-c-section[class*="is-mh-"].is-no-content{padding-block:0}`
+   (dos clases y un atributo) sin necesidad de `!important`.           */
+/*                                                                     */
+/* Dentro de la capa manda lo de siempre: orden y especificidad. Las   */
+/* tres hojas (base, components, modules) comparten la MISMA capa y se */
+/* cargan en ese orden, asi que entre ellas nada cambia.               */
+/* ------------------------------------------------------------------ */
+@layer krg {
 /* ==========================================================================
    KRG CMS — Capa de sistema visual (reference layer)
    --------------------------------------------------------------------------
@@ -169,7 +184,7 @@
    de tú a tú con la hoja del documento, y como esa hoja se cargaba antes,
    ganaba el tema. */
 :where(.m-rail, .m-cg, .m-fc, .m-rev, .m-nl, .m-sl, .m-sf, .m-sc, .m-tr, .m-rs, .m-st) {
-  padding-block: var(--spacing-section, 110px);
+  padding-block: var(--spacing-section, 96px);
 }
 .m-rail, .m-cg, .m-fc, .m-rev, .m-nl, .m-sl, .m-sf, .m-sc, .m-tr, .m-rs, .m-st {
   position: relative;
@@ -1640,6 +1655,14 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 /* lleva el atributo para igualar en especificidad a esas reglas y      */
 /* ganarles por orden de aparicion. Para dejar un hueco a proposito     */
 /* esta el modulo Espaciador, que si es contenido.                      */
+/*                                                                      */
+/* El `padding-block: 0` quita el ritmo que trae el tema, no lo que     */
+/* haya escrito el usuario: esa regla tiene dos clases y un atributo y  */
+/* antes le ganaba a `.m-n-xxxx{padding-top:50px}`, que es una sola     */
+/* clase. Ahora no: todo este archivo vive en `@layer krg` y la hoja    */
+/* del documento no vive en ninguna capa, asi que lo escrito en el      */
+/* panel gana siempre, por arquitectura y sin `!important`. Lo          */
+/* comprueba tools/prueba-matriz.mjs.                                   */
 /* ------------------------------------------------------------------ */
 .m-c-section.is-no-content,
 .m-c-section[class*="is-mh-"].is-no-content {
@@ -1983,7 +2006,7 @@ body.m-curtain-on .m-page::after {
   --m-carta-accent: var(--color-primary);
   --m-carta-img: 96px;
 }
-:where(.m-carta) { padding-block: var(--spacing-section, 110px); }
+:where(.m-carta) { padding-block: var(--spacing-section, 96px); }
 
 .m-carta-head {
   display: grid;
@@ -2252,4 +2275,5 @@ body.m-curtain-on .m-page::after {
   .m-fs-bottom { flex-direction: column; align-items: flex-start; }
   .m-fs-panel.is-align-center .m-fs-bottom { align-items: center; }
   .m-fs-panel.is-align-right .m-fs-bottom { align-items: flex-end; }
+}
 }

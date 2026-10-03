@@ -85,14 +85,16 @@ class ComponentRenders {
 		} elseif ( empty( $attrs['id'] ) && ! empty( $node['props']['htmlId'] ) ) {
 			$attrs['id'] = sanitize_html_class( (string) $node['props']['htmlId'] );
 		}
-		// Lo que el usuario escribio en el panel de diseno, pegado al
-		// elemento: va al final, asi que gana a lo que el propio bloque
-		// hubiera puesto en el atributo (un fondo de seccion, una
-		// variable de columnas) sin necesidad de `!important`.
-		$own = \Meridian\Style\DocumentCssCompiler::inline_styles( $node );
-		if ( '' !== $own ) {
-			$attrs['style'] = trim( trim( (string) ( $attrs['style'] ?? '' ), ';' ) . ';' . $own, ';' );
-		}
+		// Aqui NO se escribe nada de lo que el usuario puso en el panel.
+		//
+		// Antes se copiaba el tamaño de escritorio al atributo `style`
+		// «por si acaso». Eran dos emisores del mismo valor: el atributo
+		// ganaba siempre —tiene mas peso que cualquier hoja— y por eso
+		// las reglas de tablet y movil necesitaban `!important` para
+		// poder corregirlo. Con un solo emisor (la hoja del documento)
+		// los tres tamaños compiten en igualdad y el que manda es el del
+		// tamaño que se esta viendo. El atributo queda para lo que es
+		// del bloque: variables como `--m-sec-h` o el parallax.
 		$attrs = self::with_user_attrs( $node, $attrs );
 		$extra = '';
 		foreach ( $attrs as $k => $v ) {

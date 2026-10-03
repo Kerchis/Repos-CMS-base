@@ -177,8 +177,12 @@ for (const [nombre, ancho] of TAMANOS) {
   await revisa('.m-n-s-herencia', ESCRITORIO, `${nombre} hereda el escritorio`);
 }
 
-/* Una seccion vacia sigue ocupando cero aunque tenga relleno escrito. */
-console.log('\nUna sección vacía con relleno escrito sigue ocupando cero');
+/* Una seccion vacia no se imprime en la web. En el lienzo si se ve, y
+   se ve como el usuario la configuro: lo que el escribio manda sobre el
+   relleno que trae el tema. Lo que sigue colapsando es el ALTO de la
+   seccion (el preset de 90vh y los altos a medida), que es lo que haria
+   inmanejable el lienzo. */
+console.log('\nUna sección vacía: cero en la web, visible y fiel en el lienzo');
 await cargar('publico', 1440);
 comprueba(await page.locator('.m-n-s-vacia').count() === 0, 'en la web pública ni se imprime');
 await cargar('canvas', 1440);
@@ -189,7 +193,10 @@ const enLienzo = await page.evaluate(() => {
   return { pt: cs.paddingTop, pb: cs.paddingBottom, alto: Math.round(el.getBoundingClientRect().height) };
 });
 comprueba(!!enLienzo, 'en el lienzo sí se puede ver y seleccionar');
-comprueba(enLienzo && enLienzo.pt === '0px' && enLienzo.pb === '0px', `y sin relleno vertical: ${enLienzo?.pt}/${enLienzo?.pb}`);
+comprueba(
+  enLienzo && enLienzo.pt === ESCRITORIO['padding-top'] && enLienzo.pb === ESCRITORIO['padding-bottom'],
+  `y con el relleno que escribió el usuario: ${enLienzo?.pt}/${enLienzo?.pb}`
+);
 
 /* El atributo style sigue limpio: un solo emisor, la hoja del documento. */
 console.log('\nUn solo sitio escribe la caja');

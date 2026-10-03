@@ -27,6 +27,8 @@ add_action(
 			'core/components/BrandCatalog.php',
 			'core/render/BrandRenders.php',
 			'core/content/ReferenceSeeder.php',
+			'core/design/TokenDefaults.php',
+			'admin/assets/js/builder-core.js',
 			'assets/css/modules.css',
 			'assets/js/modules.js',
 			'presets/honeycomb.json',

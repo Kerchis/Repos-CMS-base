@@ -15,6 +15,7 @@ $base = dirname( __DIR__ ) . '/krg-cms';
 require_once $base . '/core/constants.php';
 foreach (
 	[
+		'/core/design/TokenDefaults.php',
 		'/core/design/TokenRepository.php',
 		'/core/design/TokenCompiler.php',
 		'/core/security/UrlValidator.php',

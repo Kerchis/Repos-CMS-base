@@ -27,6 +27,10 @@ class Installer {
 			update_option( 'meridian_schema_version', self::SCHEMA_VERSION );
 		}
 		self::release_forced_caps();
+		// Repara una sola vez un `spacing.section` a cero: sin el, todas
+		// las secciones del sitio pierden su respiracion y en el panel
+		// no se ve nada raro.
+		\Meridian\Design\TokenDefaults::repair_once();
 	}
 
 	/**

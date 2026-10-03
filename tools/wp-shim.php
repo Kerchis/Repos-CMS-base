@@ -127,7 +127,16 @@ if ( ! function_exists( 'add_filter' ) ) {
 	function add_filter( ...$a ) {}
 }
 if ( ! function_exists( 'get_option' ) ) {
-	function get_option( $k, $d = false ) { return $d; }
+	/**
+	 * Lee de verdad lo que haya escrito `update_option()`.
+	 *
+	 * Devolvia siempre el valor por defecto, asi que ninguna prueba
+	 * podia montar un escenario «esta instalacion tiene esto guardado»
+	 * —justo lo que hace falta para reproducir un token a cero.
+	 */
+	function get_option( $k, $d = false ) {
+		return array_key_exists( $k, $GLOBALS['krg_options'] ?? [] ) ? $GLOBALS['krg_options'][ $k ] : $d;
+	}
 }
 if ( ! function_exists( 'home_url' ) ) {
 	function home_url( $p = '/' ) { return 'https://ejemplo.test' . $p; }
@@ -188,6 +197,9 @@ if ( ! function_exists( 'set_transient' ) ) {
 }
 if ( ! function_exists( 'delete_transient' ) ) {
 	function delete_transient( $k ) { return true; }
+}
+if ( ! function_exists( 'wp_cache_delete' ) ) {
+	function wp_cache_delete( $k, $g = '' ) { return true; }
 }
 if ( ! function_exists( 'wp_cache_flush' ) ) {
 	function wp_cache_flush() { return true; }
