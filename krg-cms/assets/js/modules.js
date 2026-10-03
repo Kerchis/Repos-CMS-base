@@ -878,6 +878,7 @@
       '<div class="m-carta-lb-txt"><p class="m-carta-lb-t" data-lb-t></p><p class="m-carta-lb-d" data-lb-d></p></div>' +
       '<p class="m-carta-lb-p" data-lb-p></p>' +
       "</div>" +
+      '<div class="m-carta-lb-ad" data-lb-ad hidden></div>' +
       '<div class="m-carta-lb-thumbs" data-lb-thumbs></div>' +
       "</div>";
     document.body.appendChild(d);
@@ -903,6 +904,15 @@
     d.querySelector("[data-lb-t]").textContent = txt(".m-carta-name");
     d.querySelector("[data-lb-p]").textContent = txt(".m-carta-price");
     d.querySelector("[data-lb-d]").textContent = txt(".m-carta-desc");
+
+    // Las adiciones del plato viajan al visor tal cual: es el mismo
+    // bloque de la carta, copiado, asi que no hay un segundo sitio
+    // donde se escriban ni se les puede olvidar un precio.
+    var cajaAd = d.querySelector("[data-lb-ad]");
+    var adPlato = item ? item.querySelector(":scope > .m-carta-addons:not(.is-cat)") : null;
+    cajaAd.textContent = "";
+    cajaAd.hidden = !adPlato;
+    if (adPlato) cajaAd.appendChild(adPlato.cloneNode(true));
 
     slides.textContent = "";
     thumbs.textContent = "";
@@ -946,14 +956,31 @@
       if (e.key === "ArrowRight") { e.preventDefault(); ir(i + 1); }
       if (e.key === "ArrowLeft") { e.preventDefault(); ir(i - 1); }
     };
+    // Deslizar: vale el dedo, el lapiz y el raton. Solo cuenta si el
+    // gesto es mas horizontal que vertical, para no robarle el scroll
+    // de la pagina a quien solo queria bajar.
     var x0 = null;
-    slides.onpointerdown = function (e) { x0 = e.clientX; };
-    slides.onpointerup = function (e) {
-      if (x0 === null || uno) return;
-      var dx = e.clientX - x0;
-      x0 = null;
-      if (Math.abs(dx) > 40) ir(i + (dx < 0 ? 1 : -1));
+    var y0 = 0;
+    var corta = function () { x0 = null; };
+    slides.onpointerdown = function (e) {
+      if (uno) return;
+      x0 = e.clientX;
+      y0 = e.clientY;
+      if (slides.setPointerCapture) {
+        try { slides.setPointerCapture(e.pointerId); } catch (err) { /* da igual */ }
+      }
     };
+    slides.onpointerup = function (e) {
+      if (x0 === null) return;
+      var dx = e.clientX - x0;
+      var dy = e.clientY - y0;
+      corta();
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) ir(i + (dx < 0 ? 1 : -1));
+    };
+    slides.onpointercancel = corta;
+    slides.onpointerleave = corta;
+    // El navegador arrastra las imagenes por su cuenta y eso parte el gesto.
+    slides.ondragstart = function (e) { e.preventDefault(); };
 
     if (typeof d.showModal === "function") d.showModal();
     else d.setAttribute("open", "");

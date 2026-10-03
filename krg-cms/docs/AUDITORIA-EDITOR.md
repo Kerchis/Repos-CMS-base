@@ -811,3 +811,83 @@ preview. Todo en verde.
 `wp_get_attachment_image()`, así que ningún banco podía usar un plato con
 foto sin morir. Ya está. Es la misma clase de hueco de siempre: un banco que
 no puede representar el caso, no lo prueba.
+
+
+---
+
+# Parte 9 — La carta, segunda vuelta
+
+## 43. Las adiciones de una categoría salían en TODAS las pestañas
+
+Era el fallo de verdad detrás de «que se muestren en la pestaña que les
+toca». El filtro de pestañas sí marcaba el bloque con `hidden`; lo que
+pasaba es que no servía de nada:
+
+```css
+.m-carta-item[hidden]       { display: none; }   /* línea 2126 */
+.m-carta-item.is-addons     { display: block; }  /* línea 2233 */
+```
+
+Misma especificidad (0,2,0) y la segunda va después, así que **ganaba
+`display:block`**: el bloque de adiciones de «Desayunos» seguía a la vista
+estando en «Postres». La prueba anterior no lo cazó porque solo miraba
+«Todo» y «Desayunos», y en «Todo» el bloque *parecía* escondido por otro
+motivo (se le vaciaba el contenido).
+
+Arreglo, sin `!important`: una regla **después** y con más peso,
+`.m-carta-item.is-addons[hidden]` (0,3,0). Es la misma lección de siempre:
+`hidden` es un atributo, y cualquier `display` de autor le gana.
+
+Ahora el banco recorre las pestañas: en «Desayunos» solo salen las de
+desayunos, en «Postres» solo las de postres, en «Todo» ninguna, y tampoco
+se cuelan las adiciones del plato de otra categoría.
+
+## 44. El plato con foto, ordenado en cualquier ancho
+
+Al meter una foto, el nombre y la descripción se caían a la línea de abajo
+y el plato quedaba desordenado (foto arriba, texto debajo, a todo lo ancho).
+Lo había provocado el `flex-wrap: wrap` que se añadió para las adiciones:
+con `flex: 1 1 auto` / `width: 100%`, el texto pide su ancho natural y
+envuelve.
+
+Lo que tiene que envolver son **las adiciones**, nunca el texto:
+
+```css
+.m-carta-item > .m-carta-link,
+.m-carta-item > .m-carta-body { flex: 1 1 0; width: auto; min-width: 0; }
+.m-carta-item > .m-carta-addons { flex: 1 0 100%; }
+```
+
+Base `0` en vez de `auto`: el texto encoge en lugar de empujar. Resultado,
+el orden que pedía el encargo —foto a la izquierda, nombre y precio en la
+misma línea, descripción debajo y adiciones sangradas al ancho de la foto—
+y se comprueba midiendo a 1600, 834 y 390 px.
+
+## 45. El visor, completo
+
+- **Las adiciones del plato entran en el visor.** Se copia el bloque que ya
+  pinta la carta (`cloneNode`), así que no hay un segundo sitio donde
+  escribirlas ni se le puede olvidar un precio ni el símbolo.
+- **Deslizar con el dedo** de verdad: `touch-action: pan-y` para que el
+  navegador no se quede el gesto horizontal, captura de puntero, y el
+  arrastre solo cuenta si recorre más de 40 px **y** es más horizontal que
+  vertical —bajar la página sigue bajando la página—. Se cancela el
+  arrastre nativo de las imágenes, que partía el gesto.
+- Las flechas del teclado ya estaban y siguen: ← → con vuelta circular.
+
+## 46. Pruebas
+
+`tools/prueba-carta.mjs`: **87 → 106**. Nuevas: adiciones por pestaña (las
+tres combinaciones), adiciones dentro del visor con su precio, deslizar a
+izquierda y derecha, el roce corto que no debe cambiar de foto, el gesto
+vertical que tampoco, y la maquetación del plato con foto en escritorio,
+tableta y móvil.
+
+Verificado al revés con `krg-cms/assets/{css/modules.css,js/modules.js}` de
+la versión anterior: las comprobaciones de pestañas fallan («en «Postres»
+NO se cuelan las de Desayunos: desayunos, postres») y la del visor revienta
+porque no existe el hueco de las adiciones.
+
+Barrido completo en verde: lint 61 · guardado 63 · tokens 32 · estilos 82 ·
+panel 35 · lienzo 37 · matriz 91 · caja 72 · inspector 77 · chrome 31 ·
+cortina 83 · motor 58 · estirar 18 · **carta 106** · vacías · preview.

@@ -2128,11 +2128,19 @@ body.m-curtain-on .m-page::after {
 .m-carta-link { display: flex; align-items: flex-start; gap: clamp(14px, 1.6vw, 22px); }
 /* Las adiciones del plato y la foto cuando es botón son hermanas del
    cuerpo, no van dentro: el plato envuelve para que caigan debajo y no
-   se peleen por el ancho de la fila. */
+   se peleen por el ancho de la fila.
+
+   Lo que envuelve son LAS ADICIONES, nunca el texto: el nombre y la
+   descripción van siempre al lado de la foto, por estrecha que sea la
+   columna. Por eso base `0` y `min-width:0` —con base `auto` el texto
+   largo pide su ancho natural y se tira a la línea de abajo, que es
+   justo lo que se veía mal. */
 .m-carta-item { flex-wrap: wrap; }
-.m-carta-link { flex: 1 1 260px; }
+.m-carta-item > .m-carta-link,
+.m-carta-item > .m-carta-body { flex: 1 1 0; width: auto; min-width: 0; }
 .m-carta-item > .m-carta-addons { flex: 1 0 100%; }
-.m-carta-item:has(> .m-carta-media) > .m-carta-addons {
+.m-carta-item:has(> .m-carta-media) > .m-carta-addons,
+.m-carta-item:has(> .m-carta-link > .m-carta-media) > .m-carta-addons {
   margin-left: calc(var(--m-carta-img) + clamp(14px, 1.6vw, 22px));
 }
 .m-carta-link { width: 100%; color: inherit; text-decoration: none; }
@@ -2240,6 +2248,12 @@ body.m-curtain-on .m-page::after {
    filtra el JS que ya existía— y por eso hay que deshacerles el `flex`
    que llevan los platos. */
 .m-carta-item.is-addons { display: block; grid-column: 1 / -1; }
+/* `hidden` es un ATRIBUTO, y cualquier `display` de autor le gana. La
+   línea de arriba dejaba el bloque de adiciones de «Desayunos» a la
+   vista estando en la pestaña de «Postres», porque el filtro solo le
+   ponía el atributo. Esta regla va DESPUÉS y con más peso, así que lo
+   que el filtro esconde, se esconde. */
+.m-carta-item.is-addons[hidden] { display: none; }
 .m-carta-addons.is-cat {
   margin-top: clamp(20px, 2.4vw, 32px);
   padding: 16px 18px;
@@ -2352,7 +2366,14 @@ body.m-curtain-on .m-page::after {
   overflow: hidden;
   min-height: 220px;
 }
-.m-carta-lb-slides { display: grid; width: 100%; }
+.m-carta-lb-slides {
+  display: grid;
+  width: 100%;
+  /* El dedo manda en horizontal (pasar de foto) y el navegador en
+     vertical (bajar la página): sin esto el gesto se lo queda él. */
+  touch-action: pan-y;
+  user-select: none;
+}
 .m-carta-lb-slides > .m-carta-lb-fig {
   grid-area: 1 / 1;
   margin: 0;
@@ -2363,6 +2384,7 @@ body.m-curtain-on .m-page::after {
 .m-carta-lb-slides > .m-carta-lb-fig.is-on { opacity: 1; visibility: visible; }
 .m-carta-lb-img {
   display: block;
+  -webkit-user-drag: none;
   width: 100%;
   max-height: min(62vh, 620px);
   object-fit: contain;
@@ -2427,6 +2449,16 @@ body.m-curtain-on .m-page::after {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--m-carta-accent, var(--color-primary, inherit));
+}
+/* Las adiciones del plato dentro del visor: el mismo bloque de la
+   carta, así que hereda sus estilos; aquí solo se le da sitio. */
+.m-carta-lb-ad { margin-top: -4px; }
+.m-carta-lb-ad[hidden] { display: none; }
+.m-carta-lb-ad .m-carta-addons { margin-top: 0; }
+.m-carta-lb-ad .m-carta-addon-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2px 24px;
 }
 .m-carta-lb-thumbs {
   display: flex;

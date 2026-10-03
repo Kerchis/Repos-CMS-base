@@ -65,6 +65,7 @@ function docPestanas() {
   carta.props.groupMode = 'tabs';
   carta.props.showAll = true;
   carta.props.items[0].addons = [{ name: 'Extra beicon', price: '6' }];
+  carta.props.categories[1].addons = [{ name: 'Bola de helado', price: '4' }];
   return d;
 }
 
@@ -511,6 +512,32 @@ await page.waitForTimeout(200);
 v = await verCarta();
 comprueba(v.platos === 4 && v.adicionesPlato === 0 && v.adicionesCat === 0, 'y volver a «Todo» las esconde otra vez');
 
+console.log('\n--- Cada categoría enseña SUS adiciones y solo en su pestaña');
+const adicionesVisibles = () => page.evaluate(() =>
+  [...document.querySelectorAll('.m-carta-item.is-addons')]
+    .filter((e) => e.getBoundingClientRect().height > 0)
+    .map((e) => e.getAttribute('data-cat'))
+);
+await page.click('.m-carta-tab[data-carta-filter="desayunos"]');
+await page.waitForTimeout(200);
+let av = await adicionesVisibles();
+comprueba(av.length === 1 && av[0] === 'desayunos', `en «Desayunos» solo salen las suyas: ${av.join(', ') || 'ninguna'}`);
+await page.click('.m-carta-tab[data-carta-filter="postres"]');
+await page.waitForTimeout(200);
+av = await adicionesVisibles();
+comprueba(
+  av.length === 1 && av[0] === 'postres',
+  `en «Postres» NO se cuelan las de Desayunos: ${av.join(', ') || 'ninguna'}`
+);
+const platoAjeno = await page.evaluate(() =>
+  [...document.querySelectorAll('.m-carta-item > .m-carta-addons:not(.is-cat)')]
+    .filter((e) => e.getBoundingClientRect().height > 0).length
+);
+comprueba(platoAjeno === 0, `ni las adiciones del plato de otra categoría: ${platoAjeno} visibles`);
+await page.click('.m-carta-tab[data-carta-filter="*"]');
+await page.waitForTimeout(200);
+comprueba((await adicionesVisibles()).length === 0, 'y en «Todo» no hay ninguna');
+
 console.log('\n--- El símbolo de la moneda lo pone la carta, no el usuario');
 const precios = await page.evaluate(() => ({
   platos: [...document.querySelectorAll('.m-carta-price')].map((e) => e.textContent.trim()),
@@ -594,6 +621,43 @@ if (process.env.KRG_SHOT) {
   await page.screenshot({ path: `${ROOT}/.captures/visor-carta.png` });
 }
 
+const adVisor = await page.evaluate(() => {
+  const c = document.querySelector('.m-carta-lb [data-lb-ad]');
+  return {
+    sale: c.getBoundingClientRect().height > 0,
+    titulo: c.querySelector('.m-carta-addons-t')?.textContent.trim() || '',
+    lineas: [...c.querySelectorAll('.m-carta-addon')].map((e) => e.textContent.trim()),
+  };
+});
+comprueba(adVisor.sale, 'el visor también enseña las adiciones del plato');
+comprueba(adVisor.lineas.length === 1 && /Extra beicon/.test(adVisor.lineas[0]), `con su nombre: ${adVisor.lineas.join(' · ')}`);
+comprueba(/\$6/.test(adVisor.lineas[0] || ''), 'y su precio con el símbolo puesto');
+comprueba(/ADICIONES|Adiciones/i.test(adVisor.titulo), `bajo su título: «${adVisor.titulo}»`);
+
+// Deslizar de lado: el gesto que se usa en el móvil (aquí con puntero).
+const centro = await page.evaluate(() => {
+  const r = document.querySelector('.m-carta-lb-slides').getBoundingClientRect();
+  return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
+});
+const desliza = async (dx, dy = 0) => {
+  await page.mouse.move(centro.x, centro.y);
+  await page.mouse.down();
+  await page.mouse.move(centro.x + dx, centro.y + dy, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(250);
+};
+const antesDeDeslizar = (await visor()).actual;
+await desliza(-200);
+w = await visor();
+comprueba(w.actual === (antesDeDeslizar + 1) % 3, `deslizando hacia la izquierda pasa a la siguiente: ${antesDeDeslizar} → ${w.actual}`);
+await desliza(200);
+w = await visor();
+comprueba(w.actual === antesDeDeslizar, `y hacia la derecha vuelve: ${w.actual}`);
+await desliza(-10);
+comprueba((await visor()).actual === antesDeDeslizar, 'un roce de 10px no cambia de foto');
+await desliza(-60, 160);
+comprueba((await visor()).actual === antesDeDeslizar, 'y un gesto vertical tampoco: ese es para bajar la página');
+
 await page.keyboard.press('Escape');
 await page.waitForTimeout(250);
 comprueba(!(await visor()).abierto, 'Escape cierra el visor');
@@ -624,6 +688,47 @@ comprueba(sola.flechas === 0 && sola.minis === 0, 'y no enseña flechas ni minia
 comprueba(sola.titulo === 'Tostada de aguacate', `con su nombre: ${sola.titulo}`);
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);
+
+console.log('\n--- El plato con foto se ve ordenado, también en el móvil');
+const maqueta = () => page.evaluate(() => {
+  const it = document.querySelector('.m-carta-item:not(.is-addons)');
+  const foto = it.querySelector('.m-carta-media').getBoundingClientRect();
+  const nombre = it.querySelector('.m-carta-name').getBoundingClientRect();
+  const precio = it.querySelector('.m-carta-price').getBoundingClientRect();
+  const adEl = it.querySelector('.m-carta-addons');
+  const ad = adEl && adEl.getBoundingClientRect();
+  return {
+    alLado: nombre.left >= foto.right - 1,
+    mismaFila: nombre.top < foto.bottom && nombre.bottom > foto.top,
+    precioALaDerecha: precio.right > nombre.right,
+    precioEnLaFila: Math.abs(precio.top - nombre.top) < 14,
+    adDebajo: ad ? ad.top >= foto.bottom - 1 : null,
+    adSangrada: ad ? ad.left >= foto.right - 1 : null,
+    anchoNombre: Math.round(nombre.width),
+  };
+});
+await page.click('.m-carta-tab[data-carta-filter="desayunos"]');
+await page.waitForTimeout(200);
+let m = await maqueta();
+comprueba(m.alLado && m.mismaFila, 'en escritorio el nombre va AL LADO de la foto, no debajo');
+comprueba(m.precioALaDerecha && m.precioEnLaFila, 'y el precio al final de esa misma línea');
+comprueba(m.adDebajo && m.adSangrada, 'las adiciones caen debajo, sangradas al ancho de la foto');
+
+await page.setViewportSize({ width: 390, height: 844 });
+await page.waitForTimeout(300);
+m = await maqueta();
+comprueba(m.alLado && m.mismaFila, `en móvil (390px) sigue al lado y no se parte: el nombre mide ${m.anchoNombre}px`);
+comprueba(m.precioEnLaFila, 'con el precio todavía en su línea');
+if (process.env.KRG_SHOT) {
+  const it = await page.$('.m-carta-item:not(.is-addons)');
+  await it.screenshot({ path: `${ROOT}/.captures/plato-movil.png` });
+}
+comprueba(m.adDebajo && m.adSangrada, 'y las adiciones siguen debajo y sangradas');
+await page.setViewportSize({ width: 834, height: 1000 });
+await page.waitForTimeout(300);
+m = await maqueta();
+comprueba(m.alLado && m.mismaFila && m.adDebajo, 'y en tableta (834px) igual');
+await page.setViewportSize({ width: 1600, height: 1000 });
 
 console.log('\n--- En el editor la foto no abre nada: se selecciona');
 const enLienzo = pintar(docPestanas());
