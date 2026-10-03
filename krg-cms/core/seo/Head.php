@@ -48,6 +48,13 @@ class Head {
 		if ( $desc ) {
 			echo '<meta name="description" content="' . esc_attr( $desc ) . '">' . "\n";
 		}
+		// Si las categorias estan ocultas en la web, sus archivos no se
+		// borran (los enlaces de siempre siguen funcionando) pero se
+		// quedan fuera de los buscadores: ensenarlas en Google seria
+		// justo lo contrario de lo que pide el interruptor.
+		if ( is_category() && ! \Meridian\Content\BlogSettings::show_categories() ) {
+			$robots = 'noindex,nofollow';
+		}
 		if ( $robots ) {
 			echo '<meta name="robots" content="' . esc_attr( $robots ) . '">' . "\n";
 		}

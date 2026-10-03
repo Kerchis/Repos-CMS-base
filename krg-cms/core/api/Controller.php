@@ -625,29 +625,177 @@ class Controller {
 		return rest_ensure_response( [ 'ok' => true ] );
 	}
 
+	/** Como llega una categoria o una etiqueta al panel. */
+	private static function term_payload( $t ): array {
+		return [
+			'id'          => (int) $t->term_id,
+			'name'        => $t->name,
+			'slug'        => $t->slug,
+			'count'       => (int) $t->count,
+			'description' => $t->description,
+			'parent'      => (int) $t->parent,
+			// La categoria por defecto de WordPress no se puede borrar:
+			// el panel se lo dice a la persona en vez de dejarla probar.
+			'isDefault'   => 'category' === $t->taxonomy && (int) get_option( 'default_category' ) === (int) $t->term_id,
+			'taxonomy'    => $t->taxonomy,
+		];
+	}
+
+	/** De «category»/«post_tag» a una de las dos, y nada mas. */
+	private static function tax_name( $valor ): string {
+		return 'post_tag' === $valor ? 'post_tag' : 'category';
+	}
+
 	public static function blog_tax(): WP_REST_Response {
 		$cats = get_categories( [ 'hide_empty' => false ] );
 		$tags = get_tags( [ 'hide_empty' => false ] );
 		return rest_ensure_response(
 			[
-				'categories' => array_map( static fn( $c ) => [ 'id' => $c->term_id, 'name' => $c->name, 'slug' => $c->slug ], $cats ),
-				'tags'       => array_map( static fn( $c ) => [ 'id' => $c->term_id, 'name' => $c->name, 'slug' => $c->slug ], is_array( $tags ) ? $tags : [] ),
+				'categories' => array_map( [ self::class, 'term_payload' ], is_array( $cats ) ? $cats : [] ),
+				'tags'       => array_map( [ self::class, 'term_payload' ], is_array( $tags ) ? $tags : [] ),
 				'authors'    => array_map(
 					static fn( $u ) => [ 'id' => $u->ID, 'name' => $u->display_name ],
 					get_users( [ 'who' => 'authors' ] )
 				),
+				'settings'   => \Meridian\Content\BlogSettings::get(),
 			]
 		);
 	}
 
 	public static function blog_term( WP_REST_Request $req ) {
 		$body = $req->get_json_params() ?: [];
-		$tax  = ( $body['taxonomy'] ?? 'category' ) === 'post_tag' ? 'post_tag' : 'category';
-		$r    = wp_insert_term( sanitize_text_field( $body['name'] ?? '' ), $tax );
+		$tax  = self::tax_name( $body['taxonomy'] ?? 'category' );
+		$name = sanitize_text_field( $body['name'] ?? '' );
+		if ( '' === trim( $name ) ) {
+			return self::err( 'meridian_term_vacio', __( 'Escribe un nombre.', 'meridian' ), 400 );
+		}
+		$r = wp_insert_term(
+			$name,
+			$tax,
+			[ 'description' => sanitize_textarea_field( $body['description'] ?? '' ) ]
+		);
 		if ( is_wp_error( $r ) ) {
 			return $r;
 		}
-		return rest_ensure_response( [ 'id' => $r['term_id'], 'taxonomy' => $tax ] );
+		$term = get_term( (int) $r['term_id'], $tax );
+		return rest_ensure_response( self::term_payload( $term ) );
+	}
+
+	/**
+	 * Duplica una categoria o una etiqueta.
+	 *
+	 * La copia se lleva el nombre con «(copia)», la descripcion, el
+	 * padre y —esto es lo que se pidio— las mismas entradas: se le
+	 * anaden a la copia SIN quitarselas a la original, porque en
+	 * WordPress una entrada puede estar en varias categorias.
+	 */
+	public static function blog_term_duplicate( WP_REST_Request $req ) {
+		$id   = (int) $req['id'];
+		$tax  = self::tax_name( $req->get_param( 'taxonomy' ) ?? 'category' );
+		$term = get_term( $id, $tax );
+		if ( ! $term || is_wp_error( $term ) ) {
+			return self::err( 'meridian_term_no_existe', __( 'Esa categoría ya no existe.', 'meridian' ), 404 );
+		}
+
+		// «Pizzas» → «Pizzas (copia)» → «Pizzas (copia 2)»…
+		$base   = sprintf( /* translators: %s: nombre original. */ __( '%s (copia)', 'meridian' ), $term->name );
+		$nombre = $base;
+		$n      = 2;
+		while ( get_term_by( 'name', $nombre, $tax ) ) {
+			$nombre = sprintf( /* translators: 1: nombre original, 2: numero de copia. */ __( '%1$s (copia %2$d)', 'meridian' ), $term->name, $n );
+			++$n;
+			if ( $n > 50 ) {
+				break;
+			}
+		}
+
+		$nuevo = wp_insert_term(
+			$nombre,
+			$tax,
+			[
+				'description' => $term->description,
+				'parent'      => (int) $term->parent,
+			]
+		);
+		if ( is_wp_error( $nuevo ) ) {
+			return $nuevo;
+		}
+		$nuevo_id = (int) $nuevo['term_id'];
+
+		// Las mismas entradas, anadidas (el `true` final) a lo que ya
+		// tuvieran: duplicar no puede desclasificar nada.
+		$posts = get_posts(
+			[
+				'post_type'      => 'post',
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'tax_query'      => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
+					[
+						'taxonomy' => $tax,
+						'field'    => 'term_id',
+						'terms'    => [ $id ],
+					],
+				],
+			]
+		);
+		foreach ( $posts as $post_id ) {
+			wp_set_object_terms( (int) $post_id, [ $nuevo_id ], $tax, true );
+		}
+
+		$term_nuevo = get_term( $nuevo_id, $tax );
+		return rest_ensure_response(
+			[
+				'term'  => self::term_payload( $term_nuevo ),
+				'posts' => count( $posts ),
+			]
+		);
+	}
+
+	/**
+	 * Borra una categoria o una etiqueta.
+	 *
+	 * Las entradas NO se borran. Si una se queda sin ninguna categoria,
+	 * WordPress le pone la de por defecto; el panel lo avisa antes.
+	 */
+	public static function blog_term_delete( WP_REST_Request $req ) {
+		$id   = (int) $req['id'];
+		$tax  = self::tax_name( $req->get_param( 'taxonomy' ) ?? 'category' );
+		$term = get_term( $id, $tax );
+		if ( ! $term || is_wp_error( $term ) ) {
+			return self::err( 'meridian_term_no_existe', __( 'Esa categoría ya no existe.', 'meridian' ), 404 );
+		}
+		if ( 'category' === $tax && (int) get_option( 'default_category' ) === $id ) {
+			return self::err(
+				'meridian_term_por_defecto',
+				__( 'Esta es la categoría por defecto del sitio: elige otra como predeterminada antes de borrarla.', 'meridian' ),
+				400
+			);
+		}
+		$r = wp_delete_term( $id, $tax );
+		if ( is_wp_error( $r ) ) {
+			return $r;
+		}
+		return rest_ensure_response(
+			[
+				'ok'       => (bool) $r,
+				'id'       => $id,
+				'taxonomy' => $tax,
+			]
+		);
+	}
+
+	public static function blog_settings_get(): WP_REST_Response {
+		return rest_ensure_response( \Meridian\Content\BlogSettings::get() );
+	}
+
+	public static function blog_settings_save( WP_REST_Request $req ): WP_REST_Response {
+		$out = \Meridian\Content\BlogSettings::save( self::json_body( $req ) );
+		// Las paginas guardadas en cache llevan dentro el modulo de
+		// categorias ya pintado: si no se vacia, el interruptor no se
+		// nota hasta que caduque.
+		\Meridian\Cache\DocumentCache::flush_all();
+		return rest_ensure_response( $out );
 	}
 
 	public static function users_list(): WP_REST_Response {

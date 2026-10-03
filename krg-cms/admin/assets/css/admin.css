@@ -116,6 +116,80 @@
 .m-btn.ghost { background: transparent; color: var(--m-ink); border: 1px solid var(--m-line); }
 .m-btn.danger { background: #c0392b; }
 .m-btn:disabled { opacity: 0.55; cursor: wait; }
+/* Segundo bloque de una pantalla (p. ej. «Categorías y etiquetas»
+   debajo de la lista de entradas): mismo aire que el titular, pero sin
+   competir con el h1. */
+.m-top-sub { margin-top: 36px; }
+.m-top-sub h2 { margin: 0; font-size: 20px; font-family: Palatino, Georgia, serif; font-weight: 600; }
+.m-tax-note { margin: -16px 0 14px; font-size: 13px; max-width: 70ch; }
+.m-tax-new { margin-top: 12px; }
+.m-tax-new input {
+  font: inherit;
+  padding: 9px 12px;
+  min-width: 260px;
+  border: 1px solid var(--m-line);
+  border-radius: 8px;
+  background: #fff;
+}
+/* Ojo: nada de `display:flex` en una celda de tabla —la saca del
+   modelo de la fila y la raya de abajo se descoloca—. Basta con
+   alinear a la derecha y separar los botones. */
+.m-tax-acts { text-align: right; white-space: nowrap; }
+.m-tax-acts .m-btn + .m-btn { margin-left: 8px; }
+
+/* Pestañas sencillas (categorías / etiquetas). */
+.m-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.m-tabs button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border: 1px solid var(--m-line);
+  background: transparent;
+  color: var(--m-muted);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.m-tabs button.is-active { background: var(--m-orange); border-color: var(--m-orange); color: #fff; }
+
+/* Interruptor de encender/apagar. El cuadrito de verdad sigue ahí
+   debajo (lo mueve el teclado y lo leen los lectores de pantalla); lo
+   que se ve es la pista y el punto. */
+.m-switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.m-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.m-switch-track {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--m-surface);
+  border: 1px solid var(--m-line-strong);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.m-switch-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--m-line-strong);
+  transition: transform 0.15s ease;
+}
+.m-switch input:checked + .m-switch-track { background: var(--m-orange); border-color: var(--m-orange); }
+.m-switch input:checked + .m-switch-track .m-switch-dot { transform: translateX(18px); border-color: var(--m-orange-deep); }
+.m-switch input:focus-visible + .m-switch-track { outline: 2px solid var(--m-orange); outline-offset: 2px; }
+
 .m-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 12px 0 28px; }
 .m-kpi {
   background: var(--m-white);

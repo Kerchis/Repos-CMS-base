@@ -236,10 +236,24 @@ class Routes {
 			'permission_callback' => $posts,
 			'callback' => [ Controller::class, 'blog_tax' ],
 		] );
+		$cats = static fn() => current_user_can( 'manage_categories' );
 		register_rest_route( $ns, '/blog/terms', [
 			'methods' => 'POST',
-			'permission_callback' => static fn() => current_user_can( 'manage_categories' ),
+			'permission_callback' => $cats,
 			'callback' => [ Controller::class, 'blog_term' ],
+		] );
+		register_rest_route( $ns, '/blog/terms/(?P<id>\d+)', [
+			[ 'methods' => 'DELETE', 'permission_callback' => $cats, 'callback' => [ Controller::class, 'blog_term_delete' ] ],
+		] );
+		register_rest_route( $ns, '/blog/terms/(?P<id>\d+)/duplicar', [
+			[ 'methods' => 'POST', 'permission_callback' => $cats, 'callback' => [ Controller::class, 'blog_term_duplicate' ] ],
+		] );
+		// El interruptor de «ver las categorias en la web»: lo lee
+		// cualquiera que pueda escribir entradas, lo cambia quien
+		// administra el tema.
+		register_rest_route( $ns, '/blog/settings', [
+			[ 'methods' => 'GET', 'permission_callback' => $posts, 'callback' => [ Controller::class, 'blog_settings_get' ] ],
+			[ 'methods' => 'PUT', 'permission_callback' => $manage, 'callback' => [ Controller::class, 'blog_settings_save' ] ],
 		] );
 
 		register_rest_route( $ns, '/users', [

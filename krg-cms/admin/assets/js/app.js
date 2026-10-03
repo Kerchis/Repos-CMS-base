@@ -1644,7 +1644,8 @@
 
   async function blog() {
     if (view === "edit" && cfg.pageId) return blogEdit(cfg.pageId);
-    const list = await api.get("/blog");
+    const [list, tax] = await Promise.all([api.get("/blog"), api.get("/blog/taxonomies")]);
+    const verCats = tax.settings ? tax.settings.showCategories !== false : true;
     shell("blog", `
       <div class="m-top"><h1>Blog</h1><button class="m-btn" id="np">Nueva entrada</button></div>
       <div class="m-table"><table>
@@ -1654,7 +1655,27 @@
           <td><span class="m-pill ${p.status==="publish"?"pub":""}">${esc(p.status)}</span></td>
           <td><button class="m-btn ghost" data-del="${p.id}">Eliminar</button></td>
         </tr>`).join("")}</tbody>
-      </table></div>`);
+      </table></div>
+
+      <div class="m-top m-top-sub">
+        <h2>Categorías y etiquetas</h2>
+        <label class="m-switch" for="cats-vis">
+          <input type="checkbox" id="cats-vis" ${verCats ? "checked" : ""}>
+          <span class="m-switch-track"><span class="m-switch-dot"></span></span>
+          <span class="m-switch-txt">Mostrar las categorías en la web</span>
+        </label>
+      </div>
+      <p class="m-muted m-tax-note" id="tax-note"></p>
+      <div class="m-tabs" id="tax-tabs" role="tablist">
+        <button type="button" class="is-active" data-tax="category" role="tab">Categorías</button>
+        <button type="button" data-tax="post_tag" role="tab">Etiquetas</button>
+      </div>
+      <div class="m-table" id="tax-table"></div>
+      <div class="m-row m-tax-new">
+        <input id="tax-name" placeholder="Nombre de la categoría">
+        <button class="m-btn" id="tax-add">Crear</button>
+      </div>`);
+
     el.querySelector("#np").onclick = async () => {
       const p = await api.post("/blog", { title: "Nueva entrada", status: "draft", content: "<p></p>" });
       location.href = `${cfg.admin}?page=krg-blog&view=edit&id=${p.id}`;
@@ -1664,6 +1685,120 @@
       await api.del(`/blog/${b.dataset.del}`);
       blog();
     });
+
+    /* ---------------------------------------------------------------- */
+    /* Categorías y etiquetas: crear, duplicar y eliminar.               */
+    /*                                                                    */
+    /* Vive aquí, debajo de las entradas, porque es lo mismo que se usa   */
+    /* al escribirlas. Solo se repinta esta parte: la lista de entradas   */
+    /* de arriba no se toca.                                              */
+    /* ---------------------------------------------------------------- */
+    let terminos = tax;
+    let taxActiva = "category";
+    const esCat = () => taxActiva === "category";
+    const lista = () => (esCat() ? terminos.categories : terminos.tags) || [];
+    const tabla = el.querySelector("#tax-table");
+    const nota = el.querySelector("#tax-note");
+    const campo = el.querySelector("#tax-name");
+
+    function pintaNota() {
+      const ver = el.querySelector("#cats-vis").checked;
+      nota.textContent = ver
+        ? "Las categorías se ven en la web: el módulo de categorías las lista y sus archivos salen en buscadores."
+        : "Las categorías están ocultas: el módulo de categorías no se pinta en la web y sus archivos quedan fuera de los buscadores. Dentro del CMS se siguen usando para organizar las entradas.";
+    }
+
+    function pintaTerminos() {
+      const items = lista();
+      campo.placeholder = esCat() ? "Nombre de la categoría" : "Nombre de la etiqueta";
+      tabla.innerHTML = `<table>
+        <thead><tr><th>Nombre</th><th>Slug</th><th>Entradas</th><th></th></tr></thead>
+        <tbody>${items.length ? items.map((t) => `<tr>
+          <td>${esc(t.name)}${t.isDefault ? ' <span class="m-pill">por defecto</span>' : ""}</td>
+          <td class="m-muted">${esc(t.slug)}</td>
+          <td>${Number(t.count || 0)}</td>
+          <td class="m-tax-acts">
+            <button class="m-btn ghost" data-dup="${t.id}">Duplicar</button>
+            <button class="m-btn ghost" data-rm="${t.id}" ${t.isDefault ? "disabled title='La categoría por defecto no se puede borrar'" : ""}>Eliminar</button>
+          </td>
+        </tr>`).join("") : `<tr><td colspan="4" class="m-muted">${esCat() ? "Todavía no hay categorías." : "Todavía no hay etiquetas."}</td></tr>`}</tbody>
+      </table>`;
+
+      tabla.querySelectorAll("[data-dup]").forEach((b) => b.onclick = async () => {
+        b.disabled = true;
+        try {
+          const r = await api.post(`/blog/terms/${b.dataset.dup}/duplicar?taxonomy=${taxActiva}`, {});
+          await recargaTerminos();
+          const n = Number(r.posts || 0);
+          toast(`Copia creada: «${r.term.name}»` + (n ? ` con sus ${n} entrada${n === 1 ? "" : "s"}` : ""));
+        } catch (err) {
+          b.disabled = false;
+          toast(err.message || "No se pudo duplicar");
+        }
+      });
+
+      tabla.querySelectorAll("[data-rm]").forEach((b) => b.onclick = async () => {
+        const t = lista().find((x) => String(x.id) === b.dataset.rm);
+        const cuantas = Number(t?.count || 0);
+        const aviso = esCat()
+          ? `¿Eliminar la categoría «${t?.name}»?\n\nNo se borra ninguna entrada. ${cuantas ? `Las ${cuantas} entradas que tiene pasarán a la categoría por defecto si se quedan sin ninguna.` : ""}`
+          : `¿Eliminar la etiqueta «${t?.name}»?\n\nNo se borra ninguna entrada.`;
+        if (!confirm(aviso)) return;
+        b.disabled = true;
+        try {
+          await api.del(`/blog/terms/${b.dataset.rm}?taxonomy=${taxActiva}`);
+          await recargaTerminos();
+          toast("Eliminada");
+        } catch (err) {
+          b.disabled = false;
+          toast(err.message || "No se pudo eliminar");
+        }
+      });
+    }
+
+    async function recargaTerminos() {
+      terminos = await api.get("/blog/taxonomies");
+      pintaTerminos();
+    }
+
+    el.querySelectorAll("#tax-tabs [data-tax]").forEach((b) => b.onclick = () => {
+      taxActiva = b.dataset.tax;
+      el.querySelectorAll("#tax-tabs [data-tax]").forEach((o) => o.classList.toggle("is-active", o === b));
+      pintaTerminos();
+    });
+
+    el.querySelector("#tax-add").onclick = async () => {
+      const name = campo.value.trim();
+      if (!name) return;
+      const boton = el.querySelector("#tax-add");
+      boton.disabled = true;
+      try {
+        await api.post("/blog/terms", { name, taxonomy: taxActiva });
+        campo.value = "";
+        await recargaTerminos();
+        toast(esCat() ? "Categoría creada" : "Etiqueta creada");
+      } catch (err) {
+        toast(err.message || "No se pudo crear");
+      }
+      boton.disabled = false;
+    };
+    campo.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); el.querySelector("#tax-add").click(); } };
+
+    el.querySelector("#cats-vis").onchange = async (e) => {
+      const valor = e.target.checked;
+      pintaNota();
+      try {
+        await api.put("/blog/settings", { showCategories: valor });
+        toast(valor ? "Las categorías se ven en la web" : "Las categorías quedan ocultas en la web");
+      } catch (err) {
+        e.target.checked = !valor;
+        pintaNota();
+        toast(err.message || "No se pudo guardar");
+      }
+    };
+
+    pintaNota();
+    pintaTerminos();
   }
 
   async function blogEdit(id) {

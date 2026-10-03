@@ -927,6 +927,15 @@ class ComponentRenders {
 	}
 
 	public static function categories( array $node, array $props, string $children, RenderContext $ctx ): string {
+		// El interruptor de la pantalla de Blog manda: con el apagado
+		// las categorias no se le ensenan a quien visita la web. En el
+		// lienzo el bloque sigue estando y se puede seleccionar, con un
+		// aviso de por que no se ve fuera.
+		if ( ! \Meridian\Content\BlogSettings::show_categories() ) {
+			return $ctx->isCanvas
+				? self::wrap( $node, $ctx, 'div', '<p class="m-muted">' . esc_html__( 'Las categorías están ocultas en la web (interruptor en Blog).', 'meridian' ) . '</p>', [ 'class' => 'is-empty' ] )
+				: '';
+		}
 		$cats = get_categories( [ 'hide_empty' => true ] );
 		if ( ! $cats ) {
 			return $ctx->isCanvas

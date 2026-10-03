@@ -237,7 +237,25 @@ if ( ! function_exists( 'wp_get_nav_menus' ) ) {
 	function wp_get_nav_menus( $a = [] ) { return []; }
 }
 if ( ! function_exists( 'get_categories' ) ) {
-	function get_categories( $a = [] ) { return []; }
+	/**
+	 * Las categorias que el banco haya puesto en `$GLOBALS['krg_categorias']`.
+	 *
+	 * Antes devolvia siempre una lista vacia, asi que el modulo de
+	 * categorias no pintaba nada ni con el interruptor encendido y
+	 * cualquier prueba sobre el daba verde por el motivo equivocado.
+	 */
+	function get_categories( $a = [] ) {
+		return is_array( $GLOBALS['krg_categorias'] ?? null ) ? $GLOBALS['krg_categorias'] : [];
+	}
+}
+if ( ! function_exists( 'get_category_link' ) ) {
+	function get_category_link( $c ) {
+		$slug = is_object( $c ) ? ( $c->slug ?? '' ) : (string) $c;
+		return 'https://krg.test/category/' . $slug . '/';
+	}
+}
+if ( ! function_exists( 'is_category' ) ) {
+	function is_category( $x = '' ) { return ! empty( $GLOBALS['krg_es_categoria'] ); }
 }
 if ( ! function_exists( 'get_post_meta' ) ) {
 	function get_post_meta( ...$a ) { return ''; }

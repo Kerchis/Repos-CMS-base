@@ -51,3 +51,5 @@ define( 'MERIDIAN_OPTION_MENUS', 'meridian_menus' );
 define( 'MERIDIAN_OPTION_SEO', 'meridian_seo_global' );
 define( 'MERIDIAN_OPTION_IDENTITY', 'meridian_identity' );
 define( 'MERIDIAN_OPTION_ROLE_CAPS', 'meridian_role_caps' );
+// Ajustes del blog que valen para toda la web (ver `Content\BlogSettings`).
+define( 'MERIDIAN_OPTION_BLOG', 'meridian_blog' );
