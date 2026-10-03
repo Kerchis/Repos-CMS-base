@@ -17,7 +17,18 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   padding: 0 12px;
   background: var(--m-brown);
   color: var(--m-surface-soft);
+  /* La barra NO puede ensanchar el constructor: si no cabe, se recorta
+     por dentro con su propio scroll. Sin esto, cada botón nuevo empuja
+     el ancho de toda la aplicación y el panel derecho se sale de la
+     pantalla. */
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
+.b-top::-webkit-scrollbar { display: none; }
+.b-top > * { flex: 0 0 auto; }
+.b-root { min-width: 0; max-width: 100vw; overflow-x: hidden; }
 .b-top a, .b-top button, .b-top select {
   color: inherit;
   font: inherit;
@@ -62,9 +73,49 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .b-status { font-size: 12px; opacity: 0.8; min-width: 90px; }
 .b-layout {
   display: grid;
-  grid-template-columns: var(--b-left, 320px) 6px minmax(0, 1fr) 320px;
+  grid-template-columns: var(--b-left, 320px) auto minmax(0, 1fr) auto var(--b-right, 320px);
   min-height: 0;
+  position: relative;
 }
+/* Cada hijo dice en qué columna va. Es imprescindible: al esconder un
+   panel sus cajas desaparecen y la rejilla recolocaría sola a los demás
+   —el lienzo se iba a la columna 1 y se quedaba en 24 px—. Además, el
+   editor de cabecera y pie usa esta misma rejilla con un hijo menos. */
+.b-layout > .b-left { grid-column: 1; }
+.b-layout > .b-split { grid-column: 2; width: 6px; }
+.b-layout > .b-canvas { grid-column: 3; }
+.b-layout > [data-split="right"] { grid-column: 4; }
+.b-layout > .b-right { grid-column: 5; }
+/* Esconder un panel = su columna a cero y el panel fuera del flujo. El
+   lienzo se queda con el hueco sin que nadie recalcule anchos a mano. */
+.b-layout.is-no-left { grid-template-columns: 0 0 minmax(0, 1fr) auto var(--b-right, 320px); }
+.b-layout.is-no-right { grid-template-columns: var(--b-left, 320px) auto minmax(0, 1fr) 0 0; }
+.b-layout.is-no-left.is-no-right { grid-template-columns: 0 0 minmax(0, 1fr) 0 0; }
+.b-layout.is-no-left > .b-left,
+.b-layout.is-no-left > [data-split="left"],
+.b-layout.is-no-right > .b-right,
+.b-layout.is-no-right > [data-split="right"] { display: none; }
+/* El raíl para traerlo de vuelta: pegado al borde, siempre alcanzable
+   aunque el panel esté escondido y la barra de arriba no se vea. */
+.b-show {
+  position: absolute;
+  top: 10px;
+  z-index: 4;
+  border: 1px solid var(--m-line);
+  border-radius: 0 8px 8px 0;
+  background: #fff;
+  color: var(--m-muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.b-show[data-show="left"] { left: 0; }
+.b-show[data-show="right"] { right: 0; border-radius: 8px 0 0 8px; }
+.b-show:hover { color: var(--m-ink); border-color: var(--m-brown); }
+.b-top [data-panel].is-off { opacity: 0.45; }
 .b-left, .b-right {
   background: #fff;
   border-right: 1px solid var(--m-line);
@@ -84,6 +135,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   inset: 0 -4px;
 }
 .b-right { border-right: 0; border-left: 1px solid var(--m-line); }
+.b-split[data-split="right"] { background: var(--m-surface); }
 .b-canvas {
   display: flex;
   justify-content: center;
@@ -557,6 +609,12 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   border-left: 1px solid var(--m-line);
 }
 .b-tree, .tree-n, .tree-h { min-width: 0; }
+/* `hidden` es un atributo, y el `display:none` que trae el navegador es
+   suyo: cualquier `display` escrito aqui le gana, porque el estilo del
+   autor manda sobre el del navegador. Sin esta linea el arbol cambiaba
+   el signo del boton y no plegaba nada. Mismo caso que
+   `.m-carta-item[hidden]` en modules.css. */
+.tree-b[hidden] { display: none; }
 /* Nada de dentro puede ser más ancho que su rama. */
 .tree-b input,
 .tree-b textarea,

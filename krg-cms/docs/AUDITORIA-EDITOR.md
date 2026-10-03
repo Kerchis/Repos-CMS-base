@@ -582,3 +582,80 @@ sólo bajo la suya, que el huérfano no se pierde, que plegar **no** marca el
 documento como modificado, que «Añadir plato a Postres» lo crea ya en Postres,
 y que una adición escrita a mano **viaja en el cuerpo del POST**, vuelve tras
 recargar el editor y aparece en la página pública.
+
+---
+
+# Parte 7 — Plegar de verdad, adiciones generales y paneles que se quitan de en medio
+
+## 33. El plegado cambiaba el signo y no plegaba nada
+
+El árbol marcaba la rama como cerrada, ponía el atributo `hidden` y
+cambiaba el `−` por un `+`… y el cuerpo seguía ahí. La causa:
+
+```css
+.tree-b { display: grid; }     /* mío */
+[hidden] { display: none; }    /* del navegador */
+```
+
+`hidden` es un atributo y el `display:none` que lo acompaña lo pone la hoja
+del **navegador**. Cualquier `display` escrito en la hoja del **autor** le
+gana, pase lo que pase con la especificidad: el origen manda primero. Una
+línea lo arregla:
+
+```css
+.tree-b[hidden] { display: none; }
+```
+
+El repo ya tenía el mismo caso resuelto así en `modules.css` para
+`.m-carta-item[hidden]`, que es lo que usa el filtro de las pestañas.
+
+**Y el banco lo daba por bueno.** Comprobaba `cuerpo.hidden`, que es la
+propiedad: estaba puesta, luego verde. Ahora mide el alto real:
+
+```
+FALLA y DEJA DE VERSE de verdad: el cuerpo mide 1681px
+```
+
+Tercera vez en este proyecto que una aserción pregunta por el estado y no
+por lo que se ve. **Preguntar por el atributo no es comprobar nada.**
+
+## 34. Adiciones de la categoría
+
+Las de un plato ya estaban; faltaban las generales —el bloque ADICIONES que
+vale para todos los desayunos—. Se añaden a `categories[]` con la misma
+forma (`{name, price}`), y en la página salen así:
+
+- **Bloques separados:** cierran la categoría, a lo ancho, tras sus platos.
+- **Pestañas:** entran en la rejilla como un `<li>` más con su `data-cat`,
+  de modo que **el filtro que ya existía las enseña y las esconde sin una
+  sola línea de JavaScript nueva**.
+
+En el panel aparecen solas: `subListHtml()` es genérico y `categories` es un
+repetidor como cualquier otro. Se pintan después de los platos, igual que
+salen en la página.
+
+## 35. Los dos paneles: esconder y ensanchar
+
+El izquierdo ya se arrastraba, el derecho no. Ahora los dos van por la misma
+función (`PANELES` en `builder.js`): mismo tope (220–620 px), misma memoria
+en `localStorage`, misma forma de esconderse. Botones **Estructura** y
+**Ajustes** en la barra, doble clic en el tirador como atajo, y un raíl
+pegado al borde para traer de vuelta el panel escondido.
+
+Dos cosas que sólo se ven midiendo, y que el banco pilló:
+
+1. **La rejilla recolocaba sola a los hijos.** Al esconder un panel sus cajas
+   desaparecen y el lienzo se iba a la columna 1: **24 px de ancho**. Cada
+   hijo lleva ahora su `grid-column` explícito. Esto además arregla el editor
+   de cabecera y pie, que usa la misma rejilla con un hijo menos.
+2. **Dos botones más en la barra ensanchaban la aplicación entera** y el
+   panel derecho se salía de la pantalla. La barra ahora se recorta por
+   dentro (`overflow-x`) en vez de empujar el ancho de todo.
+
+## 36. Pendiente, no tocado
+
+En el banco de pruebas, si se **recarga** el editor en el sitio (`reload`) en
+vez de abrirlo de nuevo, pulsar un bloque en el árbol de estructura no lo
+selecciona. **Pasa igual con el código anterior a estos cambios** —se
+comprobó volviendo a `HEAD`—, así que no es una regresión de esta tanda y se
+deja anotado para mirarlo aparte.

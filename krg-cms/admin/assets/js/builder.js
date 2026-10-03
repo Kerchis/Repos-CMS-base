@@ -2759,7 +2759,7 @@
       </div>
       <div class="tree-b" ${abierto ? "" : "hidden"}>
         ${filas}
-        <button type="button" class="m-btn ghost tree-add" data-sub-add="${f.key}" data-i="${i}" data-k="${sf.key}">Añadir ${esc(String(sf.label).toLowerCase())}</button>
+        <button type="button" class="m-btn ghost tree-add" data-sub-add="${f.key}" data-i="${i}" data-k="${sf.key}">${esc(sf.addLabel || "Añadir")}</button>
       </div>
     </div>`;
   }
@@ -2827,14 +2827,20 @@
     cats.forEach((c, ci) => {
       const etiqueta = String(c?.label ?? "").trim();
       const mios = items.map((it, i) => [it, i]).filter(([it]) => norm(it?.category) === norm(etiqueta));
-      const campos = (catDef.itemFields || []).map((sf) => repSubField(node, catDef, sf, c, ci)).join("");
+      // Las adiciones de la categoría se pintan DESPUÉS de los platos,
+      // igual que salen en la página: cierran el bloque, no lo abren.
+      const subCampos = (catDef.itemFields || []).filter((sf) => sf.type !== "repeater");
+      const subListas = (catDef.itemFields || []).filter((sf) => sf.type === "repeater");
+      const campos = subCampos.map((sf) => repSubField(node, catDef, sf, c, ci)).join("");
+      const cierre = subListas.map((sf) => repSubField(node, catDef, sf, c, ci)).join("");
       const acciones = `
         <button type="button" class="b-ico" data-rep-move="categories" data-i="${ci}" data-dir="-1" title="Subir">↑</button>
         <button type="button" class="b-ico" data-rep-move="categories" data-i="${ci}" data-dir="1" title="Bajar">↓</button>
         <button type="button" class="b-ico" data-rep-dup="categories" data-i="${ci}" title="Duplicar">⧉</button>
         <button type="button" class="b-ico" data-rep-del="categories" data-i="${ci}" title="Eliminar">✕</button>`;
       const dentro = mios.map(([it, i]) => plato(it, i)).join("")
-        + `<button type="button" class="m-btn ghost tree-add" data-rep-add="${f.key}" data-preset-k="category" data-preset-v="${esc(etiqueta)}">Añadir plato a «${esc(etiqueta || "esta categoría")}»</button>`;
+        + `<button type="button" class="m-btn ghost tree-add" data-rep-add="${f.key}" data-preset-k="category" data-preset-v="${esc(etiqueta)}">Añadir plato a «${esc(etiqueta || "esta categoría")}»</button>`
+        + cierre;
       html += grupo(etiqueta || `Categoría ${ci + 1}`, `tree.${node.id}.cat.${ci}`, dentro, `<div class="tree-cat-fields">${campos}</div>`, acciones, mios.length);
     });
 
@@ -3735,32 +3741,96 @@
     if (lib) lib.onclick = openLibrary;
   }
 
+  /**
+   * Los dos paneles: se arrastran para ensanchar y se esconden.
+   *
+   * El de la izquierda ya se arrastraba; el de la derecha no, y en un
+   * portatil ese panel de 320 px es justo donde no cabe nada. Ahora los
+   * dos van por la misma funcion: mismo tope, misma memoria, misma
+   * forma de esconderse. Cada ancho vive en una variable CSS de la
+   * rejilla, asi que esconder es poner la columna a cero y quitar el
+   * panel de en medio; el lienzo se queda con todo el hueco sin que
+   * nadie recalcule nada a mano.
+   */
+  const PANELES = {
+    left: { aside: ".b-left", mem: "krg-left-w", varW: "--b-left", signo: 1 },
+    right: { aside: ".b-right", mem: "krg-right-w", varW: "--b-right", signo: -1 },
+  };
+
+  function panelOculto(lado) {
+    return localStorage.getItem(`krg-${lado}-oculto`) === "1";
+  }
+
+  function pintaPaneles() {
+    const layout = root.querySelector(".b-layout");
+    if (!layout) return;
+    Object.keys(PANELES).forEach((lado) => {
+      const oculto = panelOculto(lado);
+      layout.classList.toggle(`is-no-${lado}`, oculto);
+      const btn = root.querySelector(`[data-panel="${lado}"]`);
+      if (btn) {
+        btn.classList.toggle("is-off", oculto);
+        btn.setAttribute("aria-pressed", oculto ? "false" : "true");
+      }
+      const rail = root.querySelector(`[data-show="${lado}"]`);
+      if (rail) rail.hidden = !oculto;
+    });
+    // El lienzo se escala al hueco disponible: al cambiar el ancho de
+    // los paneles hay que recalcularlo o se queda cortado.
+    applyBp();
+  }
+
   function bindSplit() {
     const layout = root.querySelector(".b-layout");
-    const handle = root.querySelector("[data-split=left]");
-    if (!layout || !handle || handle.dataset.bound) return;
-    handle.dataset.bound = "1";
-    const stored = Number(localStorage.getItem("krg-left-w") || 0);
-    const apply = (w) => {
-      w = Math.max(220, Math.min(560, w));
-      layout.style.setProperty("--b-left", w + "px");
-      localStorage.setItem("krg-left-w", String(w));
-    };
-    if (stored) apply(stored);
-    else apply(320);
-    handle.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      handle.setPointerCapture(e.pointerId);
-      const startX = e.clientX;
-      const startW = layout.querySelector(".b-left")?.getBoundingClientRect().width || 320;
-      const move = (ev) => apply(startW + (ev.clientX - startX));
-      const up = () => {
-        handle.removeEventListener("pointermove", move);
-        handle.removeEventListener("pointerup", up);
+    if (!layout) return;
+
+    Object.entries(PANELES).forEach(([lado, cfg]) => {
+      const ancho = (w) => {
+        w = Math.max(220, Math.min(620, w));
+        layout.style.setProperty(cfg.varW, w + "px");
+        localStorage.setItem(cfg.mem, String(w));
+        return w;
       };
-      handle.addEventListener("pointermove", move);
-      handle.addEventListener("pointerup", up);
+      ancho(Number(localStorage.getItem(cfg.mem) || 0) || 320);
+
+      const handle = root.querySelector(`[data-split="${lado}"]`);
+      if (handle && !handle.dataset.bound) {
+        handle.dataset.bound = "1";
+        handle.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          handle.setPointerCapture(e.pointerId);
+          const x0 = e.clientX;
+          const w0 = layout.querySelector(cfg.aside)?.getBoundingClientRect().width || 320;
+          const move = (ev) => ancho(w0 + (ev.clientX - x0) * cfg.signo);
+          const up = () => {
+            handle.removeEventListener("pointermove", move);
+            handle.removeEventListener("pointerup", up);
+            applyBp();
+          };
+          handle.addEventListener("pointermove", move);
+          handle.addEventListener("pointerup", up);
+        });
+        // Doble clic en el tirador: esconder y volver, sin ir al botón.
+        handle.addEventListener("dblclick", () => {
+          localStorage.setItem(`krg-${lado}-oculto`, panelOculto(lado) ? "0" : "1");
+          pintaPaneles();
+        });
+      }
     });
+
+    root.querySelectorAll("[data-panel], [data-show]").forEach((b) => {
+      if (b.dataset.bound) return;
+      b.dataset.bound = "1";
+      const lado = b.dataset.panel || b.dataset.show;
+      b.onclick = () => {
+        // El botón de la barra alterna; el del raíl sólo abre.
+        const oculto = b.dataset.show ? false : !panelOculto(lado);
+        localStorage.setItem(`krg-${lado}-oculto`, oculto ? "1" : "0");
+        pintaPaneles();
+      };
+    });
+
+    pintaPaneles();
   }
 
   function bindTop() {
@@ -3933,6 +4003,8 @@
           <span class="grow"></span>
           <button class="m-btn ghost" id="undo" title="Ctrl+Z">Deshacer</button>
           <button class="m-btn ghost" id="redo" title="Ctrl+Y">Rehacer</button>
+          <button class="m-btn ghost" data-panel="left" title="Esconder o enseñar la estructura">Estructura</button>
+          <button class="m-btn ghost" data-panel="right" title="Esconder o enseñar los ajustes">Ajustes</button>
           <button class="m-btn ghost" id="history">Historial</button>
           <span class="b-status">${esc(state.save)}</span>
           <span class="b-warn" hidden></span>
@@ -3944,6 +4016,7 @@
         <div class="b-layout">
           <aside class="b-left"></aside>
           <div class="b-split" data-split="left" title="Arrastra para ensanchar"></div>
+          <button type="button" class="b-show" data-show="left" title="Mostrar la estructura" hidden>Estructura ›</button>
           <div class="b-canvas">
             <div class="b-frame-slot">
               <div class="b-frame-wrap">
@@ -3954,7 +4027,9 @@
               </div>
             </div>
           </div>
+          <div class="b-split" data-split="right" title="Arrastra para ensanchar"></div>
           <aside class="b-right b-insp"></aside>
+          <button type="button" class="b-show" data-show="right" title="Mostrar los ajustes" hidden>‹ Ajustes</button>
         </div>
       </div>`;
     state.shell = true;

@@ -1316,8 +1316,9 @@ class BrandRenders {
 				continue;
 			}
 			$out[ $slug ] = [
-				'label' => $label,
-				'text'  => trim( (string) ( $c['text'] ?? '' ) ),
+				'label'  => $label,
+				'text'   => trim( (string) ( $c['text'] ?? '' ) ),
+				'addons' => is_array( $c['addons'] ?? null ) ? $c['addons'] : [],
 			];
 		}
 		foreach ( $items as $it ) {
@@ -1330,8 +1331,9 @@ class BrandRenders {
 				continue;
 			}
 			$out[ $slug ] = [
-				'label' => $label,
-				'text'  => '',
+				'label'  => $label,
+				'text'   => '',
+				'addons' => [],
 			];
 		}
 		return $out;
@@ -1346,7 +1348,7 @@ class BrandRenders {
 	 * depende de otra. Un lector de pantalla lo anuncia como tal, y sin
 	 * el titulo delante no se entenderia de que son.
 	 */
-	private static function menu_addons( array $it, string $label ): string {
+	private static function menu_addons( array $it, string $label, string $extra = '' ): string {
 		$addons = is_array( $it['addons'] ?? null ) ? $it['addons'] : [];
 		$filas  = '';
 		foreach ( $addons as $ad ) {
@@ -1367,7 +1369,7 @@ class BrandRenders {
 			return '';
 		}
 		$label = '' !== trim( $label ) ? $label : __( 'Adiciones', 'meridian' );
-		return '<div class="m-carta-addons">'
+		return '<div class="m-carta-addons' . ( '' !== $extra ? ' ' . $extra : '' ) . '">'
 			. '<p class="m-carta-addons-t">' . esc_html( $label ) . '</p>'
 			. '<ul class="m-carta-addon-list">' . $filas . '</ul>'
 			. '</div>';
@@ -1503,6 +1505,10 @@ class BrandRenders {
 					. '<h3 class="m-carta-cat">' . esc_html( $cat['label'] ) . '</h3>'
 					. ( '' !== $cat['text'] ? '<p class="m-carta-cat-text">' . esc_html( $cat['text'] ) . '</p>' : '' )
 					. '<ul class="m-carta-grid">' . $list . '</ul>'
+					// Las adiciones de toda la categoria cierran el bloque:
+					// valen para cualquiera de sus platos, asi que no pueden
+					// colgar de uno.
+					. self::menu_addons( $cat, $addons_label, 'is-cat' )
 					. '</section>';
 			}
 			$loose = '';
@@ -1537,6 +1543,16 @@ class BrandRenders {
 			$list = '';
 			foreach ( $items as $it ) {
 				$list .= self::menu_item( $ctx, $it, $images, $shape, $addons_label );
+			}
+			// Las adiciones de categoria entran en la rejilla como un item
+			// mas con su `data-cat`: asi el filtro de las pestañas, que ya
+			// existia, las enseña y las esconde sin una linea de JS nueva.
+			foreach ( $cats as $slug => $cat ) {
+				$bloque = self::menu_addons( $cat, $addons_label, 'is-cat' );
+				if ( '' === $bloque ) {
+					continue;
+				}
+				$list .= '<li class="m-carta-item is-addons" data-cat="' . esc_attr( $slug ) . '">' . $bloque . '</li>';
 			}
 			$empty = trim( (string) ( $props['emptyLabel'] ?? '' ) );
 			$body  = $tabs . '<ul class="m-carta-grid" data-carta-grid>' . $list . '</ul>'

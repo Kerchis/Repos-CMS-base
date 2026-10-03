@@ -1169,6 +1169,24 @@ class BrandCatalog {
 							'itemFields' => [
 								self::f( 'label', 'text', 'content', __( 'Nombre de la categoría', 'meridian' ) ),
 								self::f( 'text', 'text', 'content', __( 'Descripción (opcional)', 'meridian' ) ),
+								// Adiciones de toda la categoría, no de un plato
+								// suelto: el bloque «ADICIONES» que llevan los
+								// desayunos al final y vale para todos.
+								self::f(
+									'addons',
+									'repeater',
+									'content',
+									__( 'Adiciones de la categoría', 'meridian' ),
+									[
+										'maxItems'   => 40,
+										'addLabel'   => __( 'Añadir adición', 'meridian' ),
+										'help'       => __( 'Valen para todos los platos de la categoría. Se imprimen al final del bloque.', 'meridian' ),
+										'itemFields' => [
+											self::f( 'name', 'text', 'content', __( 'Adición', 'meridian' ) ),
+											self::f( 'price', 'text', 'content', __( 'Precio', 'meridian' ) ),
+										],
+									]
+								),
 							],
 						]
 					),
@@ -1208,6 +1226,7 @@ class BrandCatalog {
 									__( 'Adiciones', 'meridian' ),
 									[
 										'maxItems'   => 40,
+										'addLabel'   => __( 'Añadir adición', 'meridian' ),
 										'itemFields' => [
 											self::f( 'name', 'text', 'content', __( 'Adición', 'meridian' ) ),
 											self::f( 'price', 'text', 'content', __( 'Precio', 'meridian' ) ),

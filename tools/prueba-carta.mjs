@@ -71,7 +71,10 @@ const inicial = () => ({
           title: 'Nuestra carta',
           groupMode: 'stacked',
           addonsLabel: 'Adiciones',
-          categories: [{ label: 'Desayunos', text: '' }, { label: 'Postres', text: '' }],
+                  categories: [
+            { label: 'Desayunos', text: '', addons: [{ name: 'Huevo frito o revuelto (x2)', price: '10.9' }, { name: 'Porción de frutas (180g)', price: '9.9' }] },
+            { label: 'Postres', text: '', addons: [] },
+          ],
           items: [
             plato('Huevos benedictinos', '24.9', 'Desayunos'),
             plato('Tostada de aguacate', '18.0', 'Desayunos'),
@@ -169,6 +172,25 @@ const arbol = () => page.evaluate(() => {
 await abrirPanel();
 await seleccionarCarta();
 
+// Con KRG_SHOT=1 este banco deja ademas una captura del arbol en
+// .captures/. Va aqui y no en un script aparte porque este es el unico
+// sitio donde el constructor esta montado con datos de verdad.
+if (process.env.KRG_SHOT) {
+  await page.evaluate(() => {
+    const t = document.querySelector('.b-insp .tree-n.is-plato > .tree-h > .tree-t');
+    if (t) t.click();
+    const c = document.querySelector('.b-insp .b-tree');
+    if (c) document.querySelector('.b-insp').scrollTop = c.offsetTop - 8;
+  });
+  await page.waitForTimeout(250);
+  await (await page.$('.b-insp')).screenshot({ path: `${ROOT}/.captures/arbol-carta.png` });
+  await page.evaluate(() => {
+    const t = document.querySelector('.b-insp .tree-n.is-plato > .tree-h > .tree-t');
+    if (t) t.click();
+  });
+  await page.waitForTimeout(150);
+}
+
 /* ================================================================== */
 console.log('\n--- La carta se ve como un árbol');
 let t = await arbol();
@@ -193,9 +215,19 @@ await page.click('.b-insp .b-tree > .tree-n.is-cat:first-child > .tree-h > .tree
 await page.waitForTimeout(120);
 let estado = await page.evaluate(() => {
   const c = document.querySelector('.b-insp .b-tree > .tree-n.is-cat');
-  return { abierta: c.classList.contains('is-open'), oculto: c.querySelector(':scope > .tree-b').hidden, signo: c.querySelector('.tree-t').textContent.trim() };
+  const b = c.querySelector(':scope > .tree-b');
+  // `hidden` es un ATRIBUTO: que esté puesto no significa que no se vea.
+  // Cualquier `display` del tema le gana, porque el estilo del autor
+  // manda sobre el del navegador. Hay que medir el alto de verdad.
+  return {
+    abierta: c.classList.contains('is-open'),
+    atributo: b.hidden,
+    alto: b.getBoundingClientRect().height,
+    signo: c.querySelector('.tree-t').textContent.trim(),
+  };
 });
-comprueba(!estado.abierta && estado.oculto, 'al pulsar se cierra y su cuerpo se esconde');
+comprueba(!estado.abierta && estado.atributo, 'al pulsar se marca como cerrada');
+comprueba(estado.alto === 0, `y DEJA DE VERSE de verdad: el cuerpo mide ${Math.round(estado.alto)}px`);
 comprueba(estado.signo === '+', `y el botón pasa a «${estado.signo}»`);
 comprueba(
   await page.evaluate(() => document.querySelector('.b-status')?.textContent || '') !== 'Sin guardar',
@@ -203,6 +235,10 @@ comprueba(
 );
 await page.click('.b-insp .b-tree > .tree-n.is-cat:first-child > .tree-h > .tree-t');
 await page.waitForTimeout(120);
+comprueba(
+  await page.evaluate(() => document.querySelector('.b-insp .b-tree > .tree-n.is-cat > .tree-b').getBoundingClientRect().height > 20),
+  'y al volver a pulsar se vuelve a ver'
+);
 
 /* ================================================================== */
 console.log('\n--- Añadir un plato desde dentro de su categoría');
@@ -284,6 +320,64 @@ comprueba(
   (publico.match(/class="m-carta-addons"/g) || []).length === 1,
   `solo el plato que tiene adiciones las pinta: ${(publico.match(/class="m-carta-addons"/g) || []).length} bloque(s)`
 );
+
+/* ================================================================== */
+/* Los dos paneles del constructor: esconder y ensanchar               */
+console.log('\n--- Esconder y ensanchar los paneles');
+const geo = () => page.evaluate(() => {
+  const g = (s) => { const e = document.querySelector(s); const r = e ? e.getBoundingClientRect() : null; return r ? Math.round(r.width) : 0; };
+  return {
+    izq: g('.b-left'), der: g('.b-right'), lienzo: g('.b-canvas'),
+    railIzq: !document.querySelector('[data-show="left"]')?.hidden,
+    railDer: !document.querySelector('[data-show="right"]')?.hidden,
+  };
+});
+let g0 = await geo();
+comprueba(g0.izq > 100 && g0.der > 100, `los dos paneles se ven: ${g0.izq}px y ${g0.der}px`);
+comprueba(!g0.railIzq && !g0.railDer, 'y no hay railes de «mostrar» por medio');
+
+await page.click('[data-panel="right"]');
+await page.waitForTimeout(200);
+let g1 = await geo();
+comprueba(g1.der === 0, `al pulsar «Ajustes» el panel derecho desaparece: ${g1.der}px`);
+comprueba(g1.lienzo > g0.lienzo + 200, `y el lienzo se queda el hueco: ${g0.lienzo} → ${g1.lienzo}px`);
+comprueba(g1.railDer, 'aparece el raíl para traerlo de vuelta');
+
+await page.click('[data-panel="left"]');
+await page.waitForTimeout(200);
+let g2 = await geo();
+comprueba(g2.izq === 0 && g2.der === 0, 'se pueden esconder los dos a la vez');
+comprueba(g2.lienzo > g1.lienzo + 200, `y el lienzo se lleva todo: ${g2.lienzo}px`);
+
+await page.click('[data-show="right"]');
+await page.waitForTimeout(200);
+let g3 = await geo();
+comprueba(g3.der > 100 && g3.izq === 0, `el raíl devuelve el panel derecho: ${g3.der}px, y sólo ese`);
+await page.click('[data-panel="left"]');
+await page.waitForTimeout(200);
+
+// Arrastrar el tirador de la derecha hacia la izquierda ensancha el panel.
+const antesAncho = (await geo()).der;
+const caja = await page.evaluate(() => {
+  const r = document.querySelector('[data-split="right"]').getBoundingClientRect();
+  return { x: r.x + r.width / 2, y: r.y + 200 };
+});
+await page.mouse.move(caja.x, caja.y);
+await page.mouse.down();
+await page.mouse.move(caja.x - 160, caja.y, { steps: 10 });
+await page.mouse.up();
+await page.waitForTimeout(200);
+const despuesAncho = (await geo()).der;
+comprueba(despuesAncho > antesAncho + 100, `arrastrando el tirador el panel derecho se ensancha: ${antesAncho} → ${despuesAncho}px`);
+
+const guardado2 = await page.evaluate(() => localStorage.getItem('krg-right-w'));
+comprueba(Number(guardado2) === despuesAncho, `y el ancho queda recordado: ${guardado2}px`);
+
+await page.reload();
+await page.waitForSelector('.b-insp', { timeout: 15000 });
+await page.waitForTimeout(600);
+const trasRecarga = (await geo()).der;
+comprueba(Math.abs(trasRecarga - despuesAncho) <= 1, `tras recargar el editor sigue igual de ancho: ${trasRecarga}px`);
 
 comprueba(errores.length === 0, `sin errores de JavaScript${errores.length ? ': ' + errores.join(' | ') : ''}`);
 

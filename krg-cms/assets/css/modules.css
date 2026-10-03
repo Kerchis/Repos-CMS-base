@@ -2225,6 +2225,27 @@ body.m-curtain-on .m-page::after {
 .is-theme-forest .m-carta-addon,
 .is-theme-dark .m-carta-addon { color: var(--m-carta-desc-c, inherit); opacity: 0.8; }
 
+/* Las de toda la categoría cierran el bloque y ocupan el ancho entero:
+   no cuelgan de ningún plato, así que no se alinean con una columna.
+   En pestañas viajan dentro de la rejilla como un ítem más —así las
+   filtra el JS que ya existía— y por eso hay que deshacerles el `flex`
+   que llevan los platos. */
+.m-carta-item.is-addons { display: block; grid-column: 1 / -1; }
+.m-carta-addons.is-cat {
+  margin-top: clamp(20px, 2.4vw, 32px);
+  padding: 16px 18px;
+  border-left: 0;
+  border: 1px solid currentColor;
+  border-color: color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: var(--radius-cards, 8px);
+}
+.m-carta-addons.is-cat .m-carta-addons-t { font-size: 12px; margin-bottom: 8px; }
+.m-carta-addons.is-cat .m-carta-addon-list {
+  display: grid;
+  grid-template-columns: repeat(var(--m-cols, 2), minmax(0, 1fr));
+  gap: 2px clamp(24px, 4vw, 64px);
+}
+
 .m-carta-empty { text-align: center; color: var(--color-text-secondary); padding-block: var(--spacing-xl, 48px); }
 .m-carta-empty[hidden] { display: none; }
 .m-carta-cta { display: flex; justify-content: center; margin-top: var(--spacing-xl, 48px); }
