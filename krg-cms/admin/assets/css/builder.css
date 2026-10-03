@@ -578,5 +578,24 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   line-height: 1.35;
 }
 
+/* Informe del diagnostico de estilos: texto plano, monoespaciado y
+   seleccionable, porque su destino normal es copiarse y pegarse. */
+.b-insp .b-diag {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--m-line, #dfe3e1);
+  border-radius: 6px;
+  background: #fbfbfa;
+  color: var(--m-ink, #0c0f0e);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: auto;
+  resize: vertical;
+}
+
 /* Fila de botones dentro de un panel del inspector. */
 .b-insp .b-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }

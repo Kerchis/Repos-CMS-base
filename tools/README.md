@@ -24,6 +24,8 @@ bash tools/devenv.sh     # PHP 8.3 estático + Chromium + playwright-core en .to
 | `tools/prueba-guardado.php` | Camino de guardado: pasa nodos por el saneador de verdad y comprueba qué propiedades sobreviven. |
 | `tools/prueba-estilos.mjs` | Contrato de «lo que escribes en el panel manda»: documento real → saneador → compilador de CSS → navegador, y se lee el color, el relleno y la posición calculados. |
 | `tools/prueba-panel.mjs` | El tramo anterior: el panel del constructor de verdad en Chromium con la API simulada. Teclea en «Relleno» y «Margen», elige color con el cuadrito, lo quita con la ✕, recarga y comprueba el cuerpo de cada POST (31). |
+| `tools/prueba-lienzo.mjs` | El tramo que faltaba: el constructor entero con su iframe de verdad. Teclea en el panel y lee `getComputedStyle` **dentro del lienzo** (23). |
+| `tools/render-doc.php` | Convierte un documento JSON en una página HTML completa por la cadena real, con los CSS del tema incrustados. Lo usa `prueba-lienzo.mjs` para servir el lienzo. |
 | `tools/dump-registry.php` | Vuelca el catálogo de componentes como JSON para alimentar al constructor en `prueba-panel.mjs`. |
 
 Chromium necesita sus librerías en el entorno:
@@ -42,6 +44,7 @@ node tools/prueba-preview.mjs
 node tools/prueba-vacias.mjs
 node tools/prueba-estilos.mjs
 node tools/prueba-panel.mjs
+node tools/prueba-lienzo.mjs
 ```
 
 `tools/render.php` trae dos ayudantes para montar casos por el camino
@@ -62,3 +65,44 @@ componentes es el real: lo vuelca `dump-registry.php` desde el catálogo PHP.
 
 El último caso pone un servidor que devuelve el documento sin estilos y
 comprueba que el constructor lo detecta y lo dice en la barra de estado.
+
+## `prueba-lienzo.mjs`
+
+`prueba-panel.mjs` llega hasta el POST; de ahí en adelante su API simulada no
+devuelve ninguna página, así que el iframe se queda vacío y `paintLiveCss()`
+se sale sin hacer nada. Es decir: ningún banco miraba el sitio donde la
+persona mira. Éste sí.
+
+El panel se sirve desde `https://krg.test/wp-admin/krg-builder.html` con
+`app.js`, `builder.js` y los dos CSS del admin incrustados, y el lienzo desde
+`https://krg.test/?krg_preview=…` con el HTML que imprime `render-doc.php`.
+Mismo origen, que es la única forma de que el padre pueda leer
+`contentDocument` — y de que el repintado en vivo sea comprobable.
+
+Qué se mide, siempre con `getComputedStyle` dentro del marco:
+
+- el color de fondo, el relleno y el margen que se acaban de teclear;
+- que aparecen **al instante**, sin guardar ni recargar;
+- que siguen ahí tras recargar el constructor entero;
+- que la web pública y la pestaña «Preview» pintan lo mismo;
+- que ninguna capa de dentro cubre la sección;
+- que el diagnóstico del inspector acierta: dice «✔» cuando el valor manda y,
+  cuando se cuela una hoja con `!important`, nombra la regla y su media query.
+
+Dos trampas que costaron un rato y están resueltas en el banco: el POST de
+guardado no incluye `previewUrl`, así que el servidor simulado tiene que
+volver a ponerlo al devolver la página (WordPress lo hace) o el iframe
+desaparece al recargar; y un iframe servido por https no carga hojas
+`file://`, así que los CSS van incrustados o la cascada que se mide no es la
+de verdad.
+
+## Diagnóstico de estilos (dentro del producto)
+
+Pestaña «Avanzado» del inspector, botón **Revisar este bloque**. Recorre la
+misma cadena en la instalación de quien lo pulsa y escribe un informe
+copiable: estado del editor, último guardado y descartes del servidor,
+cuántos elementos `.m-n-{id}` hay en el lienzo, el atributo `style` real,
+pedido contra calculado propiedad por propiedad y, si no coinciden, todas las
+reglas CSS que declaran esa propiedad sobre ese elemento con su selector, su
+`@media` y su `!important`. Está en `diagnosticar()` y `reglasQueTocan()`
+(`admin/assets/js/builder.js`). No cambia nada: solo mira.

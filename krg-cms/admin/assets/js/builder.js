@@ -1691,6 +1691,125 @@
       ${aviso}
     </div>`;
   }
+  /**
+   * Recorre la cadena de un estilo y cuenta donde se rompe.
+   *
+   * Un ajuste que no se ve puede fallar en seis sitios distintos y desde
+   * fuera todos se parecen: el panel ensena el valor y la pagina no cambia.
+   * Esto mira, para el bloque seleccionado y en esta misma instalacion, que
+   * hay en el estado, que dijo el ultimo guardado, si el elemento existe en
+   * el lienzo, que lleva su atributo `style`, que devuelve getComputedStyle
+   * y —cuando no coinciden— que regla de que hoja esta ganando. Es lo unico
+   * que contesta «donde se pierde» sin tener delante la instalacion.
+   */
+  function diagnosticar(node) {
+    const id = String(node.id || "").replace(/[^a-zA-Z0-9_-]/g, "");
+    const st = node.styles?.[state.bp] || {};
+    const L = [];
+    L.push(`Bloque: ${node.name || node.type} (${node.type})`);
+    L.push(`Id: ${id}   ·   Tamaño: ${state.bp}`);
+    L.push(`1. Estado del editor: ${JSON.stringify(st)}`);
+    L.push(`2. Último guardado: ${state.save}${state.styleWarn ? " — " + state.styleWarn : " — sin descartes del servidor"}`);
+
+    const iframe = root.querySelector("iframe");
+    const doc = iframe?.contentDocument;
+    if (!doc) {
+      L.push("3. Lienzo: no se puede leer (¿aún cargando, o servido desde otro dominio?)");
+      return L.join("\n");
+    }
+    const els = [...doc.querySelectorAll(`.m-n-${id}`)];
+    L.push(`3. Elementos con .m-n-${id} en el lienzo: ${els.length}`);
+    if (!els.length) {
+      L.push("   El bloque no está pintado: una sección vacía no se imprime, y lo oculto tampoco.");
+      return L.join("\n");
+    }
+    const el = els[0];
+    L.push(`4. Etiqueta: <${el.tagName.toLowerCase()} class="${el.className}">`);
+    L.push(`5. Atributo style: ${el.getAttribute("style") || "(vacío)"}`);
+
+    const cs = doc.defaultView.getComputedStyle(el);
+    const props = Object.keys(st).filter((p) => st[p] !== "" && st[p] != null);
+    if (!props.length) {
+      L.push("6. No hay ningún estilo puesto en este tamaño: no hay nada que comprobar.");
+      return L.join("\n");
+    }
+    props.forEach((prop) => {
+      // `background` calculado devuelve el atajo entero («rgb(…) none repeat
+      // scroll 0% 0% / auto padding-box border-box»), que nunca va a coincidir
+      // con lo que escribió el usuario. Se mide y se busca por la propiedad
+      // larga que de verdad lleva el valor.
+      const medir = LARGAS[prop] || prop;
+      const quiero = String(st[prop]);
+      const hay = cs.getPropertyValue(medir).trim();
+      const mismo = normColor(hay) === normColor(quiero);
+      const nombre = medir === prop ? prop : `${prop} (${medir})`;
+      L.push(`6. ${nombre}: pedido ${quiero} · calculado ${hay} ${mismo ? "✔" : "✖"}`);
+      if (!mismo) {
+        const manda = reglasQueTocan(doc, el, medir);
+        L.push(manda.length
+          ? `   Reglas que declaran ${medir} sobre este elemento:\n     ${manda.join("\n     ")}`
+          : `   Ninguna regla CSS declara ${medir} sobre este elemento: el valor no llegó al navegador.`);
+      }
+    });
+
+    const caja = el.getBoundingClientRect();
+    const tapan = [...el.querySelectorAll("*")].filter((h) => {
+      const f = doc.defaultView.getComputedStyle(h).backgroundColor;
+      if (!f || f === "rgba(0, 0, 0, 0)" || f === "transparent") return false;
+      const r = h.getBoundingClientRect();
+      return r.width >= caja.width - 1 && r.height >= caja.height - 1;
+    }).map((h) => `${String(h.className).split(" ")[0]} (${doc.defaultView.getComputedStyle(h).backgroundColor})`);
+    L.push(`7. Capas de dentro que cubren el bloque entero: ${tapan.length ? tapan.join(", ") : "ninguna"}`);
+    return L.join("\n");
+  }
+
+  /** Atajos cuyo valor calculado hay que leer en una propiedad larga. */
+  const LARGAS = {
+    background: "background-color",
+    font: "font-size",
+    border: "border-top-width",
+    "border-radius": "border-top-left-radius",
+    padding: "padding-top",
+    margin: "margin-top",
+    flex: "flex-grow",
+  };
+
+  /** El mismo color escrito de dos maneras es el mismo color. */
+  function normColor(v) {
+    const t = String(v == null ? "" : v).trim().toLowerCase();
+    const m = /^#([0-9a-f]{6})$/.exec(t);
+    if (!m) return t;
+    const n = parseInt(m[1], 16);
+    return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+  }
+
+  /** Todas las reglas, de todas las hojas, que tocan esa propiedad aquí. */
+  function reglasQueTocan(doc, el, prop) {
+    const out = [];
+    const mira = (reglas, media) => {
+      [...(reglas || [])].forEach((r) => {
+        if (r.media) return mira(r.cssRules, r.conditionText || r.media.mediaText);
+        if (!r.selectorText || !r.style) return;
+        const valor = r.style.getPropertyValue(prop);
+        if (!valor) return;
+        let encaja = false;
+        try { encaja = el.matches(r.selectorText); } catch (e) { encaja = false; }
+        if (!encaja) return;
+        const imp = r.style.getPropertyPriority(prop) ? " !important" : "";
+        out.push(`${r.selectorText} { ${prop}: ${valor}${imp} }${media ? "  @media " + media : ""}`);
+      });
+    };
+    [...doc.styleSheets].forEach((hoja) => {
+      let reglas = null;
+      try { reglas = hoja.cssRules; } catch (e) {
+        out.push(`(hoja no legible: ${hoja.href || "sin nombre"})`);
+        return;
+      }
+      mira(reglas, "");
+    });
+    return out;
+  }
+
   function panelAdvanced(node) {
     const css = node.customCss || { before: "", main: "", after: "" };
     const hide = node.hiddenOn || {};
@@ -1704,6 +1823,11 @@
         <label>Antes ( ::before ) <textarea data-css="before">${esc(css.before || "")}</textarea></label>
         <label>Elemento principal <textarea data-css="main">${esc(css.main || "")}</textarea></label>
         <label>Después ( ::after ) <textarea data-css="after">${esc(css.after || "")}</textarea></label>
+      </div>
+      <div class="acc"><h5>Diagnóstico de estilos</h5>
+        <p class="m-muted">Si pones un valor y no lo ves, esto recorre la cadena entera en esta instalación y dice en qué paso se pierde.</p>
+        <button type="button" class="m-btn ghost" data-diag="${esc(node.id)}">Revisar este bloque</button>
+        <textarea class="b-diag" readonly hidden></textarea>
       </div>
       <div class="acc"><h5>Visibilidad</h5>
         <label><input type="checkbox" data-hide-bp="mobile" ${hide.mobile ? "checked" : ""}> Ocultar en teléfono</label>
@@ -2567,6 +2691,17 @@
     // bloque, asi que lo normal al ponerlo es querer ver ese color. Esto lo
     // copia al campo propio del bloque de un clic, en vez de obligar a
     // buscarlo. Se deshace con Ctrl+Z como cualquier otro cambio.
+    box.querySelectorAll("[data-diag]").forEach((b) => {
+      b.onclick = () => {
+        const h = findNode(state.doc.sections, b.dataset.diag);
+        const caja = b.parentElement.querySelector(".b-diag");
+        if (!h || !caja) return;
+        caja.value = diagnosticar(h.node);
+        caja.hidden = false;
+        caja.style.height = "auto";
+        caja.style.height = Math.min(420, caja.scrollHeight + 8) + "px";
+      };
+    });
     box.querySelectorAll("[data-paint-child]").forEach((b) => {
       b.onclick = () => {
         const h = hit();
