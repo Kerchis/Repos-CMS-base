@@ -1057,3 +1057,124 @@ Barrido completo en verde: lint 61 · guardado 63 · tokens 32 · estilos 82 ·
 panel 35 · lienzo 37 · matriz 91 · caja 72 · inspector 77 · chrome 33 ·
 cortina 83 · motor 58 · estirar 18 · carta 113 · **cta 34** · vacías ·
 preview.
+
+
+---
+
+# Parte 12 — La foto a toda la sección, listas en fichas y tarjetas parejas
+
+## 56. «Que cubra toda la sección», no solo el bloque
+
+La foto del CTA display cubría el bloque entero —medido en §51—, pero el
+bloque no es la sección: si la sección es más alta (altura mínima, relleno
+propio, otro contenido debajo), quedaban franjas de color arriba y abajo.
+
+Campo nuevo **«La imagen cubre»**: `block` (como hasta ahora, por defecto) o
+`section`. No hay segunda capa ni segundo render: es la misma
+`.m-sc-media`, y lo único que cambia es su caja de referencia.
+
+```css
+.m-c-section:has(.m-sc.is-bg-section) { position: relative; overflow: hidden; isolation: isolate; }
+.m-sc.is-bg-section { position: static; overflow: visible; isolation: auto; --m-th-bg: transparent; }
+```
+
+Tres decisiones que conviene dejar escritas:
+
+1. **El bloque se despositiona a propósito.** Una capa absoluta se estira
+   contra el ancestro posicionado más cercano; ni la fila ni la columna lo
+   están, así que al apagar el `position: relative` del bloque la
+   referencia pasa a ser la sección.
+2. **El recorte y el aislamiento se mudan a la sección.** El recorte, para
+   que el parallax no se salga; el aislamiento, porque el telón de la
+   fusión tiene que ser el fondo de la sección.
+3. **El color del tema se aparta, el tuyo no.** `--m-th-bg: transparent`
+   neutraliza el color que pone el tema (si no, taparía la foto en la
+   banda del bloque). Un color elegido en el panel viaja en línea y sigue
+   ganando: la regla de siempre, verificada en el banco.
+
+El parallax, en este modo, mide el recorrido contra la sección y no contra
+el bloque: es la caja que se ve.
+
+## 57. Listas en fichas plegables y arrastrables
+
+El repetidor pintaba **todos los campos de todos los items** en fila: cuatro
+productos con nueve campos eran treinta y seis controles en una columna de
+320 px. Medido en el banco: **2 843 px de alto → 219 px**.
+
+Ahora cada item es una ficha como las de la carta: asa, pliegue, miniatura
+y nombre. Mismas clases `tree-*`, mismo `data-tree-t` para recordar qué
+está abierto, mismos `data-rep-move|dup|del|add`. **Los datos no cambian ni
+una coma**, así que ninguna página necesita migrarse, y como es el
+repetidor genérico lo heredan todas las listas del editor, no solo el
+carril.
+
+Lo que se añade encima:
+
+- **Arrastrar para ordenar** (`[data-rep-drag]`), con la línea naranja de
+  destino arriba o abajo según por dónde se suelte. Las flechas ↑ ↓ siguen
+  ahí: el ratón es un atajo, no la única puerta.
+- **Añadir abre la ficha nueva y pone el cursor en su primer campo**, y la
+  caja se empuja lo justo con el helper `acercar()` —el mismo que usaban
+  las adiciones de la carta, ahora compartido—. Nunca `scrollIntoView`.
+- **El nombre de la ficha se actualiza mientras escribes.** Solo la
+  etiqueta: el inspector no se repinta desde un campo, que es la forma
+  conocida de perder el cursor a media palabra.
+- `imageUrl` se declara en `card_item` para que la miniatura sobreviva al
+  guardado. Está oculto en el panel (`repSubField` lo salta), como en la
+  carta.
+
+Un detalle que volvió a morder: `.tree-n.is-rep > .tree-b` pesa (0,3,0) y
+`[hidden]` (0,1,0), así que **la primera versión dejaba todas las fichas
+abiertas**. Va con `:not([hidden])`. Tercera vez que `hidden` gana la
+partida por especificidad; está anotado en el banco.
+
+## 58. Tarjetas parejas
+
+En una fila de cuatro productos con descripciones de largos distintos, cada
+texto empezaba a una altura. Dos causas:
+
+1. `.m-bcard` era una rejilla de dos filas `auto` con `height: 100%`: el
+   alto sobrante **se repartía entre la foto y el texto**, así que la
+   tarjeta con menos texto bajaba su titular. Ahora `grid-template-rows:
+   auto 1fr`: la foto manda su alto y el texto se queda el resto.
+2. `.m-card-body` era otra rejilla que estiraba sus propias filas,
+   separando categoría, título y descripción. Ahora es una columna flex
+   pegada arriba, y el enlace final se va abajo con `margin-block-start:
+   auto`.
+
+Solo con eso, categoría, título y enlace quedan a la misma altura en las
+cuatro tarjetas (medido: `653 / 677 / 700 / 700` → `653 / 653 / 653 / 653`).
+
+Lo que no se puede arreglar sin decidir algo es un título de dos renglones
+frente a uno de uno: por eso hay dos controles nuevos, **«Líneas del
+título»** y **«Líneas de la descripción»**, con `0 = las que hagan falta`
+por defecto (nada cambia si no se tocan). Con 2 y 3 puestos, las cuatro
+tarjetas empiezan y acaban exactamente igual. El recorte es visual
+(`line-clamp` + `min-height` para reservar el hueco): **el texto guardado
+no se toca**.
+
+## 59. Pruebas
+
+Banco nuevo `tools/prueba-tarjetas.mjs` (**32**) y `prueba-cta` pasa de 34 a
+**43**.
+
+- Frontend: las cuatro tarjetas alinean categoría, título y enlace; con los
+  dos controles puestos también la descripción (arriba y abajo); sin
+  pedirlo no se recorta ni una palabra.
+- Panel: cuatro fichas plegadas que caben en pantalla, con miniatura y asa;
+  abrir una no abre las demás; el pliegue se recuerda; «Añadir» abre y pone
+  el cursor dentro; escribir renombra la ficha; **arrastrar reordena** (en
+  los dos sentidos) y las flechas siguen funcionando; el orden viaja en el
+  guardado y la página sale en ese orden.
+- CTA: con «toda la sección» la capa mide lo que la sección (3 200 px de
+  3 200 px), la sección recoge marco, recorte y aislamiento, el color del
+  tema se aparta y el tuyo no, y la fusión sigue en pie.
+
+Verificado al revés con los seis archivos del commit anterior: fallan 11 en
+tarjetas —incluidas las alturas `653 / 677 / 700 / 700`, que son justo las
+de la captura de la queja— y 5 en cta.
+
+Barrido completo en verde: lint 61 · guardado 63 · tokens 32 · estilos 82 ·
+panel 35 · lienzo 37 · matriz 91 · caja 72 · inspector 77 · chrome 33 ·
+cortina 83 · motor 58 · estirar 18 · carta 113 · **cta 43** · **tarjetas
+32** · vacías · preview.

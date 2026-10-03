@@ -374,6 +374,7 @@
               els.style.setProperty("--m-sc-blend", hayFoto ? blend : "");
               const veil = els.querySelector(".m-sc-veil");
               if (veil) veil.style.opacity = String(Math.max(0, Math.min(90, Number(n.props?.overlay ?? 40))) / 100);
+              els.classList.toggle("is-bg-section", hayFoto && n.props?.bgScope === "section");
               const px = hayFoto && !!n.props?.parallax;
               els.classList.toggle("is-parallax", px);
               if (px) {
@@ -2757,6 +2758,54 @@
     return `<label>${esc(sf.label)} <input data-rep="${f.key}" data-i="${i}" data-k="${sf.key}" value="${esc(it[sf.key] ?? "")}"></label>`;
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Una lista de items, en fichas plegables y arrastrables.              */
+  /*                                                                      */
+  /* Antes toda lista pintaba TODOS los campos de TODOS los items, uno    */
+  /* detrás de otro: cuatro productos con ocho campos eran treinta y dos  */
+  /* controles en una columna de 320 px y había que contar para saber     */
+  /* dónde empezaba el tercero. Ahora cada item es una ficha con su       */
+  /* nombre, su miniatura y su pliegue, igual que los platos de la carta. */
+  /*                                                                      */
+  /* No es otro sistema: son las mismas clases `tree-*`, el mismo         */
+  /* `data-tree-t` para recordar qué está abierto y los mismos            */
+  /* `data-rep-move|dup|del` de siempre. Los datos no cambian ni una      */
+  /* coma, así que ninguna página necesita migrarse.                      */
+  /* ------------------------------------------------------------------ */
+
+  /** El nombre con el que se reconoce un item cerrado. */
+  function repTitulo(f, it, i) {
+    for (const k of ["title", "label", "name", "heading", "question", "text"]) {
+      const v = String(it?.[k] ?? "").trim();
+      if (v) return v.length > 46 ? v.slice(0, 46) + "…" : v;
+    }
+    const r = repResumen(f, it);
+    return r || `Elemento ${i + 1}`;
+  }
+
+  function repFicha(node, f, it, i) {
+    const id = `rep.${node.id}.${f.key}.${i}`;
+    const abierto = CORE.isOpen(id, false);
+    const foto = String(it?.imageUrl || "");
+    return `<div class="tree-n is-rep ${abierto ? "is-open" : ""}" data-rep-row="${f.key}" data-i="${i}">
+      <div class="tree-h">
+        <span class="tree-grip" draggable="true" data-rep-drag="${f.key}" data-i="${i}" title="Arrastrar para ordenar">⋮⋮</span>
+        <button type="button" class="tree-t" data-tree-t="${id}" aria-expanded="${abierto}">${abierto ? "−" : "+"}</button>
+        ${foto ? `<span class="tree-mini"><img src="${esc(foto)}" alt=""></span>` : ""}
+        <span class="tree-lbl">${esc(repTitulo(f, it, i))}</span>
+        <span class="tree-acts">
+          <button type="button" class="b-ico" data-rep-move="${f.key}" data-i="${i}" data-dir="-1" title="Subir">↑</button>
+          <button type="button" class="b-ico" data-rep-move="${f.key}" data-i="${i}" data-dir="1" title="Bajar">↓</button>
+          <button type="button" class="b-ico" data-rep-dup="${f.key}" data-i="${i}" title="Duplicar">⧉</button>
+          <button type="button" class="b-ico" data-rep-del="${f.key}" data-i="${i}" title="Eliminar">✕</button>
+        </span>
+      </div>
+      <div class="tree-b" ${abierto ? "" : "hidden"}>
+        ${(f.itemFields || []).map((sf) => repSubField(node, f, sf, it, i)).join("")}
+      </div>
+    </div>`;
+  }
+
   function repResumen(f, it) {
     for (const sf of f.itemFields || []) {
       if (["text", "textarea", "url"].includes(sf.type) && String(it[sf.key] ?? "").trim()) {
@@ -3025,22 +3074,9 @@
     if (f.ui === "menuTree") return menuTreeHtml(node, f);
     if (f.type === "repeater") {
       const items = Array.isArray(val) ? val : [];
-      const sub = (sf, it, i) => repSubField(node, f, sf, it, i);
-      const resumen = (it) => repResumen(f, it);
-      return `<div class="b-rep"><strong>${esc(f.label)}</strong>
-        ${items.map((it, i) => `<div class="rep-item">
-          <div class="rep-head">
-            <span class="rep-n">${i + 1}</span>
-            <span class="rep-sum">${esc(resumen(it))}</span>
-            <span class="rep-acts">
-              <button type="button" class="b-ico" data-rep-move="${f.key}" data-i="${i}" data-dir="-1" title="Subir">↑</button>
-              <button type="button" class="b-ico" data-rep-move="${f.key}" data-i="${i}" data-dir="1" title="Bajar">↓</button>
-              <button type="button" class="b-ico" data-rep-dup="${f.key}" data-i="${i}" title="Duplicar">⧉</button>
-              <button type="button" class="b-ico" data-rep-del="${f.key}" data-i="${i}" title="Eliminar">✕</button>
-            </span>
-          </div>
-          ${(f.itemFields || []).map((sf) => sub(sf, it, i)).join("")}
-        </div>`).join("")}
+      return `<div class="b-rep" data-tree="${f.key}">
+        <strong>${esc(f.label)} <span class="rep-n">${items.length}</span></strong>
+        ${items.map((it, i) => repFicha(node, f, it, i)).join("")}
         <button type="button" class="m-btn ghost" data-rep-add="${f.key}">Añadir</button>
       </div>`;
     }
@@ -3439,6 +3475,15 @@
         if (!arr[Number(inp.dataset.i)]) return;
         arr[Number(inp.dataset.i)][inp.dataset.k] = inp.type === "number" ? Number(inp.value) : inp.value;
         h.node.props[inp.dataset.rep] = arr;
+        // El nombre de la ficha se actualiza mientras escribes. Es solo
+        // la etiqueta: NO se repinta el inspector desde el campo, que es
+        // la forma conocida de perder el cursor a media palabra.
+        const fila = inp.closest("[data-rep-row]");
+        const etiqueta = fila?.querySelector(":scope > .tree-h > .tree-lbl");
+        if (etiqueta) {
+          const campo = (defOf(h.node.type)?.fields || []).find((x) => x.key === inp.dataset.rep);
+          if (campo) etiqueta.textContent = repTitulo(campo, arr[Number(inp.dataset.i)], Number(inp.dataset.i));
+        }
         markDirty();
       };
       inp.addEventListener("input", applyRep);
@@ -3476,10 +3521,87 @@
         snapshot();
         h.node.props[b.dataset.repAdd] = h.node.props[b.dataset.repAdd] || [];
         h.node.props[b.dataset.repAdd].push(blank);
+        // La ficha recien creada se abre sola y el cursor cae en su
+        // primer campo: se pulsa «Añadir» para escribir, no para buscar.
+        const nuevo = h.node.props[b.dataset.repAdd].length - 1;
+        CORE.setOpen(`rep.${h.node.id}.${b.dataset.repAdd}.${nuevo}`, true);
         markDirty();
         render();
+        const fila = root.querySelector(
+          `.b-rep [data-rep-row="${CSS.escape(b.dataset.repAdd)}"][data-i="${nuevo}"]`
+        );
+        const campo = fila?.querySelector(".tree-b input, .tree-b textarea, .tree-b select");
+        if (campo) {
+          campo.focus({ preventScroll: true });
+          acercar(campo);
+        }
       };
     });
+    /* --- Arrastrar una ficha para subirla o bajarla --- */
+    /* El teclado sigue teniendo las flechas ↑ ↓ de cada ficha: el raton
+       es un atajo, no la unica puerta. */
+    const limpiarArrastre = () => {
+      box.querySelectorAll(".drop-before, .drop-after, .is-drag").forEach((el) => {
+        el.classList.remove("drop-before", "drop-after", "is-drag");
+      });
+    };
+    box.querySelectorAll("[data-rep-drag]").forEach((g) => {
+      g.addEventListener("dragstart", (e) => {
+        const fila = g.closest("[data-rep-row]");
+        e.dataTransfer.setData("text/plain", `${g.dataset.repDrag}:${g.dataset.i}`);
+        e.dataTransfer.effectAllowed = "move";
+        if (fila) {
+          fila.classList.add("is-drag");
+          try { e.dataTransfer.setDragImage(fila, 12, 12); } catch (err) { /* da igual */ }
+        }
+        box.dataset.repDragging = `${g.dataset.repDrag}:${g.dataset.i}`;
+      });
+      g.addEventListener("dragend", () => {
+        limpiarArrastre();
+        delete box.dataset.repDragging;
+      });
+    });
+    const leeArrastre = (e) => {
+      const crudo = (e.dataTransfer && e.dataTransfer.getData("text/plain")) || box.dataset.repDragging || "";
+      const corte = crudo.lastIndexOf(":");
+      if (corte < 1) return null;
+      const i = Number(crudo.slice(corte + 1));
+      return Number.isInteger(i) ? { key: crudo.slice(0, corte), i } : null;
+    };
+    box.querySelectorAll("[data-rep-row]").forEach((fila) => {
+      const mismo = (o) => o && o.key === fila.dataset.repRow && o.i !== Number(fila.dataset.i);
+      fila.addEventListener("dragover", (e) => {
+        const o = leeArrastre(e);
+        if (!mismo(o)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        const r = fila.getBoundingClientRect();
+        const despues = e.clientY > r.top + r.height / 2;
+        fila.classList.toggle("drop-before", !despues);
+        fila.classList.toggle("drop-after", despues);
+      });
+      fila.addEventListener("dragleave", (e) => {
+        if (!fila.contains(e.relatedTarget)) fila.classList.remove("drop-before", "drop-after");
+      });
+      fila.addEventListener("drop", (e) => {
+        const o = leeArrastre(e);
+        const despues = fila.classList.contains("drop-after");
+        limpiarArrastre();
+        if (!mismo(o)) return;
+        e.preventDefault();
+        const h = hit();
+        const arr = h?.node.props[o.key];
+        if (!Array.isArray(arr)) return;
+        let destino = Number(fila.dataset.i) + (despues ? 1 : 0);
+        if (o.i < destino) destino -= 1;
+        if (destino === o.i) return;
+        snapshot();
+        arr.splice(destino, 0, arr.splice(o.i, 1)[0]);
+        markDirty();
+        render();
+      });
+    });
+
     box.querySelectorAll("[data-rep-del]").forEach((b) => {
       b.onclick = () => {
         const h = hit();
@@ -3518,6 +3640,21 @@
         render();
       };
     });
+    /**
+     * Empuja lo justo la caja que se desplaza para que `el` se vea.
+     *
+     * `scrollIntoView` mueve TODOS los contenedores de arriba, y eso es
+     * justo el salto que molesta: aqui se mueve solo la caja propia.
+     */
+    const acercar = (el) => {
+      const caja = el.closest(".b-tree, .b-rep");
+      if (!caja || caja.scrollHeight <= caja.clientHeight) return;
+      const r = el.getBoundingClientRect();
+      const c = caja.getBoundingClientRect();
+      if (r.bottom > c.bottom) caja.scrollTop += r.bottom - c.bottom + 8;
+      else if (r.top < c.top) caja.scrollTop -= c.top - r.top + 8;
+    };
+
     /* --- Listas dentro de un ítem (las adiciones de un plato) --- */
     const subLista = (ds, crear) => {
       const h = hit();
@@ -3568,13 +3705,7 @@
           // `scrollIntoView` mueve TODOS los contenedores de arriba, y eso
           // es justo el salto que molesta. Aqui se empuja a mano lo
           // minimo y solo la caja del arbol: el panel no se entera.
-          const caja = nueva.closest(".b-tree");
-          if (caja) {
-            const r = nueva.getBoundingClientRect();
-            const c = caja.getBoundingClientRect();
-            if (r.bottom > c.bottom) caja.scrollTop += r.bottom - c.bottom + 8;
-            else if (r.top < c.top) caja.scrollTop -= c.top - r.top + 8;
-          }
+          acercar(nueva);
         }
       };
     });

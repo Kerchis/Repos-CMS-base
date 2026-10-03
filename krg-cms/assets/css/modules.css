@@ -569,6 +569,31 @@ body.krg-canvas .m-preloader { position: relative; min-height: 320px; }
   object-fit: var(--m-sc-fit, cover);
   object-position: var(--m-sc-pos, center);
 }
+/* «La imagen cubre: toda la sección».
+   La capa sigue siendo la misma y sigue colgando del bloque; lo único
+   que cambia es su caja de referencia. Se apaga el `position:relative`
+   del bloque para que la referencia pase a ser la sección —ni la fila ni
+   la columna están posicionadas, así que la capa llega hasta ella—, y la
+   sección recoge el recorte y el aislamiento que antes ponía el bloque.
+   El `isolation` donde está la foto es lo que hace que la fusión tenga
+   como telón el fondo de la sección.
+
+   El color propio del bloque se aparta (`--m-th-bg: transparent`) porque
+   si no taparía la foto justo en la banda del bloque. Se aparta SOLO el
+   que pone el tema: si has elegido un color en el panel, viaja en línea
+   y sigue ganando, que es la regla de siempre. */
+.m-c-section:has(.m-sc.is-bg-section) {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.m-sc.is-bg-section {
+  position: static;
+  overflow: visible;
+  isolation: auto;
+  --m-th-bg: transparent;
+}
+
 /* Parallax: mismo motor que la galería (`public.js` escribe el
    `transform` en línea), así que la ampliación de partida se deja en
    CSS y el movimiento lo pone el guion. */
@@ -609,6 +634,12 @@ body.krg-canvas .m-preloader { position: relative; min-height: 320px; }
 
 .m-bcard {
   display: grid;
+  /* La foto manda su alto (lo fija la proporción) y el texto se queda
+     con el resto. Con las dos filas en `auto`, el alto sobrante de una
+     tarjeta con poco texto se repartía entre las dos y el titular bajaba:
+     por eso en una fila de cuatro productos cada texto empezaba a una
+     altura distinta. */
+  grid-template-rows: auto 1fr;
   gap: var(--spacing-md, 16px);
   height: 100%;
   color: inherit;
@@ -644,7 +675,32 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
   letter-spacing: 0.14em;
   text-transform: var(--m-caps-label);
 }
-.m-card-body { display: grid; gap: 6px; }
+/* En columna y pegado arriba: la categoría y el título de todas las
+   tarjetas quedan a la misma altura, y el enlace final se va abajo del
+   todo en vez de flotar donde acabe la descripción. */
+.m-card-body { display: flex; flex-direction: column; gap: 6px; }
+.m-card-cta { margin-block-start: auto; }
+
+/* Tarjetas parejas: recorta a un número de líneas y reserva el hueco.
+   Solo cuando se pide desde el panel (0 = sin recorte, que es como
+   venía). `min-height` es lo que iguala de verdad: sin él, un título de
+   una línea seguiría subiendo la descripción. */
+.is-clamp-t .m-card-title,
+.is-clamp-x .m-card-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.is-clamp-t .m-card-title {
+  -webkit-line-clamp: var(--m-card-tl, 2);
+  line-clamp: var(--m-card-tl, 2);
+  min-height: calc(var(--m-card-tl, 2) * 1.2em);
+}
+.is-clamp-x .m-card-text {
+  -webkit-line-clamp: var(--m-card-xl, 3);
+  line-clamp: var(--m-card-xl, 3);
+  min-height: calc(var(--m-card-xl, 3) * 1.55em);
+}
 .m-card-cat {
   font-family: var(--font-heading);
   font-size: 11px;

@@ -58,7 +58,7 @@ const nodo = (id, type, props = {}, children = []) => ({
 });
 
 /** Una página alta: un hueco largo y debajo el CTA, para poder rodar. */
-const doc = (props = {}) => ({
+const doc = (props = {}, seccion = null) => ({
   id: 1, title: 'CTA', slug: 'cta', status: 'draft', checksum: 'c0',
   seo: {}, settings: {}, previewUrl: LIENZO,
   sections: [
@@ -67,7 +67,7 @@ const doc = (props = {}) => ({
         nodo('sp', 'spacer', { height: 1200 }),
       ])]),
     ]),
-    nodo('sec', 'section', { width: 'full' }, [
+    nodo('sec', 'section', { width: 'full', ...(seccion || {}) }, [
       nodo('r', 'row', {}, [nodo('c', 'column', { span: 12 }, [
         nodo('m', 'statement-cta', {
           title: 'Reserva tu mesa',
@@ -96,6 +96,7 @@ const comprueba = (cond, msg) => {
 let ultimo = null;
 let enviado = null;
 let props = {};
+let seccion = null;
 
 const leer = (f) => readFileSync(f, 'utf8');
 const html = `<!doctype html><meta charset="utf-8">
@@ -134,7 +135,7 @@ await page.route('**/krg.test/**', async (route) => {
   const json = (d) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(d) });
   if (req.url() === PANEL) return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: html });
   if (req.url().startsWith(PUBLICO)) {
-    return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: pintar(doc(props)) });
+    return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: pintar(doc(props, seccion)) });
   }
   if (req.url().startsWith(LIENZO)) {
     return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: pintar(ultimo || doc(props), { KRG_CANVAS: '1' }) });
@@ -203,6 +204,58 @@ comprueba(m.sc.w >= 1280, `que en una sección a todo lo ancho es la pantalla en
 comprueba(m.fit === 'cover', `por defecto la estira hasta cubrir: object-fit = ${m.fit}`);
 comprueba(m.blend === 'normal', `y sin fusión mientras no se pida: ${m.blend}`);
 comprueba(m.aislado === 'isolate', 'el bloque está aislado, que es lo que permite fusionar contra su color');
+
+/* ================================================================== */
+console.log('\n--- «La imagen cubre: toda la sección»');
+// Una sección más alta que el bloque: es el caso de la queja, con el
+// bloque en medio y la franja de color arriba y abajo.
+seccion = { minHeight: 'custom', minHeightValue: 900 };
+props = { imageId: 21, bgScope: 'block' };
+await page.goto(PUBLICO);
+await page.waitForTimeout(300);
+const cajas = () => page.evaluate(() => {
+  const caja = (e) => { if (!e) return null; const c = e.getBoundingClientRect(); return { y: Math.round(c.top), h: Math.round(c.height) }; };
+  const sc = document.querySelector('.m-sc');
+  const sec = sc.closest('.m-c-section');
+  const capa = document.querySelector('.m-sc-media');
+  return {
+    sec: caja(sec), sc: caja(sc), capa: caja(capa),
+    secPos: getComputedStyle(sec).position,
+    secCorte: getComputedStyle(sec).overflow,
+    secAisla: getComputedStyle(sec).isolation,
+    fondoBloque: getComputedStyle(sc).backgroundColor,
+    blend: capa ? getComputedStyle(capa).mixBlendMode : '',
+  };
+});
+let caja = await cajas();
+comprueba(caja.sec.h > caja.sc.h + 100, `la sección es más alta que el bloque: ${caja.sec.h}px contra ${caja.sc.h}px`);
+comprueba(caja.capa.h === caja.sc.h, `y «solo este bloque» deja la foto en el bloque: ${caja.capa.h}px`);
+
+props = { imageId: 21, bgScope: 'section', blend: 'multiply' };
+await page.goto(PUBLICO);
+await page.waitForTimeout(300);
+caja = await cajas();
+comprueba(
+  caja.capa.h === caja.sec.h && caja.capa.y === caja.sec.y,
+  `con «toda la sección» la foto cubre la sección entera: ${caja.capa.h}px de ${caja.sec.h}px`
+);
+comprueba(caja.secPos === 'relative' && caja.secCorte === 'hidden', 'la sección recoge el marco y el recorte');
+comprueba(caja.secAisla === 'isolate', 'y el aislamiento, que es lo que da telón a la fusión');
+comprueba(
+  caja.fondoBloque === 'rgba(0, 0, 0, 0)',
+  `el color del tema del bloque se aparta para no tapar la foto: ${caja.fondoBloque}`
+);
+comprueba(caja.blend === 'multiply', `y la fusión sigue en pie: ${caja.blend}`);
+
+// Un color elegido a mano en el panel manda sobre todo, como siempre.
+props = { imageId: 21, bgScope: 'section', bgColor: { mode: 'custom', token: '', value: '#3f5e58' } };
+await page.goto(PUBLICO);
+await page.waitForTimeout(300);
+comprueba(
+  await page.evaluate(() => getComputedStyle(document.querySelector('.m-sc')).backgroundColor === 'rgb(63, 94, 88)'),
+  'pero un color puesto por ti en el panel sigue ganando: nada se pisa a tus espaldas'
+);
+seccion = null;
 
 /* ================================================================== */
 console.log('\n--- El encaje y la parte que manda salen del panel');
@@ -312,6 +365,13 @@ const campos = await page.evaluate(() => ({
   inv: !!document.querySelector('.b-insp [data-prop="parallaxInvert"]'),
 }));
 comprueba(campos.fit && campos.pos, 'el panel ofrece el ajuste de la imagen y su anclaje');
+comprueba(
+  await page.evaluate(() => {
+    const sel = document.querySelector('.b-insp [data-prop="bgScope"]');
+    return !!sel && [...sel.options].map((o) => o.value).join(',') === 'block,section';
+  }),
+  'y el selector de hasta dónde llega la foto: solo el bloque o toda la sección'
+);
 comprueba(campos.px && campos.zoom && campos.amount && campos.inv, 'y el parallax con sus tres ajustes, como la galería');
 comprueba(
   await page.evaluate(() => {

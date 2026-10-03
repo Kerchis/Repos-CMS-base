@@ -567,7 +567,44 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   text-overflow: ellipsis;
 }
 .rep-acts { flex: 0 0 auto; display: flex; }
-.b-rep > strong { display: block; font-size: 12px; }
+.b-rep > strong { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+
+/* ------------------------------------------------------------------ */
+/* Listas en fichas: cada item, una línea con su nombre y su pliegue.   */
+/* Reutiliza las clases del árbol de la carta (`tree-*`) a propósito:   */
+/* es la misma idea y conviene que se vea igual en todo el editor.      */
+/* ------------------------------------------------------------------ */
+.b-rep { display: grid; gap: 6px; }
+.tree-n.is-rep { border: 1px solid var(--m-line); background: #fff; }
+.tree-n.is-rep > .tree-h { background: #fcfcfc; border-radius: 7px 7px 0 0; }
+.tree-n.is-rep.is-open > .tree-h { border-bottom: 1px solid var(--m-line); }
+/* `:not([hidden])` no es adorno: `[hidden]` solo vale (0,1,0) y esta
+   regla pesa (0,3,0), asi que sin el filtro una ficha plegada se
+   quedaria abierta. */
+.tree-n.is-rep > .tree-b:not([hidden]) { display: grid; gap: 8px; padding: 8px; }
+.tree-grip {
+  flex: 0 0 auto;
+  cursor: grab;
+  color: var(--m-muted);
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: -2px;
+  padding: 2px 1px;
+  user-select: none;
+}
+.tree-grip:active { cursor: grabbing; }
+.tree-mini {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 20px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--m-paper);
+}
+.tree-mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tree-n.is-rep.is-drag { opacity: 0.45; }
+.tree-n.is-rep.drop-before { box-shadow: inset 0 2px 0 var(--m-orange); }
+.tree-n.is-rep.drop-after { box-shadow: inset 0 -2px 0 var(--m-orange); }
 
 /* ------------------------------------------------------------------ */
 /* Árbol de la carta: categoría → platos → adiciones                   */

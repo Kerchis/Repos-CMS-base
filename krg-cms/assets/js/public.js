@@ -144,7 +144,10 @@
     if (reduceMotion || !pxActive.size) return;
     const vh = window.innerHeight || 1;
     pxActive.forEach((box) => {
-      const frame = box.querySelector(".m-gallery-viewport") || box;
+      // Si la foto cubre la seccion entera, el recorrido se mide contra
+      // la seccion y no contra el bloque: es la caja que se ve.
+      const frame = box.querySelector(".m-gallery-viewport")
+        || (box.classList.contains("is-bg-section") ? (box.closest(".m-c-section") || box) : box);
       const r = frame.getBoundingClientRect();
       if (r.bottom < 0 || r.top > vh) return;
       const p = (r.top + r.height * 0.5 - vh * 0.5) / vh;

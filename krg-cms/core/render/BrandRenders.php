@@ -175,6 +175,33 @@ class BrandRenders {
 	 * Declara qué color necesita la cabecera cuando pasa sobre este bloque.
 	 * Lo consume la cabecera adaptativa (assets/js/modules.js).
 	 */
+	/**
+	 * Tarjetas parejas: cuantas lineas ocupan el titulo y la descripcion.
+	 *
+	 * Sin esto, una ficha con dos lineas de titulo baja su descripcion y
+	 * la fila entera se ve desordenada. Con un numero de lineas fijo el
+	 * hueco queda reservado aunque el texto sea mas corto, asi que todas
+	 * las tarjetas empiezan y acaban a la misma altura.
+	 *
+	 * Cero significa «las que hagan falta»: es el valor por defecto y
+	 * deja el comportamiento de siempre, sin recortar nada.
+	 */
+	private static function card_lines( array $props ): array {
+		$t = max( 0, min( 4, absint( $props['titleLines'] ?? 0 ) ) );
+		$x = max( 0, min( 8, absint( $props['textLines'] ?? 0 ) ) );
+		$class = '';
+		$style = '';
+		if ( $t ) {
+			$class .= ' is-clamp-t';
+			$style .= '--m-card-tl:' . $t . ';';
+		}
+		if ( $x ) {
+			$class .= ' is-clamp-x';
+			$style .= '--m-card-xl:' . $x . ';';
+		}
+		return [ $class, $style ];
+	}
+
 	private static function skin( string $theme ): array {
 		return [ 'data-header-skin' => \Meridian\Design\Contrast::for_theme( $theme ) ];
 	}
@@ -506,6 +533,7 @@ class BrandRenders {
 		$align   = self::align( $props['align'] ?? 'center', 'center' );
 		$overlay = max( 0, min( 90, absint( $props['overlay'] ?? 40 ) ) );
 		$bg      = absint( $props['imageId'] ?? 0 );
+		$alcance = self::opt( $props['bgScope'] ?? 'block', [ 'block', 'section' ], 'block' );
 		$fit     = self::opt( $props['bgFit'] ?? 'cover', [ 'cover', 'contain' ], 'cover' );
 		$pos     = self::opt( $props['bgPosition'] ?? 'center', [ 'center', 'top', 'bottom', 'left', 'right' ], 'center' );
 		$blend   = self::opt(
@@ -551,8 +579,17 @@ class BrandRenders {
 		if ( $bg ) {
 			$vars = '--m-sc-fit:' . $fit . ';--m-sc-pos:' . $pos . ';--m-sc-blend:' . $blend . ';';
 		}
+		// «Toda la sección»: el bloque deja de ser el marco de la foto y
+		// se la cede a la sección que lo contiene. Es una clase, no otro
+		// render: la capa es la misma, lo único que cambia es contra qué
+		// caja se estira (lo resuelve el CSS, que apaga el
+		// posicionamiento del bloque y se lo pasa a la sección).
+		$clase = 'm-sc is-theme-' . $theme . ( $bg ? ' has-media' : '' );
+		if ( $bg && 'section' === $alcance ) {
+			$clase .= ' is-bg-section';
+		}
 		$attrs = array_merge(
-			[ 'class' => 'm-sc is-theme-' . $theme . ( $bg ? ' has-media' : '' ) ],
+			[ 'class' => $clase ],
 			self::style_attr( $props, $vars )
 		);
 		// El parallax solo tiene sentido si hay foto, y el motor es el
@@ -584,6 +621,7 @@ class BrandRenders {
 		$layout = ( ( $props['layout'] ?? 'rail' ) === 'grid' ) ? 'grid' : 'rail';
 		$style  = self::opt( $props['cardStyle'] ?? 'soft', [ 'soft', 'outline', 'bare' ], 'soft' );
 		$arrows = ! empty( $props['arrows'] ) && 'rail' === $layout;
+		$lineas = self::card_lines( $props );
 
 		if ( ! $items ) {
 			return $ctx->isCanvas
@@ -617,8 +655,8 @@ class BrandRenders {
 			'div',
 			$inner,
 			[
-				'class'     => 'm-rail is-layout-' . $layout . ' is-theme-' . $theme,
-				'style'     => self::col_vars( $props, 4, 2, 1 ) . self::section_style( $props ),
+				'class'     => 'm-rail is-layout-' . $layout . ' is-theme-' . $theme . $lineas[0],
+				'style'     => $lineas[1] . self::col_vars( $props, 4, 2, 1 ) . self::section_style( $props ),
 				'data-rail' => '1',
 			]
 		);
@@ -634,6 +672,7 @@ class BrandRenders {
 		$theme = self::theme( $props['theme'] ?? 'cream' );
 		$style = self::opt( $props['cardStyle'] ?? 'overlay', [ 'overlay', 'stacked', 'outline' ], 'overlay' );
 		$ratio = self::opt( $props['ratio'] ?? 'portrait', [ 'portrait', 'square', 'landscape' ], 'portrait' );
+		$lineas = self::card_lines( $props );
 
 		$cards = '';
 		foreach ( $items as $it ) {
@@ -654,8 +693,8 @@ class BrandRenders {
 			'div',
 			$inner,
 			[
-				'class' => 'm-cg is-theme-' . $theme,
-				'style' => self::col_vars( $props, 3, 2, 1 ) . self::section_style( $props ),
+				'class' => 'm-cg is-theme-' . $theme . $lineas[0],
+				'style' => $lineas[1] . self::col_vars( $props, 3, 2, 1 ) . self::section_style( $props ),
 			]
 		);
 	}

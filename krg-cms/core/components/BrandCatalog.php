@@ -296,6 +296,7 @@ class BrandCatalog {
 					'iconId'    => 0,
 					'iconCount' => 3,
 					'imageId'   => 0,
+					'bgScope'   => 'block',
 					'bgFit'     => 'cover',
 					'bgPosition'=> 'center',
 					'blend'     => 'normal',
@@ -317,13 +318,28 @@ class BrandCatalog {
 					self::f( 'iconCount', 'number', 'design', __( 'Iconos antes del titular', 'meridian' ), [ 'min' => 0, 'max' => 6 ] ),
 					self::f( 'imageId', 'image', 'content', __( 'Imagen de fondo', 'meridian' ), [ 'help' => __( 'Cubre toda la sección, por detrás del texto.', 'meridian' ) ] ),
 					self::f(
+						'bgScope',
+						'select',
+						'design',
+						__( 'La imagen cubre', 'meridian' ),
+						[
+							'options' => [
+								[ 'value' => 'block',   'label' => __( 'Solo este bloque', 'meridian' ) ],
+								[ 'value' => 'section', 'label' => __( 'Toda la sección', 'meridian' ) ],
+							],
+							'help'    => __( 'Con «toda la sección» la foto se extiende al fondo de la sección entera, por detrás de todo lo que haya en ella. En ese modo el color propio del bloque se aparta para no taparla.', 'meridian' ),
+						]
+					),
+					self::f(
 						'bgFit',
 						'select',
 						'design',
 						__( 'Ajuste de la imagen', 'meridian' ),
 						[
-							'options' => [ 'cover', 'contain' ],
-							'help'    => __( '«cover» la estira hasta cubrirlo todo (recorta lo que sobre); «contain» la enseña entera.', 'meridian' ),
+							'options' => [
+								[ 'value' => 'cover',   'label' => __( 'Cubrir (recorta lo que sobre)', 'meridian' ) ],
+								[ 'value' => 'contain', 'label' => __( 'Caber entera', 'meridian' ) ],
+							],
 						]
 					),
 					self::f(
@@ -331,7 +347,15 @@ class BrandCatalog {
 						'select',
 						'design',
 						__( 'Parte de la imagen que manda', 'meridian' ),
-						[ 'options' => [ 'center', 'top', 'bottom', 'left', 'right' ] ]
+						[
+							'options' => [
+								[ 'value' => 'center', 'label' => __( 'Centro', 'meridian' ) ],
+								[ 'value' => 'top',    'label' => __( 'Arriba', 'meridian' ) ],
+								[ 'value' => 'bottom', 'label' => __( 'Abajo', 'meridian' ) ],
+								[ 'value' => 'left',   'label' => __( 'Izquierda', 'meridian' ) ],
+								[ 'value' => 'right',  'label' => __( 'Derecha', 'meridian' ) ],
+							],
+						]
 					),
 					self::f(
 						'blend',
@@ -366,6 +390,10 @@ class BrandCatalog {
 			self::f( 'category', 'text', 'content', __( 'Categoría / etiqueta', 'meridian' ) ),
 			self::f( 'text', 'textarea', 'content', __( 'Descripción', 'meridian' ) ),
 			self::f( 'imageId', 'image', 'content', __( 'Imagen', 'meridian' ) ),
+			// No se pinta en el panel (el selector de imagen la escribe
+			// solo), pero tiene que estar declarada para que el guardado
+			// la conserve: es la miniatura de la ficha en la lista.
+			self::f( 'imageUrl', 'url', 'content', __( 'URL de la foto', 'meridian' ) ),
 			self::f( 'alt', 'text', 'content', __( 'Texto alternativo', 'meridian' ) ),
 			self::f( 'linkText', 'text', 'content', __( 'Texto del enlace', 'meridian' ) ),
 			self::f( 'url', 'url', 'content', __( 'URL', 'meridian' ) ),
@@ -393,6 +421,8 @@ class BrandCatalog {
 					'layout'    => 'rail',
 					'cardStyle' => 'soft',
 					'arrows'    => true,
+					'titleLines'=> 0,
+					'textLines' => 0,
 					'theme'     => 'cream',
 					'items'     => [
 						[ 'title' => 'Producto uno', 'linkText' => 'Ver más', 'url' => '#', 'category' => '', 'text' => '', 'imageId' => 0, 'alt' => '', 'badge' => '' ],
@@ -407,6 +437,18 @@ class BrandCatalog {
 						self::f( 'layout', 'select', 'design', __( 'Disposición', 'meridian' ), [ 'options' => [ 'rail', 'grid' ] ] ),
 						self::f( 'cardStyle', 'select', 'design', __( 'Estilo de tarjeta', 'meridian' ), [ 'options' => [ 'soft', 'outline', 'bare' ] ] ),
 						self::f( 'arrows', 'toggle', 'design', __( 'Flechas de navegación', 'meridian' ) ),
+						self::f( 'titleLines', 'number', 'design', __( 'Líneas del título (0 = las que haga falta)', 'meridian' ), [ 'min' => 0, 'max' => 4 ] ),
+						self::f(
+							'textLines',
+							'number',
+							'design',
+							__( 'Líneas de la descripción (0 = todas)', 'meridian' ),
+							[
+								'min'  => 0,
+								'max'  => 8,
+								'help' => __( 'Recorta las descripciones a ese número de líneas y reserva el hueco, así todas las tarjetas empiezan y acaban a la misma altura aunque unos productos tengan más texto que otros.', 'meridian' ),
+							]
+						),
 						self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'surface', 'forest', 'light' ] ] ),
 						...self::color_fields(),
 							self::f( 'items', 'repeater', 'content', __( 'Productos', 'meridian' ), [ 'itemFields' => $card_item ] ),
@@ -432,6 +474,8 @@ class BrandCatalog {
 					'mobile'    => 1,
 					'cardStyle' => 'overlay',
 					'ratio'     => 'portrait',
+					'titleLines'=> 0,
+					'textLines' => 0,
 					'theme'     => 'cream',
 					'items'     => [
 						[ 'category' => 'Categoría', 'title' => 'Título de la tarjeta', 'url' => '#', 'imageId' => 0, 'alt' => '', 'text' => '', 'linkText' => '', 'badge' => '' ],
@@ -445,6 +489,18 @@ class BrandCatalog {
 					[
 						self::f( 'cardStyle', 'select', 'design', __( 'Estilo de tarjeta', 'meridian' ), [ 'options' => [ 'overlay', 'stacked', 'outline' ] ] ),
 						self::f( 'ratio', 'select', 'design', __( 'Proporción de imagen', 'meridian' ), [ 'options' => [ 'portrait', 'square', 'landscape' ] ] ),
+						self::f( 'titleLines', 'number', 'design', __( 'Líneas del título (0 = las que haga falta)', 'meridian' ), [ 'min' => 0, 'max' => 4 ] ),
+						self::f(
+							'textLines',
+							'number',
+							'design',
+							__( 'Líneas de la descripción (0 = todas)', 'meridian' ),
+							[
+								'min'  => 0,
+								'max'  => 8,
+								'help' => __( 'Recorta las descripciones a ese número de líneas y reserva el hueco, así todas las tarjetas empiezan y acaban a la misma altura aunque unos productos tengan más texto que otros.', 'meridian' ),
+							]
+						),
 						self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'surface', 'forest', 'light' ] ] ),
 						...self::color_fields(),
 							self::f( 'items', 'repeater', 'content', __( 'Tarjetas', 'meridian' ), [ 'itemFields' => $card_item ] ),
