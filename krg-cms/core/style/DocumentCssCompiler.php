@@ -224,6 +224,45 @@ class DocumentCssCompiler {
 		return [ $desktop, $tablet, $mobile ];
 	}
 
+	/**
+	 * Estilos de un nodo listos para el atributo `style` del elemento.
+	 *
+	 * Por que en linea y no solo en la hoja del documento: la hoja viaja
+	 * aparte (`wp_add_inline_style`), y cualquier capa intermedia que
+	 * agrupe, cachee o reordene el CSS puede dejarla vieja o fuera. Lo
+	 * que el usuario escribe en el panel es justo lo que no puede
+	 * perderse, asi que viaja pegado al elemento. La hoja sigue
+	 * compilandose igual —dice lo mismo y cubre lo que no pasa por
+	 * `wrap()`—, y los tamanos tablet y movil siguen siendo reglas con
+	 * `@media`, que en linea no caben.
+	 *
+	 * Solo el tamano base (escritorio). Las declaraciones que apuntan a
+	 * los hijos (titulares, imagenes) se quedan en la hoja.
+	 */
+	public static function inline_styles( array $node ): string {
+		$styles = $node['styles']['desktop'] ?? [];
+		if ( ! is_array( $styles ) || ! $styles ) {
+			return '';
+		}
+		$decls = [];
+		foreach ( $styles as $p => $v ) {
+			$prop = strtolower( (string) $p );
+			if ( ! in_array( $prop, self::STYLE_PROPS, true ) ) {
+				continue;
+			}
+			$val = self::safe_value( (string) $v );
+			if ( '' === $val ) {
+				continue;
+			}
+			$decls[] = $prop . ':' . $val;
+		}
+		if ( ( $styles['text-align'] ?? '' ) === 'center' ) {
+			$decls[] = 'margin-left:auto';
+			$decls[] = 'margin-right:auto';
+		}
+		return $decls ? implode( ';', $decls ) : '';
+	}
+
 	private static function push_styles( string $sel, array $styles, array &$bucket ): void {
 		if ( ! $styles ) {
 			return;

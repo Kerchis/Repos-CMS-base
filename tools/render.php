@@ -940,6 +940,22 @@ $cases = [
 		return documento( [ arbol( [ 'width' => 'full' ], [ $cta ] ) ] );
 	},
 
+	'estilos-seccion-cta-relleno' => function () {
+		$cta = node( 'statement-cta', [ 'title' => 'Reserva gratis', 'buttonText' => 'Hablemos', 'theme' => 'forest' ], 'ctaX' );
+		$sec = arbol( [ 'width' => 'full' ], [ $cta ], 'secX' );
+		$sec['styles'] = [
+			'desktop' => [
+				'padding-top'    => '60px',
+				'padding-bottom' => '60px',
+				'padding-left'   => '80px',
+				'padding-right'  => '80px',
+				'margin-top'     => '40px',
+				'background'     => '#D94E27',
+			],
+		];
+		return documento( [ $sec ] );
+	},
+
 ];
 
 $want = $argv[1] ?? '';

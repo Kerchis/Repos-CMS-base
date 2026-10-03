@@ -124,7 +124,13 @@ Convenciones de marcado:
   propia clase de tema las vuelve a declarar sobre sí mismo, así que no se
   contaminan;
 - cada componente emite `m-c-{tipo} m-n-{id}` (de `RenderContext::node_class()`),
-  lo que permite estilos por nodo desde el inspector sin CSS inline;
+  que es el enganche de los estilos por nodo del inspector;
+- esos estilos salen **dos veces a propósito**: el tamaño base, en el atributo
+  `style` del elemento (`DocumentCssCompiler::inline_styles()`, aplicado en
+  `ComponentRenders::wrap()`), y todos los tamaños en la hoja del documento
+  con `!important`. La hoja viaja aparte y puede llegar vieja o no llegar
+  —caches y plugins que agrupan CSS—; el atributo viaja pegado al HTML. Dicen
+  lo mismo, así que no compiten, y tablet/móvil siguen pudiendo pisar al base;
 - el contenido se escapa en el punto de salida (`esc_html`, `esc_attr`, `esc_url`);
   el richtext pasa por `Sanitizer::richtext()`.
 

@@ -36,11 +36,18 @@ const leer = (sel, prop) =>
     return cs.getPropertyValue(p).trim();
   }, [sel, prop]);
 
-async function caso(nombre, comprobaciones) {
-  const file = pagina(`estilos-${nombre}`, render(nombre));
+async function caso(nombre, comprobaciones, { sinHoja = false } = {}) {
+  // `sinHoja` quita la hoja de estilos del documento para comprobar que
+  // lo escrito en el panel sigue en pie aunque esa hoja no llegue
+  // (cache del hosting, plugins que agrupan y minifican CSS...).
+  let markup = render(nombre);
+  if (sinHoja) {
+    markup = markup.replace(/<style id="krg-doc-css">[\s\S]*?<\/style>/, '');
+  }
+  const file = pagina(`estilos-${nombre}${sinHoja ? '-sin-hoja' : ''}`, markup);
   await page.goto('file://' + file);
   await page.waitForTimeout(60);
-  console.log(`\n${nombre}`);
+  console.log(`\n${nombre}${sinHoja ? ' (sin la hoja del documento)' : ''}`);
   for (const [sel, prop, esperado] of comprobaciones) {
     const real = await leer(sel, prop);
     const bien = typeof esperado === 'function' ? esperado(real) : String(real) === String(esperado);
@@ -68,6 +75,22 @@ await caso('estilos-relleno-seccion-carta', [
   ['.m-n-sec3', 'padding-top', '40px'],
   ['.m-n-sec3', 'padding-bottom', '40px'],
 ]);
+
+// Sección con relleno, margen y fondo propios alrededor de un bloque que
+// trae su propio tema: es el caso que parecía no funcionar.
+const seccionConCta = [
+  ['.m-n-secX', 'padding-top', '60px'],
+  ['.m-n-secX', 'padding-bottom', '60px'],
+  ['.m-n-secX', 'padding-left', '80px'],
+  ['.m-n-secX', 'padding-right', '80px'],
+  ['.m-n-secX', 'margin-top', '40px'],
+  ['.m-n-secX', 'background-color', 'rgb(217, 78, 39)'],
+  // El bloque conserva el suyo: por eso el de la sección sólo asoma por
+  // el relleno.
+  ['.m-sc', 'background-color', 'rgb(63, 94, 88)'],
+];
+await caso('estilos-seccion-cta-relleno', seccionConCta);
+await caso('estilos-seccion-cta-relleno', seccionConCta, { sinHoja: true });
 
 /* ------------------------------------------------------------------ */
 /* 2. Alineación vertical dentro de una sección con alto              */

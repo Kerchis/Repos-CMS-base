@@ -1603,9 +1603,34 @@
     </div>`;
   }
 
-  function panelBg(st) {
+  /** Bloques de dentro que pintan su propio fondo y taparian el de aqui. */
+  function blockingBg(node) {
+    const out = [];
+    const walk = (n) => {
+      (n.children || []).forEach((c) => {
+        const def = defOf(c.type);
+        const tiene = (def?.fields || []).some((f) => f.key === "theme" || f.key === "bgColor");
+        if (tiene) out.push({ id: c.id, name: c.name || def?.name || c.type });
+        walk(c);
+      });
+    };
+    walk(node || {});
+    return out;
+  }
+
+  function panelBg(st, node) {
+    // El fondo de una seccion se ve por donde el contenido no llega. Si
+    // dentro hay un bloque que pinta el suyo de borde a borde, lo tapa
+    // entero y parece que el campo no hace nada: de ahi el aviso y el
+    // atajo al bloque, que es donde esta el color que se ve.
+    const tapan = node ? blockingBg(node) : [];
+    const aviso = tapan.length
+      ? `<p class="m-muted">Ojo: <strong>${esc(tapan[0].name)}</strong> pinta su propio fondo y ocupa toda la sección, así que la tapa. Este color sólo asomará por el relleno o el margen que dejes. Para cambiar el color que se ve, abre el bloque → Colores.</p>
+         <button type="button" class="m-btn ghost" data-sel="${tapan[0].id}">Ir a ${esc(tapan[0].name)}</button>`
+      : "";
     return `<div class="acc"><h5>Fondo</h5>
       ${window.KrgUi.colorField("Color de fondo", st.background || "", 'data-style="background"')}
+      ${aviso}
     </div>`;
   }
   function panelAdvanced(node) {
@@ -1770,7 +1795,7 @@
       ${panelShadow(st)}
       ${panelFilters(node)}
       ${panelAnim(node)}
-      ${panelBg(st)}`;
+      ${panelBg(st, node)}`;
     const advanced = panelAdvanced(node);
     const body = tab === "design" ? design : tab === "advanced" ? advanced : content;
     return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
@@ -1843,7 +1868,7 @@
         <label>Tablet <input type="number" data-prop="tablet" min="1" max="4" value="${esc(p.tablet ?? 2)}"></label>
         <label>Móvil <input type="number" data-prop="mobile" min="1" max="2" value="${esc(p.mobile ?? 1)}"></label>
       </div>` : ""}
-      ${panelSpacing(st)}${panelBorder(st)}${panelBg(st)}`;
+      ${panelSpacing(st)}${panelBorder(st)}${panelBg(st, node)}`;
     const body = tab === "design" ? design : tab === "advanced" ? panelAdvanced(node) : content;
     return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
       <div class="acc"><h5>Galería</h5><p class="m-muted">Carrusel o cuadrícula</p></div>
@@ -1897,7 +1922,7 @@
         <label>Repetir <input type="checkbox" data-prop="loop" ${p.loop !== false ? "checked" : ""}></label>
         ${propRange("Volumen inicial (tras activar sonido)", "volume", p.volume ?? 70, 0, 100, "%")}
       </div>
-      ${panelSpacing(st)}${panelBg(st)}`;
+      ${panelSpacing(st)}${panelBg(st, node)}`;
     const body = tab === "design" ? design : tab === "advanced" ? panelAdvanced(node) : content;
     return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
       <div class="acc"><h5>Video</h5><p class="m-muted">Enlace o archivo, sin visor descargable</p></div>
@@ -1927,7 +1952,7 @@
         </select></label>
         ${Number(val) > 0 ? `<p class="m-muted">Shortcode: [everest_form id="${esc(val)}"]</p>` : `<p class="m-muted">Elige el formulario que ya tenías en el plugin. Se muestra en esta página tal cual.</p>`}` : ""}
       </div>`;
-    const design = `${panelAlign(node)}${panelSpacing(st)}${panelBg(st)}`;
+    const design = `${panelAlign(node)}${panelSpacing(st)}${panelBg(st, node)}`;
     const body = tab === "design" ? design : tab === "advanced" ? panelAdvanced(node) : content;
     return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
       <div class="acc"><h5>Everest Forms</h5><p class="m-muted">Inserta un formulario del plugin</p></div>
@@ -1966,7 +1991,7 @@
           ${seg("tag", p.tag || "h2", ["h1", "h2", "h3", "h4", "h5", "h6"].map((v) => ({ v, l: v.toUpperCase() })), "data-prop-set")}
         </div>`
       : "";
-    const design = `${panelAlign(node)}${headingBlock}${panelTypography(st)}${panelTextSize(st)}${panelSpacing(st)}${panelBorder(st)}${panelShadow(st)}${panelFilters(node)}${panelAnim(node)}${panelBg(st)}`;
+    const design = `${panelAlign(node)}${headingBlock}${panelTypography(st)}${panelTextSize(st)}${panelSpacing(st)}${panelBorder(st)}${panelShadow(st)}${panelFilters(node)}${panelAnim(node)}${panelBg(st, node)}`;
     const body = tab === "design" ? design : tab === "advanced" ? panelAdvanced(node) : content;
     return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
       <div class="acc"><h5>${esc(def.name || node.type)}</h5><p class="m-muted">Ajustes de texto</p></div>
@@ -2010,7 +2035,7 @@
       </div>`;
     }
     const extra = node.type === "section" ? panelSection(node) : "";
-    const design = `${extra}${panelAlign(node)}${panelSpacing(st)}${panelBorder(st)}${panelBg(st)}${panelAnim(node)}`;
+    const design = `${extra}${panelAlign(node)}${panelSpacing(st)}${panelBorder(st)}${panelBg(st, node)}${panelAnim(node)}`;
     const body = tab === "design" ? design : tab === "advanced" ? panelAdvanced(node) : content;
     return `<div class="acc"><h5>Página</h5>${pageFields()}</div>
       <div class="acc"><h5>${esc(def.name || node.type)}</h5><p class="m-muted">${esc(node.name || node.type)}</p></div>

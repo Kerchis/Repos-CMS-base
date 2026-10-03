@@ -59,6 +59,14 @@ class ComponentRenders {
 		} elseif ( empty( $attrs['id'] ) && ! empty( $node['props']['htmlId'] ) ) {
 			$attrs['id'] = sanitize_html_class( (string) $node['props']['htmlId'] );
 		}
+		// Lo que el usuario escribio en el panel de diseno, pegado al
+		// elemento: va al final, asi que gana a lo que el propio bloque
+		// hubiera puesto en el atributo (un fondo de seccion, una
+		// variable de columnas) sin necesidad de `!important`.
+		$own = \Meridian\Style\DocumentCssCompiler::inline_styles( $node );
+		if ( '' !== $own ) {
+			$attrs['style'] = trim( trim( (string) ( $attrs['style'] ?? '' ), ';' ) . ';' . $own, ';' );
+		}
 		$extra = '';
 		foreach ( $attrs as $k => $v ) {
 			if ( $v === '' || $v === null ) {

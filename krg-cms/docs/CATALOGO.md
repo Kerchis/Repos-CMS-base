@@ -289,6 +289,18 @@ partido, reseñas, CTA, acordeón, hitos y colección filtrable).
 
 ## 5. Mejoras del editor y del admin
 
+- **Lo que escribes en el panel viaja con el HTML.** Relleno, margen, fondo
+  y demás estilos del tamaño base se emiten además en el atributo `style`
+  del propio elemento, no sólo en la hoja de estilos del documento. Esa hoja
+  se añade con `wp_add_inline_style`, así que cualquier capa intermedia que
+  agrupe, minifique o cachee CSS podía dejarla vieja o fuera: el ajuste se
+  guardaba bien y no se veía. Los tamaños tablet y móvil siguen siendo
+  reglas con `@media` (en línea no caben) y mandan sobre el base.
+- **Aviso cuando el fondo de la sección queda tapado.** El fondo de una
+  sección sólo se ve por donde el contenido no llega. Si dentro hay un
+  bloque con tema propio (que ocupa la sección entera), lo tapa y parece que
+  el campo no hace nada. El panel lo dice y ofrece un botón para saltar al
+  bloque, que es donde está el color que se ve.
 - **Colores propios en cada bloque de marca, por encima del «Tema»**. Los
   veinte bloques traen «Color de fondo» y «Color del texto» en el grupo
   *Colores*. El tema sigue siendo el atajo (cinco juegos coherentes) pero deja
