@@ -506,6 +506,13 @@ class BrandRenders {
 		$align   = self::align( $props['align'] ?? 'center', 'center' );
 		$overlay = max( 0, min( 90, absint( $props['overlay'] ?? 40 ) ) );
 		$bg      = absint( $props['imageId'] ?? 0 );
+		$fit     = self::opt( $props['bgFit'] ?? 'cover', [ 'cover', 'contain' ], 'cover' );
+		$pos     = self::opt( $props['bgPosition'] ?? 'center', [ 'center', 'top', 'bottom', 'left', 'right' ], 'center' );
+		$blend   = self::opt(
+			$props['blend'] ?? 'normal',
+			[ 'normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard-light', 'darken', 'lighten', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity' ],
+			'normal'
+		);
 		$icon    = absint( $props['iconId'] ?? 0 );
 		$n_icons = max( 0, min( 6, absint( $props['iconCount'] ?? 0 ) ) );
 
@@ -520,7 +527,9 @@ class BrandRenders {
 
 		$inner = '';
 		if ( $bg ) {
-			$inner .= '<div class="m-sc-media" aria-hidden="true">' . self::media( $ctx, $bg, '', 'm-sc-bg', 'full' ) . '<span class="m-sc-veil" style="opacity:' . ( $overlay / 100 ) . '"></span></div>';
+			$inner .= '<div class="m-sc-media" aria-hidden="true">'
+				. self::media( $ctx, $bg, '', 'm-sc-bg', 'full' )
+				. '<span class="m-sc-veil" style="opacity:' . ( $overlay / 100 ) . '"></span></div>';
 		}
 		$body = '<div class="m-container m-sc-inner is-align-' . $align . '">';
 		if ( ! empty( $props['eyebrow'] ) ) {
@@ -535,16 +544,30 @@ class BrandRenders {
 		}
 		$body .= '</div>';
 
+		// La imagen de fondo: como se encaja, por donde se recorta y con
+		// que se mezcla. Son variables, no clases sueltas, para que el
+		// lienzo pueda cambiarlas en vivo sin repintar el bloque.
+		$vars = '';
+		if ( $bg ) {
+			$vars = '--m-sc-fit:' . $fit . ';--m-sc-pos:' . $pos . ';--m-sc-blend:' . $blend . ';';
+		}
+		$attrs = array_merge(
+			[ 'class' => 'm-sc is-theme-' . $theme . ( $bg ? ' has-media' : '' ) ],
+			self::style_attr( $props, $vars )
+		);
+		// El parallax solo tiene sentido si hay foto, y el motor es el
+		// mismo que el de la galeria: mismos atributos, mismo guion.
+		if ( $bg ) {
+			$attrs = ComponentRenders::parallax_attrs( $props, $attrs );
+		}
+
 		return ComponentRenders::wrap(
 			$node,
 			$ctx,
 			'div',
 			$inner . $body,
 			array_merge(
-				array_merge(
-					[ 'class' => 'm-sc is-theme-' . $theme . ( $bg ? ' has-media' : '' ) ],
-					self::style_attr( $props )
-				),
+				$attrs,
 				$bg ? [ 'data-header-skin' => 'light' ] : self::skin( $theme )
 			)
 		);

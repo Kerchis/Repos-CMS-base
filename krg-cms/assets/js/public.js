@@ -126,10 +126,13 @@
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const coarse = window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 768;
-  const pxBoxes = Array.from(document.querySelectorAll(".m-figure.is-parallax, .m-gallery.is-parallax"));
+  const pxBoxes = Array.from(document.querySelectorAll(".m-figure.is-parallax, .m-gallery.is-parallax, .m-sc.is-parallax"));
   const pxActive = new Set();
   let pxTick = false;
   const pxImgs = (box) => {
+    // El CTA display tiene tambien iconos y no se pueden mover: solo la
+    // foto de fondo.
+    if (box.classList.contains("m-sc")) return box.querySelectorAll(".m-sc-bg");
     if (box.classList.contains("m-gallery")) {
       if (box.classList.contains("is-grid")) return box.querySelectorAll("img");
       return box.querySelectorAll(".m-gallery-slide.is-on img");

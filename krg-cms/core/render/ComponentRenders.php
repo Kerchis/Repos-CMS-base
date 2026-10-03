@@ -115,6 +115,35 @@ class ComponentRenders {
 		return '<a class="m-btn m-btn-' . $variant . '" href="' . esc_url( $url ) . '"' . $target . $rel . '>' . $text . '</a>';
 	}
 
+	/**
+	 * Los atributos del parallax, en un solo sitio.
+	 *
+	 * El motor de `public.js` lee `data-parallax-zoom|amount|dir` de la
+	 * caja y `--m-px-zoom` para la ampliacion de partida. Lo usaban la
+	 * imagen y la galeria con dos copias identicas; a la tercera (el CTA
+	 * display) se consolida, que es lo contrario de hacer un sistema
+	 * nuevo para cada bloque.
+	 *
+	 * Devuelve los atributos ya mezclados: clase con `is-parallax` y el
+	 * `style` con la variable anadida detras de lo que ya hubiera.
+	 */
+	public static function parallax_attrs( array $props, array $attrs ): array {
+		if ( empty( $props['parallax'] ) ) {
+			return $attrs;
+		}
+		$zoom   = max( 0, min( 40, (int) ( $props['parallaxZoom'] ?? 8 ) ) );
+		$amount = max( 0, min( 40, (int) ( $props['parallaxAmount'] ?? 10 ) ) );
+		$style  = (string) ( $attrs['style'] ?? '' );
+		$px     = '--m-px-zoom:' . ( 1 + ( $zoom / 100 ) );
+
+		$attrs['class']                = trim( (string) ( $attrs['class'] ?? '' ) . ' is-parallax' );
+		$attrs['style']                = '' === $style ? $px : rtrim( $style, ';' ) . ';' . $px;
+		$attrs['data-parallax-zoom']   = (string) $zoom;
+		$attrs['data-parallax-amount'] = (string) $amount;
+		$attrs['data-parallax-dir']    = ! empty( $props['parallaxInvert'] ) ? '-1' : '1';
+		return $attrs;
+	}
+
 	public static function img( RenderContext $ctx, int $id, string $alt = '', string $class = '', string $size = 'large', bool $eager = false ): string {
 		if ( ! $id ) {
 			return '<div class="m-img-placeholder" aria-hidden="true"></div>';
@@ -514,15 +543,9 @@ class ComponentRenders {
 			$attrs['style'] = $style;
 		}
 		if ( ! empty( $props['parallax'] ) ) {
-			$class .= ' is-parallax';
-			$zoom   = max( 0, min( 40, (int) ( $props['parallaxZoom'] ?? 8 ) ) );
-			$amount = max( 0, min( 40, (int) ( $props['parallaxAmount'] ?? 10 ) ) );
-			$attrs['class']                = $class;
-			$attrs['data-parallax-zoom']   = (string) $zoom;
-			$attrs['data-parallax-amount'] = (string) $amount;
-			$attrs['data-parallax-dir']    = ! empty( $props['parallaxInvert'] ) ? '-1' : '1';
-			$px                            = '--m-px-zoom:' . ( 1 + ( $zoom / 100 ) );
-			$attrs['style']                = $style ? ( $style . ';' . $px ) : $px;
+			$attrs['class'] = $class;
+			$attrs          = self::parallax_attrs( $props, $attrs );
+			$class          = $attrs['class'];
 		}
 		if ( ! empty( $props['centerOnMobile'] ) ) {
 			$class .= ' m-img-center-m';
@@ -582,15 +605,7 @@ class ComponentRenders {
 			'style'    => $style,
 			'tabindex' => '0',
 		];
-		if ( ! empty( $props['parallax'] ) ) {
-			$zoom   = max( 0, min( 40, (int) ( $props['parallaxZoom'] ?? 8 ) ) );
-			$amount = max( 0, min( 40, (int) ( $props['parallaxAmount'] ?? 10 ) ) );
-			$attrs['class']                .= ' is-parallax';
-			$attrs['data-parallax-zoom']    = (string) $zoom;
-			$attrs['data-parallax-amount']  = (string) $amount;
-			$attrs['data-parallax-dir']     = ! empty( $props['parallaxInvert'] ) ? '-1' : '1';
-			$attrs['style']                .= ';--m-px-zoom:' . ( 1 + ( $zoom / 100 ) );
-		}
+		$attrs = self::parallax_attrs( $props, $attrs );
 		if ( 'carousel' === $layout ) {
 			$attrs['data-gallery'] = '1';
 			$attrs['data-keys']    = ( ! isset( $props['keyboard'] ) || ! empty( $props['keyboard'] ) ) ? '1' : '0';

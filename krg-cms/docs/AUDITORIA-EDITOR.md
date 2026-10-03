@@ -971,3 +971,89 @@ exactamente lo que contaba el usuario— y el foco se quedaba en `BODY`.
 Barrido completo en verde: lint 61 · guardado 63 · tokens 32 · estilos 82 ·
 panel 35 · lienzo 37 · matriz 91 · caja 72 · inspector 77 · **chrome 33** ·
 cortina 83 · motor 58 · estirar 18 · **carta 113** · vacías · preview.
+
+
+---
+
+# Parte 11 — El fondo del «CTA display»
+
+## 51. Qué había y qué faltaba
+
+Antes de tocar nada: el bloque **ya tenía** «Imagen de fondo» y la foto
+**ya cubría** el bloque entero —se midió: capa, foto y bloque dan la misma
+caja, 1240×451 en una sección con sangrado y la pantalla completa en una a
+todo lo ancho—. Lo que no existía era el **parallax** y los **modos de
+fusión**, y faltaban dos controles de encuadre.
+
+Lo añadido:
+
+| Campo | Grupo | Qué hace |
+|---|---|---|
+| `bgFit` | Diseño | `cover` (cubre, recorta lo que sobre) o `contain` (la enseña entera) |
+| `bgPosition` | Diseño | qué parte manda al recortar: centro, arriba, abajo, izquierda, derecha |
+| `blend` | Colores | 14 modos de fusión con el color de fondo del bloque |
+| `parallax` + `parallaxZoom` + `parallaxAmount` + `parallaxInvert` | Diseño | los mismos cuatro de la galería, con los mismos nombres y rangos |
+
+## 52. Parallax: el mismo motor, no otro
+
+`public.js` ya tenía un motor de parallax que lee `data-parallax-zoom`,
+`-amount` y `-dir` de la caja y `--m-px-zoom` para la ampliación de partida.
+Se le añadieron **dos líneas**: el selector incluye `.m-sc.is-parallax`, y
+`pxImgs()` devuelve `.m-sc-bg` para este bloque —si devolviera todas las
+imágenes movería también los iconos del titular, que se comprueba que
+siguen quietos—.
+
+En PHP, los atributos del parallax estaban **copiados dos veces** (imagen y
+galería). A la tercera se consolidaron en
+`ComponentRenders::parallax_attrs()`, que ahora usan los tres. Verificado
+que la salida de imagen y galería es la misma que antes: solo cambia el
+orden del atributo `style` respecto a los `data-*`, ninguna declaración.
+
+## 53. Fusión: dónde va la `mix-blend-mode`
+
+La trampa: `.m-sc-media` lleva `z-index:-1` para quedarse detrás del texto,
+y **un elemento posicionado con z-index crea su propio contexto de
+apilado**. Una `mix-blend-mode` puesta en la imagen solo se mezclaría con su
+capa —transparente— y no haría absolutamente nada; se vería igual con
+`multiply` que sin él.
+
+Va, por tanto, **en la capa** (`.m-sc-media`), cuyo telón sí es el fondo del
+bloque gracias al `isolation: isolate` que `.m-sc` ya tenía. Así `multiply`
+tiñe la foto con el color del bloque y `luminosity` la deja en blanco y
+negro sobre ese color. La veladura entra en la mezcla: con ella a 0 % se ve
+la fusión pura.
+
+## 54. En el lienzo, al momento
+
+`paintLiveCss()` gana una rama para `statement-cta` —hermana de la que ya
+tenía la galería— que escribe `--m-sc-fit`, `--m-sc-pos`, `--m-sc-blend`,
+la opacidad de la veladura y la clase `is-parallax` **en el elemento**. En
+el elemento y no en la hoja en vivo porque el servidor también las pinta en
+línea, y un estilo en línea le gana a cualquier hoja.
+
+## 55. Pruebas
+
+Banco nuevo, `tools/prueba-cta.mjs` (**34**), porque esto es un bloque con
+CSS, JS y panel y no cabía en ninguno de los otros:
+
+- la capa y la foto miden exactamente lo que el bloque, y en una sección a
+  todo lo ancho eso es la pantalla entera;
+- `contain` y el anclaje salen del panel (`object-fit` / `object-position`
+  calculados);
+- `multiply`, `screen` y `luminosity` llegan al navegador; un valor
+  inventado vuelve a `normal`; sin foto no se pinta capa;
+- el parallax marca la clase, pasa los tres ajustes, **mueve la foto al
+  rodar** y deja los iconos quietos; invertir cambia el signo del
+  desplazamiento al mismo scroll;
+- el panel ofrece los campos donde se buscan (fusión en «Colores»), el
+  lienzo lo enseña sin guardar, y lo tocado viaja en el POST y vuelve tras
+  recargar el editor.
+
+Verificado al revés con los seis archivos de la versión anterior: **12
+comprobaciones fallan** (encaje, anclaje, las tres fusiones y todo el
+parallax).
+
+Barrido completo en verde: lint 61 · guardado 63 · tokens 32 · estilos 82 ·
+panel 35 · lienzo 37 · matriz 91 · caja 72 · inspector 77 · chrome 33 ·
+cortina 83 · motor 58 · estirar 18 · carta 113 · **cta 34** · vacías ·
+preview.

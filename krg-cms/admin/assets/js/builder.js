@@ -357,6 +357,40 @@
               }
             }
           }
+          if (n.type === "statement-cta") {
+            // Mismo trato que la galeria: la foto de fondo, su encaje,
+            // la fusion y el parallax se ven en el lienzo sin esperar al
+            // guardado. Las variables van en el elemento porque el
+            // servidor tambien las pinta en linea y un estilo en linea
+            // le gana a cualquier hoja.
+            const els = doc.querySelector(`.m-n-${id}`);
+            if (els) {
+              const hayFoto = !!Number(n.props?.imageId || 0);
+              const fit = n.props?.bgFit === "contain" ? "contain" : "cover";
+              const pos = ["center", "top", "bottom", "left", "right"].includes(n.props?.bgPosition) ? n.props.bgPosition : "center";
+              const blend = n.props?.blend || "normal";
+              els.style.setProperty("--m-sc-fit", hayFoto ? fit : "");
+              els.style.setProperty("--m-sc-pos", hayFoto ? pos : "");
+              els.style.setProperty("--m-sc-blend", hayFoto ? blend : "");
+              const veil = els.querySelector(".m-sc-veil");
+              if (veil) veil.style.opacity = String(Math.max(0, Math.min(90, Number(n.props?.overlay ?? 40))) / 100);
+              const px = hayFoto && !!n.props?.parallax;
+              els.classList.toggle("is-parallax", px);
+              if (px) {
+                const zoom = Math.max(0, Math.min(40, Number(n.props.parallaxZoom ?? 8)));
+                const amount = Math.max(0, Math.min(40, Number(n.props.parallaxAmount ?? 10)));
+                els.setAttribute("data-parallax-zoom", String(zoom));
+                els.setAttribute("data-parallax-amount", String(amount));
+                els.setAttribute("data-parallax-dir", n.props.parallaxInvert ? "-1" : "1");
+                els.style.setProperty("--m-px-zoom", String(1 + zoom / 100));
+              } else {
+                els.removeAttribute("data-parallax-zoom");
+                els.removeAttribute("data-parallax-amount");
+                els.removeAttribute("data-parallax-dir");
+                els.style.removeProperty("--m-px-zoom");
+              }
+            }
+          }
           if (n.type === "video") {
             const h = Math.max(80, Math.min(1200, Number(n.props?.height ?? 420)));
             const w = Math.max(0, Number(n.props?.width ?? 100));

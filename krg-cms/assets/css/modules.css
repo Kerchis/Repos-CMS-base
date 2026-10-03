@@ -551,8 +551,37 @@ body.krg-canvas .m-preloader { position: relative; min-height: 320px; }
 /* ------------------------------------------------------------------ */
 
 .m-sc { overflow: hidden; isolation: isolate; }
-.m-sc-media { position: absolute; inset: 0; z-index: -1; }
-.m-sc-bg { width: 100%; height: 100%; object-fit: cover; }
+/* La capa de fondo: cubre el bloque entero y se mezcla con su color.
+   La fusión va AQUÍ y no en la imagen porque `z-index:-1` convierte esta
+   capa en su propio contexto de apilado: una `mix-blend-mode` puesta en
+   la imagen solo se mezclaría con esta capa (transparente) y no haría
+   nada. Puesta en la capa, el fondo del bloque es el telón —que es lo
+   que se pide— gracias al `isolation: isolate` de arriba. */
+.m-sc-media {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  mix-blend-mode: var(--m-sc-blend, normal);
+}
+.m-sc-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: var(--m-sc-fit, cover);
+  object-position: var(--m-sc-pos, center);
+}
+/* Parallax: mismo motor que la galería (`public.js` escribe el
+   `transform` en línea), así que la ampliación de partida se deja en
+   CSS y el movimiento lo pone el guion. */
+.m-sc.is-parallax .m-sc-bg {
+  transform: translate3d(0, 0, 0) scale(var(--m-px-zoom, 1.08));
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* `!important` con motivo: el guion escribe el transform en el atributo
+     `style`, y desde la hoja no hay otra forma de desactivarlo. Es la
+     misma regla que ya tienen la imagen y la galería. */
+  .m-sc.is-parallax .m-sc-bg { transform: none !important; will-change: auto; }
+}
 .m-sc-veil { position: absolute; inset: 0; background: var(--color-text); }
 .m-sc.has-media { color: var(--color-background); }
 .m-sc-inner { display: grid; gap: var(--spacing-lg, 28px); justify-items: center; }
