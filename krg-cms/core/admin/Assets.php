@@ -18,6 +18,12 @@ class Assets {
 		}
 
 		wp_enqueue_media();
+		// El editor clasico (TinyMCE) para el cuerpo de las entradas.
+		// Sin esto `wp.editor.initialize()` no existe y el panel se queda
+		// con el area de texto de siempre, que es el plan B a proposito.
+		if ( 'krg-blog' === $page ) {
+			wp_enqueue_editor();
+		}
 		wp_enqueue_style( 'krg-admin', MERIDIAN_URI . '/admin/assets/css/admin.css', [], meridian_ver( '/admin/assets/css/admin.css' ) );
 		wp_enqueue_script( 'krg-admin', MERIDIAN_URI . '/admin/assets/js/app.js', [], meridian_ver( '/admin/assets/js/app.js' ), true );
 		// Nucleo del constructor visual: registro de controles e inspector.

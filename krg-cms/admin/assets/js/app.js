@@ -275,7 +275,78 @@
       </nav>
     </aside>`;
 
+  /* ------------------------------------------------------------------ */
+  /* Editor clasico (TinyMCE) para el cuerpo de las entradas.            */
+  /*                                                                      */
+  /* Es el mismo cuadro que trae WordPress: pestanas «Visual» y «Texto»,  */
+  /* barra de formato con el desplegable de parrafo/encabezado y boton    */
+  /* «Anadir multimedia». Lo monta `wp.editor.initialize()`, que solo     */
+  /* existe si la pantalla ha encolado el editor (Assets.php lo hace en   */
+  /* la pagina del blog).                                                 */
+  /*                                                                      */
+  /* Si no estuviera, el area de texto de siempre con su barra de         */
+  /* etiquetas sigue ahi y funciona igual: plan B, no pantalla rota.      */
+  /* ------------------------------------------------------------------ */
+  const EDITOR_RICO = "content";
+  const hayEditorRico = () => !!(window.wp && wp.editor && typeof wp.editor.initialize === "function");
+
+  /**
+   * Avisa cuando `wp.editor` este disponible.
+   *
+   * WordPress imprime el editor por defecto al final del pie, despues de
+   * nuestro script, asi que al abrir la pantalla puede no estar todavia.
+   * Se mira cada 50 ms durante dos segundos como mucho; mientras tanto el
+   * area de texto ya esta escrita y se puede usar.
+   */
+  function cuandoHayaEditor(fn, intentos = 40) {
+    if (hayEditorRico() || intentos <= 0) { fn(hayEditorRico()); return; }
+    setTimeout(() => cuandoHayaEditor(fn, intentos - 1), 50);
+  }
+
+  function montaEditorRico(id) {
+    if (!hayEditorRico()) return false;
+    desmontaEditorRico(id);
+    wp.editor.initialize(id, {
+      tinymce: {
+        wpautop: true,
+        height: 420,
+        toolbar1: "formatselect,bold,italic,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,unlink,wp_more,fullscreen,wp_adv",
+        toolbar2: "strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo",
+      },
+      quicktags: true,
+      mediaButtons: true,
+    });
+    return true;
+  }
+
+  function desmontaEditorRico(id) {
+    if (!window.wp || !wp.editor || typeof wp.editor.remove !== "function") return;
+    try { wp.editor.remove(id); } catch (err) { /* no habia ninguno */ }
+  }
+
+  /** Lo que hay escrito ahora mismo, venga del editor rico o del area. */
+  function contenidoRico(id, campo) {
+    if (window.wp && wp.editor && typeof wp.editor.getContent === "function") {
+      const v = wp.editor.getContent(id);
+      if (typeof v === "string") return v;
+    }
+    return campo ? campo.value : "";
+  }
+
+  // Lo de fuera para que lo use cualquier pantalla del panel (y para que
+  // los bancos puedan montarlo y desmontarlo como lo hace el panel).
+  window.KrgEditor = {
+    id: EDITOR_RICO,
+    hay: hayEditorRico,
+    monta: (id = EDITOR_RICO) => montaEditorRico(id),
+    desmonta: (id = EDITOR_RICO) => desmontaEditorRico(id),
+    contenido: (id = EDITOR_RICO) => contenidoRico(id, document.getElementById(id)),
+  };
+
   const shell = (active, body) => {
+    // Un TinyMCE vivo cuyo textarea desaparece deja al siguiente sin
+    // poder arrancar con el mismo id: se desmonta antes de borrar.
+    desmontaEditorRico(EDITOR_RICO);
     el.innerHTML = `<div class="m-shell">${nav(active)}<div class="m-main-col">${body}</div></div>`;
   };
 
@@ -1640,6 +1711,13 @@
         <label class="m-field">Fecha (programar) <input type="datetime-local" name="date"></label>
       </form>`);
     const ta = el.querySelector("#content");
+    // El cuadro completo, si WordPress lo ha cargado. La barra de
+    // etiquetas de abajo solo tiene sentido sin el.
+    cuandoHayaEditor((hay) => {
+      // Puede haberse ido a otra pantalla mientras se esperaba.
+      if (!hay || !el.contains(ta)) return;
+      if (montaEditorRico(EDITOR_RICO)) el.querySelector("#tb").hidden = true;
+    });
     const wrap = (open, close) => {
       const s = ta.selectionStart, e = ta.selectionEnd;
       const sel = ta.value.slice(s, e) || "texto";
@@ -1691,7 +1769,7 @@
         subtitle: f.subtitle.value,
         slug: f.slug.value,
         excerpt: f.excerpt.value,
-        content: f.content.value,
+        content: contenidoRico(EDITOR_RICO, ta),
         featuredImageId: Number(f.featuredImageId.value || 0),
         categories: cats,
         tags,

@@ -559,7 +559,7 @@ class Controller {
 				'post_type'    => 'post',
 				'post_status'  => $status,
 				'post_title'   => sanitize_text_field( $body['title'] ?? __( 'Sin título', 'meridian' ) ),
-				'post_content' => \Meridian\Security\Sanitizer::richtext( (string) ( $body['content'] ?? '' ) ),
+				'post_content' => \Meridian\Security\Sanitizer::post_content( (string) ( $body['content'] ?? '' ) ),
 				'post_excerpt' => sanitize_textarea_field( $body['excerpt'] ?? '' ),
 			],
 			true
@@ -585,7 +585,7 @@ class Controller {
 		$args = [
 			'ID'           => $id,
 			'post_title'   => sanitize_text_field( $body['title'] ?? '' ),
-			'post_content' => \Meridian\Security\Sanitizer::richtext( (string) ( $body['content'] ?? '' ) ),
+			'post_content' => \Meridian\Security\Sanitizer::post_content( (string) ( $body['content'] ?? '' ) ),
 			'post_excerpt' => sanitize_textarea_field( $body['excerpt'] ?? '' ),
 			'post_status'  => $status,
 			'post_name'    => sanitize_title( $body['slug'] ?? '' ),

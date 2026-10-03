@@ -32,6 +32,7 @@ bash tools/devenv.sh     # PHP 8.3 estático + Chromium + playwright-core en .to
 | `tools/prueba-matriz.mjs` | La matriz del encargo: los tres anchos de sección (full/padded/boxed) × fondo, relleno y margen × escritorio/tableta/móvil × web pública/«Preview»/lienzo, más fila, columna y módulo con caja propia, sección sin nada escrito (manda el token), sección vacía, transparencia y «lo del panel gana al tema» (91). |
 | `tools/prueba-carta.mjs` | La carta de restaurante de punta a punta: el árbol del inspector (categoría → plato → adiciones → fotos), los dos paneles del constructor dentro del admin de WordPress y, en la página pública, la pestaña «Todo» sin adiciones, el símbolo de la moneda, el visor de fotos del plato y que editar no te devuelva al principio de la lista (113). |
 | `tools/prueba-cta.mjs` | El fondo del «CTA display»: la foto cubre el bloque —o la sección entera—, el encaje y el anclaje salen del panel, los modos de fusión llegan al navegador y el parallax mueve la foto —y solo la foto— al rodar (43). |
+| `tools/prueba-articulo.mjs` | La pantalla «Editar entrada»: monta el editor clásico de WordPress (pestañas Visual/Texto y «Añadir multimedia») sobre el campo Contenido, guarda lo que hay **en el editor** y no el área de texto desfasada, lo desmonta al cambiar de pantalla y, si WordPress no lo sirve, deja la pantalla usable con su barra de etiquetas (31). |
 | `tools/prueba-tarjetas.mjs` | El carril de productos: las tarjetas alinean categoría, título y enlace aunque los textos midan distinto, y la lista del panel son fichas plegables con miniatura que se arrastran para ordenar (32). |
 | `tools/prueba-tokens.php` | El token que el tema no puede perder: detecta un `spacing.section` inservible, lo rellena al leer, lo repara una sola vez en la base de datos, no toca jamás un valor del usuario y comprueba que el panel y el CSS dicen lo mismo (32). |
 | `tools/prueba-cortina.mjs` | El motor de secciones con la cortina encendida: siete tipos de sección detrás de una sección cortina × fondo, relleno y margen × tres tamaños × tres modos, con `public.js` y `modules.js` cargados de verdad. Comprueba que la cortina sigue tapando lo transparente y que NO escribe nada sobre las secciones (83). |
@@ -58,6 +59,7 @@ node tools/prueba-estilos.mjs
 node tools/prueba-panel.mjs
 node tools/prueba-inspector.mjs
 node tools/prueba-chrome.mjs
+node tools/prueba-articulo.mjs
 node tools/prueba-lienzo.mjs
 node tools/prueba-matriz.mjs
 .tools/php/php tools/prueba-tokens.php

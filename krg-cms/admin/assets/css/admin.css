@@ -209,6 +209,19 @@
 .m-color { width: 42px; height: 34px; padding: 2px; border: 1px solid var(--m-line); border-radius: 8px; background: #fff; }
 .m-toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .m-toolbar button { font: inherit; font-size: 12px; padding: 4px 8px; border: 1px solid var(--m-line); background: #fff; border-radius: 6px; cursor: pointer; }
+/* El editor clasico de WordPress dentro de un campo del panel.
+   Trae su propio marco (pestanas Visual/Texto y barra de formato), asi
+   que el area de texto de dentro no lleva el borde redondeado que el
+   panel pone a las demas; si no, se ven dos marcos encajados. */
+.m-field .wp-editor-wrap { font-weight: 400; }
+.m-field .wp-editor-wrap textarea.wp-editor-area {
+  border: 1px solid var(--m-line);
+  border-top: 0;
+  border-radius: 0;
+  min-height: 320px;
+}
+.m-field .wp-editor-tools { margin-bottom: 0; }
+
 .m-media-row { display: flex; align-items: center; gap: 12px; }
 .m-thumb { display: block; object-fit: contain; background: #fff; border: 1px solid var(--m-line); border-radius: 8px; }
 .m-thumb-logo { width: 96px; height: 48px; padding: 4px; }

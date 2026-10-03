@@ -379,5 +379,80 @@ foreach ( [ 'onclick', 'style', 'href', 'data-x' ] as $k ) {
 	}
 }
 
+/* ---------------------------------------------------------------- */
+/* El cuerpo de un articulo del blog                                  */
+/*                                                                    */
+/* Lo escribe el editor clasico (TinyMCE) y pasa por                  */
+/* `Sanitizer::post_content()`. Si la lista se quedara corta —como la */
+/* de `richtext()`, pensada para un parrafo de un modulo— una imagen  */
+/* insertada con «Anadir multimedia» desapareceria al guardar sin     */
+/* decir nada.                                                        */
+/* ---------------------------------------------------------------- */
+echo "\n--- El cuerpo de un articulo\n";
+
+$articulo = '<h2 class="titular">Un sitio con alma</h2>'
+	. '<p class="intro">Primer <strong>parrafo</strong> con <em>enfasis</em> y un <a href="https://ejemplo.test/carta">enlace</a>.</p>'
+	. '<figure class="wp-caption alignleft"><img class="wp-image-106 size-large" src="https://ejemplo.test/foto.jpg" alt="La barra" width="1024" height="683">'
+	. '<figcaption class="wp-caption-text">La barra al atardecer</figcaption></figure>'
+	. '<ul><li>Uno</li><li>Dos</li></ul>'
+	. '<table><thead><tr><th scope="col">Plato</th><th>Precio</th></tr></thead><tbody><tr><td colspan="2">Pizza</td></tr></tbody></table>'
+	. '<blockquote cite="https://ejemplo.test">Una cita</blockquote><hr><h3>Un subtitulo</h3>'
+	. '<script>alert(1)</script><p onclick="robar()">Con trampa</p>'
+	. '<iframe src="https://malo.test"></iframe><a href="javascript:alert(1)">no</a>';
+
+$salida = \Meridian\Security\Sanitizer::post_content( $articulo );
+
+$sobrevive = [
+	'<h2 class="titular">'      => 'el encabezado con su clase',
+	'<figure'                    => 'la figura de la imagen',
+	'src="https://ejemplo.test/foto.jpg"' => 'la imagen insertada',
+	'class="wp-image-106 size-large"'     => 'las clases que pone WordPress a la imagen',
+	'<figcaption'                => 'el pie de foto',
+	'width="1024"'               => 'el tamano de la imagen',
+	'<table>'                    => 'la tabla',
+	'scope="col"'                => 'la cabecera de la tabla',
+	'colspan="2"'                => 'las celdas combinadas',
+	'<hr>'                       => 'el separador',
+	'<h3>'                       => 'el subtitulo',
+	'<blockquote'                => 'la cita',
+	'<li>Uno</li>'               => 'la lista',
+	'https://ejemplo.test/carta' => 'el enlace bueno',
+];
+foreach ( $sobrevive as $trozo => $que ) {
+	if ( str_contains( $salida, $trozo ) ) {
+		++$ok;
+		echo "  OK    sobrevive $que\n";
+	} else {
+		++$fallos;
+		echo "  FALLA se pierde $que ($trozo)\n";
+	}
+}
+$fuera = [
+	'<script'    => 'el script',
+	'onclick'    => 'el manejador onclick',
+	'<iframe'    => 'el iframe',
+	'javascript:' => 'el enlace con javascript:',
+];
+foreach ( $fuera as $trozo => $que ) {
+	if ( ! str_contains( $salida, $trozo ) ) {
+		++$ok;
+		echo "  OK    se queda fuera $que\n";
+	} else {
+		++$fallos;
+		echo "  FALLA se cuela $que\n";
+	}
+}
+// El saneador de los modulos NO cambia: sigue siendo la lista corta.
+$corto = \Meridian\Security\Sanitizer::richtext( $articulo );
+foreach ( [ '<img' => 'imagen', '<table' => 'tabla', 'class=' => 'clases' ] as $trozo => $que ) {
+	if ( ! str_contains( $corto, $trozo ) ) {
+		++$ok;
+		echo "  OK    el texto con formato de un modulo sigue sin admitir $que\n";
+	} else {
+		++$fallos;
+		echo "  FALLA richtext() ha cambiado de contrato y admite $que\n";
+	}
+}
+
 echo "\n" . ( $fallos ? "HAY $fallos FALLOS" : 'TODO SOBREVIVE AL GUARDADO (' . $ok . ' comprobaciones)' ) . "\n";
 exit( $fallos ? 1 : 0 );

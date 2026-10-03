@@ -448,6 +448,13 @@ class Sanitizer {
 		];
 	}
 
+	/**
+	 * Texto con formato de un campo del panel (modulos).
+	 *
+	 * Lista corta a proposito: lo que cabe en un parrafo de un modulo.
+	 * Para el cuerpo de un articulo del blog esta `post_content()`, que
+	 * admite ademas imagenes, tablas y encabezados.
+	 */
 	public static function richtext( string $html ): string {
 		$allowed = [
 			'p'          => [],
@@ -469,7 +476,124 @@ class Sanitizer {
 				'target' => true,
 			],
 		];
-		$html = wp_kses( $html, $allowed );
+		return self::safe_hrefs( wp_kses( $html, $allowed ) );
+	}
+
+	/**
+	 * El cuerpo de un articulo del blog.
+	 *
+	 * Lo escribe el editor clasico (TinyMCE) desde el panel, asi que la
+	 * lista tiene que admitir lo que ese editor produce: imagenes y pies
+	 * de foto del boton «Anadir multimedia», encabezados, tablas, listas,
+	 * codigo y las clases de alineacion de WordPress (`alignleft`,
+	 * `wp-image-123`, `size-large`…). Con la lista corta de `richtext()`
+	 * una imagen insertada desaparecia sin avisar al guardar.
+	 *
+	 * Lo que NO entra, y es deliberado: `script`, `style`, `iframe`,
+	 * `object`, `embed`, `form` y cualquier atributo `on*`. Un video de
+	 * YouTube se pega como enlace y WordPress lo convierte solo (oEmbed);
+	 * para incrustar un mapa esta el modulo de mapa, que tiene su propio
+	 * saneador. El filtro de fondo sigue siendo `wp_kses`, que ademas
+	 * limpia los protocolos (`javascript:`) de cualquier URL.
+	 */
+	public static function post_content( string $html ): string {
+		$comun = [
+			'class' => true,
+			'id'    => true,
+			'style' => true,
+			'title' => true,
+			'dir'   => true,
+			'lang'  => true,
+		];
+		$celda = array_merge(
+			$comun,
+			[
+				'colspan' => true,
+				'rowspan' => true,
+				'scope'   => true,
+				'headers' => true,
+			]
+		);
+		$allowed = [
+			'p'          => $comun,
+			'br'         => [],
+			'hr'         => $comun,
+			'strong'     => $comun,
+			'b'          => $comun,
+			'em'         => $comun,
+			'i'          => $comun,
+			'u'          => $comun,
+			's'          => $comun,
+			'del'        => array_merge( $comun, [ 'datetime' => true ] ),
+			'ins'        => array_merge( $comun, [ 'datetime' => true ] ),
+			'mark'       => $comun,
+			'small'      => $comun,
+			'sub'        => $comun,
+			'sup'        => $comun,
+			'abbr'       => array_merge( $comun, [ 'title' => true ] ),
+			'code'       => $comun,
+			'pre'        => $comun,
+			'kbd'        => $comun,
+			'span'       => $comun,
+			'div'        => $comun,
+			'ul'         => $comun,
+			'ol'         => array_merge( $comun, [ 'start' => true, 'reversed' => true, 'type' => true ] ),
+			'li'         => $comun,
+			'dl'         => $comun,
+			'dt'         => $comun,
+			'dd'         => $comun,
+			'blockquote' => array_merge( $comun, [ 'cite' => true ] ),
+			'cite'       => $comun,
+			'h1'         => $comun,
+			'h2'         => $comun,
+			'h3'         => $comun,
+			'h4'         => $comun,
+			'h5'         => $comun,
+			'h6'         => $comun,
+			'figure'     => $comun,
+			'figcaption' => $comun,
+			'img'        => array_merge(
+				$comun,
+				[
+					'src'      => true,
+					'alt'      => true,
+					'width'    => true,
+					'height'   => true,
+					'srcset'   => true,
+					'sizes'    => true,
+					'loading'  => true,
+					'decoding' => true,
+				]
+			),
+			'a'          => array_merge(
+				$comun,
+				[
+					'href'     => true,
+					'rel'      => true,
+					'target'   => true,
+					'download' => true,
+				]
+			),
+			'table'      => $comun,
+			'thead'      => $comun,
+			'tbody'      => $comun,
+			'tfoot'      => $comun,
+			'caption'    => $comun,
+			'tr'         => $comun,
+			'th'         => $celda,
+			'td'         => $celda,
+		];
+		return self::safe_hrefs( wp_kses( $html, $allowed ) );
+	}
+
+	/**
+	 * Revisa los `href` que hayan sobrevivido al filtro.
+	 *
+	 * `wp_kses` ya quita los protocolos peligrosos; esto normaliza
+	 * ademas la URL con el validador del tema y deja un `#` cuando no
+	 * queda nada aprovechable, para no publicar un enlace roto.
+	 */
+	private static function safe_hrefs( string $html ): string {
 		$html = preg_replace_callback(
 			'#href=(["\'])(.*?)\1#i',
 			static function ( $m ) {

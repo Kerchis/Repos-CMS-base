@@ -78,7 +78,78 @@ if ( ! function_exists( 'wp_kses_post' ) ) {
 	function wp_kses_post( $t ) { return (string) $t; }
 }
 if ( ! function_exists( 'wp_kses' ) ) {
-	function wp_kses( $t, $allowed = [] ) { return (string) $t; }
+	/**
+	 * Filtro por lista blanca, de verdad.
+	 *
+	 * NO es el `wp_kses` de WordPress —ese tiene su propio analizador y
+	 * mil casos de borde—, pero hace lo mismo que importa aqui: quita
+	 * las etiquetas que no estan en la lista conservando su texto, borra
+	 * los atributos que no estan permitidos, tira cualquier `on*` y
+	 * rechaza los protocolos peligrosos de las URL.
+	 *
+	 * Antes devolvia el texto tal cual, asi que CUALQUIER prueba sobre
+	 * el saneador daba verde sin sanear nada. Un banco que no filtra no
+	 * mide nada.
+	 */
+	function wp_kses( $t, $allowed = [] ) {
+		$t = (string) $t;
+		if ( '' === trim( $t ) || ! class_exists( 'DOMDocument' ) ) {
+			return $t;
+		}
+		$doc = new DOMDocument();
+		libxml_use_internal_errors( true );
+		$doc->loadHTML(
+			'<?xml encoding="utf-8" ?><div id="krg-kses">' . $t . '</div>',
+			LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+		);
+		libxml_clear_errors();
+		$raiz = $doc->getElementById( 'krg-kses' );
+		if ( ! $raiz ) {
+			return $t;
+		}
+		krg_kses_limpia( $raiz, is_array( $allowed ) ? $allowed : [] );
+		$salida = '';
+		foreach ( $raiz->childNodes as $hijo ) {
+			$salida .= $doc->saveHTML( $hijo );
+		}
+		return $salida;
+	}
+
+	function krg_kses_limpia( DOMNode $nodo, array $allowed ): void {
+		foreach ( iterator_to_array( $nodo->childNodes ) as $hijo ) {
+			if ( XML_COMMENT_NODE === $hijo->nodeType ) {
+				$nodo->removeChild( $hijo );
+				continue;
+			}
+			if ( XML_ELEMENT_NODE !== $hijo->nodeType ) {
+				continue;
+			}
+			// Primero por dentro: asi lo que se suba al quitar una
+			// etiqueta ya viene limpio.
+			krg_kses_limpia( $hijo, $allowed );
+			$tag = strtolower( $hijo->nodeName );
+			if ( ! array_key_exists( $tag, $allowed ) ) {
+				// Como kses: fuera la etiqueta, dentro se queda el texto.
+				while ( $hijo->firstChild ) {
+					$nodo->insertBefore( $hijo->firstChild, $hijo );
+				}
+				$nodo->removeChild( $hijo );
+				continue;
+			}
+			$permitidos = is_array( $allowed[ $tag ] ) ? $allowed[ $tag ] : [];
+			foreach ( iterator_to_array( $hijo->attributes ) as $attr ) {
+				$nombre = strtolower( $attr->nodeName );
+				if ( str_starts_with( $nombre, 'on' ) || empty( $permitidos[ $nombre ] ) ) {
+					$hijo->removeAttribute( $attr->nodeName );
+					continue;
+				}
+				if ( in_array( $nombre, [ 'href', 'src', 'srcset', 'cite', 'action' ], true )
+					&& preg_match( '#^\s*(javascript|vbscript|data)\s*:#i', (string) $attr->nodeValue ) ) {
+					$hijo->removeAttribute( $attr->nodeName );
+				}
+			}
+		}
+	}
 }
 if ( ! function_exists( 'wp_parse_args' ) ) {
 	function wp_parse_args( $a, $b = [] ) { return array_merge( (array) $b, (array) $a ); }
