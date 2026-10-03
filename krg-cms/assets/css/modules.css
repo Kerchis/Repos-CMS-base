@@ -1882,16 +1882,30 @@ body.m-curtain-on .m-page::after {
   z-index: 0;
 }
 
-/* Las secciones posteriores pasan por delante. */
+/* Las secciones posteriores pasan por delante, y tienen que ser        */
+/* opacas: si no, la cortina se veria a traves de ellas.                */
+/*                                                                      */
+/* El fondo lo pone el CSS, no el JavaScript. Antes `modules.js` leia   */
+/* el fondo calculado de cada seccion y, si era transparente, le        */
+/* escribia `--m-curtain-bg` en el atributo `style`; una regla con      */
+/* selector de atributo lo pintaba, y esa regla —dos piezas— le ganaba  */
+/* al `.m-n-xxxx` de una sola clase que escribe el panel. El color      */
+/* elegido por el usuario aparecia un instante y volvia el de la        */
+/* pagina.                                                              */
+/*                                                                      */
+/* Asi es una sola declaracion, siempre la misma, y pierde contra       */
+/* cualquier fondo configurado: esto vive en `@layer krg` y la hoja del */
+/* documento no vive en ninguna capa. `--m-curtain-bg` se conserva como */
+/* punto de entrada para quien quiera otro color de respaldo.           */
+/* El `:not()` deja fuera los bloques con tema propio, que traen su     */
+/* fondo en `--m-th-bg`.                                                */
 .m-curtain-above {
   position: relative;
   z-index: 1;
 }
 
-/* Solo cuando modules.js detecta que la seccion es transparente le da */
-/* un fondo opaco: si no, la cortina se veria a traves de ella.        */
-.m-curtain-above[style*="--m-curtain-bg"] {
-  background-color: var(--m-curtain-bg);
+.m-curtain-above:not([class*="is-theme-"]) {
+  background-color: var(--m-curtain-bg, var(--color-background, #fff));
 }
 
 /* ------------------------------------------------------------------ */

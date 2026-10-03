@@ -2858,6 +2858,14 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 /* lleva el atributo para igualar en especificidad a esas reglas y      */
 /* ganarles por orden de aparicion. Para dejar un hueco a proposito     */
 /* esta el modulo Espaciador, que si es contenido.                      */
+/*                                                                      */
+/* El `padding-block: 0` quita el ritmo que trae el tema, no lo que     */
+/* haya escrito el usuario: esa regla tiene dos clases y un atributo y  */
+/* antes le ganaba a `.m-n-xxxx{padding-top:50px}`, que es una sola     */
+/* clase. Ahora no: todo este archivo vive en `@layer krg` y la hoja    */
+/* del documento no vive en ninguna capa, asi que lo escrito en el      */
+/* panel gana siempre, por arquitectura y sin `!important`. Lo          */
+/* comprueba tools/prueba-matriz.mjs.                                   */
 /* ------------------------------------------------------------------ */
 .m-c-section.is-no-content,
 .m-c-section[class*="is-mh-"].is-no-content {
@@ -3077,16 +3085,30 @@ body.m-curtain-on .m-page::after {
   z-index: 0;
 }
 
-/* Las secciones posteriores pasan por delante. */
+/* Las secciones posteriores pasan por delante, y tienen que ser        */
+/* opacas: si no, la cortina se veria a traves de ellas.                */
+/*                                                                      */
+/* El fondo lo pone el CSS, no el JavaScript. Antes `modules.js` leia   */
+/* el fondo calculado de cada seccion y, si era transparente, le        */
+/* escribia `--m-curtain-bg` en el atributo `style`; una regla con      */
+/* selector de atributo lo pintaba, y esa regla —dos piezas— le ganaba  */
+/* al `.m-n-xxxx` de una sola clase que escribe el panel. El color      */
+/* elegido por el usuario aparecia un instante y volvia el de la        */
+/* pagina.                                                              */
+/*                                                                      */
+/* Asi es una sola declaracion, siempre la misma, y pierde contra       */
+/* cualquier fondo configurado: esto vive en `@layer krg` y la hoja del */
+/* documento no vive en ninguna capa. `--m-curtain-bg` se conserva como */
+/* punto de entrada para quien quiera otro color de respaldo.           */
+/* El `:not()` deja fuera los bloques con tema propio, que traen su     */
+/* fondo en `--m-th-bg`.                                                */
 .m-curtain-above {
   position: relative;
   z-index: 1;
 }
 
-/* Solo cuando modules.js detecta que la seccion es transparente le da */
-/* un fondo opaco: si no, la cortina se veria a traves de ella.        */
-.m-curtain-above[style*="--m-curtain-bg"] {
-  background-color: var(--m-curtain-bg);
+.m-curtain-above:not([class*="is-theme-"]) {
+  background-color: var(--m-curtain-bg, var(--color-background, #fff));
 }
 
 /* ------------------------------------------------------------------ */
@@ -4538,19 +4560,12 @@ body.m-curtain-on .m-page::after {
       footer.parentNode.insertBefore(spacer, footer);
     }
 
-    function opaque(v) {
-      return !!v && v !== "transparent" && v.replace(/\s/g, "") !== "rgba(0,0,0,0)";
-    }
-
     // La pagina necesita un fondo opaco: si no, el pie fijo se veria por
-    // los huecos entre secciones durante todo el scroll.
-    function paintPage() {
-      if (opaque(getComputedStyle(page).backgroundColor)) return;
-      var src = getComputedStyle(body).backgroundColor;
-      if (!opaque(src)) src = getComputedStyle(document.documentElement).backgroundColor;
-      if (opaque(src)) body.style.setProperty("--m-curtain-bg", src);
-    }
-
+    // los huecos entre secciones durante todo el scroll. Lo pone el CSS
+    // (`body.m-curtain-on .m-page`) con el color de fondo del sitio como
+    // respaldo. Aqui ya no se lee ningun color calculado: hacerlo
+    // dependia del instante de la medida y escribia un valor en linea
+    // que luego competia con lo del panel.
     var active = false;
 
     function measure() {
@@ -4566,7 +4581,6 @@ body.m-curtain-on .m-page::after {
       active = h > 0 && vh > 0 && h <= vh * 0.92;
 
       if (active) {
-        paintPage();
         body.style.setProperty("--m-footer-h", h + "px");
         spacer.style.height = "";
         body.classList.add("m-curtain-on");
@@ -4616,22 +4630,34 @@ body.m-curtain-on .m-page::after {
     var list = scope.querySelectorAll(".is-curtain");
     if (!list.length) return;
 
-    function opaque(v) {
-      return !!v && v !== "transparent" && v.replace(/\s/g, "") !== "rgba(0,0,0,0)";
-    }
-
     var items = [];
     Array.prototype.forEach.call(list, function (sec) {
       if (!once(sec, "krgCurtainSec")) return;
       items.push(sec);
       // Todo lo que venga despues debe pasar por delante y ser opaco.
+      //
+      // Solo se marca con una clase. El color NO se decide aqui.
+      //
+      // Antes se leia el fondo calculado de cada seccion y, si salia
+      // transparente, se le escribia `--m-curtain-bg` en el atributo
+      // `style`. Eso convertia a la cortina en un segundo sistema que
+      // decidia fondos, con dos consecuencias feas: el valor dependia
+      // del instante exacto en que se midiera (y en el constructor se
+      // mide cada vez que se repinta el lienzo), y la regla que lo
+      // pintaba —`.m-curtain-above[style*="--m-curtain-bg"]`— tenia dos
+      // piezas y le ganaba al `.m-n-xxxx{background-color:...}` que
+      // escribe el panel. Resultado: elegias un color, se veia un
+      // instante y volvia el beige de la pagina.
+      //
+      // Ahora el fondo de respaldo lo pone el CSS (`.m-curtain-above`)
+      // y el del panel le gana siempre, porque el tema vive en
+      // `@layer krg` y la hoja del documento no vive en ninguna capa.
       var next = sec.nextElementSibling;
       while (next) {
         next.classList.add("m-curtain-above");
-        if (!opaque(getComputedStyle(next).backgroundColor)) {
-          var src = getComputedStyle(document.body).backgroundColor;
-          if (opaque(src)) next.style.setProperty("--m-curtain-bg", src);
-        }
+        // Limpieza de versiones anteriores: si quedo escrito a mano, se
+        // quita, que si no seguiria pisando lo del panel.
+        next.style.removeProperty("--m-curtain-bg");
         next = next.nextElementSibling;
       }
     });

@@ -69,10 +69,29 @@ foreach ( $doc['sections'] as $s ) {
 // seria mas facil de lo que es.
 $assets = dirname( __DIR__ ) . '/krg-cms/assets/css';
 echo '<!doctype html><html lang="es"><head><meta charset="utf-8">';
+// Los tokens, primero y en linea, como los encola el tema. Sin ellos
+// `--color-background` no existe, el `body` sale transparente y la
+// cortina —que busca un color opaco al que agarrarse— no se comporta
+// como en el sitio de verdad.
+echo '<style id="krg-tokens">' . \Meridian\Design\TokenCompiler::css() . '</style>';
 foreach ( [ 'base', 'components', 'modules' ] as $hoja ) {
 	echo '<style id="krg-' . $hoja . '">' . file_get_contents( $assets . '/' . $hoja . '.css' ) . '</style>';
 }
 echo '<style id="krg-doc-css">' . $css . '</style>';
 echo '</head><body class="' . ( $ctx->isCanvas ? 'krg-canvas' : '' ) . '">';
-echo '<main class="m-main">' . $html . '</main>';
+echo '<div class="m-page"><main class="m-main">' . $html . '</main></div>';
+
+// El JS publico, incrustado igual que el CSS y por el mismo motivo.
+//
+// No estaba, y ahi se escondia una clase entera de fallos: `modules.js`
+// no solo anima, tambien ESCRIBE estilos en linea y clases sobre las
+// secciones (la cortina). El lienzo de WordPress carga este guion
+// siempre, asi que una prueba que no lo cargue mide una pagina que no
+// existe. Se puede apagar con KRG_SIN_JS=1 para comparar.
+if ( '1' !== getenv( 'KRG_SIN_JS' ) ) {
+	$js = dirname( __DIR__ ) . '/krg-cms/assets/js';
+	foreach ( [ 'public', 'modules' ] as $guion ) {
+		echo '<script id="krg-js-' . $guion . '">' . file_get_contents( $js . '/' . $guion . '.js' ) . '</script>';
+	}
+}
 echo '</body></html>';

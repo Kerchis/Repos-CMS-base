@@ -353,22 +353,37 @@ const queSeVe = async (sel) => {
     return { color: '(nada)', quien: '-' };
   }, sel);
 };
-await seleccionar('secA');
+// Se mide en la seccion del parrafo, que no lleva ningun bloque con tema.
+// La del CTA no sirve para esto: `is-theme-forest` SI pinta —el banco ya
+// carga los tokens del tema, como WordPress— y ese caso es el de la
+// PRUEBA 12, no este.
+await seleccionar('secB');
 await page.fill('.b-insp [data-style="background-color"]', '#f5f500');
 await esperarGuardado();
 await recargarMarco();
-const visto = await queSeVe('.m-n-secA');
-console.log(`     la sección dice: ${(await calculado('.m-n-secA', ['background-color']))['background-color']}`);
+const visto = await queSeVe('.m-n-secB');
+console.log(`     la sección dice: ${(await calculado('.m-n-secB', ['background-color']))['background-color']}`);
 console.log(`     la pantalla enseña: ${visto.color}  (lo pinta ${visto.quien})`);
 comprueba(visto.color === 'rgb(245, 245, 0)',
   `el color elegido es el que se ve: ${visto.color}`);
 
 console.log('\nPRUEBA 11 — si nadie tapa nada, el panel no inventa un problema');
-// El CTA tiene tema pero no pinta fondo: no tapa. El aviso de «lo tapa un
-// bloque» aqui seria mentira, y el atajo, ruido.
+// En la seccion del parrafo no hay nada que pinte encima: el aviso de «lo
+// tapa un bloque» aqui seria mentira, y el atajo, ruido.
 await page.click('.b-insp [data-insp-tab="design"]');
 const avisos11 = await page.locator('.b-insp [data-paint-child]').count();
 comprueba(avisos11 === 0, `sin nada que tape, no hay aviso ni atajo: ${avisos11}`);
+
+// La del CTA si lleva un bloque con tema, y ahi el aviso tiene que salir:
+// es el caso de la captura del encargo, con el fondo de la seccion puesto
+// y el bloque pintando por encima.
+await seleccionar('secA');
+await page.fill('.b-insp [data-style="background-color"]', '#f5f500');
+await esperarGuardado();
+await recargarMarco();
+await seleccionar('secA');
+const avisos11b = await page.locator('.b-insp [data-paint-child]').count();
+comprueba(avisos11b === 1, `con un bloque con tema encima, el panel avisa: ${avisos11b} aviso`);
 
 console.log('\nPRUEBA 12 — el caso de la captura: el bloque lleva SU color puesto');
 // Lo que se ve en la instalacion de verdad: el CTA no solo tiene tema, lleva

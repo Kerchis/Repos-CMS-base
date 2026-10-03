@@ -221,14 +221,24 @@ for (const [clave, lecturas] of Object.entries(registro)) {
       La primera de la pagina lo lleva arriba y abajo; a partir de la
       segunda el tema quita el de arriba a proposito, para que dos
       secciones seguidas no sumen dos ritmos. */
-console.log('\nSin nada escrito manda el token de espaciado (96px de respaldo)');
+console.log('\nSin nada escrito manda el token de espaciado');
 for (const [modo, titulo] of MODOS) {
   await cargar(modo, 1440);
+  // El valor que toca es el del token resuelto por el navegador, no un
+  // numero escrito a mano: el preset del tema usa un `clamp()`.
+  const ritmo = await page.evaluate(() => {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:absolute;visibility:hidden;padding-block:var(--spacing-section, 96px)';
+    document.body.appendChild(d);
+    const v = getComputedStyle(d).paddingTop;
+    d.remove();
+    return v;
+  });
   const primera = await leer('.m-n-s-primera');
-  comprueba(primera && primera['padding-top'] === '96px' && primera['padding-bottom'] === '96px',
-    `${titulo}, primera de la página: ${primera?.['padding-top']}/${primera?.['padding-bottom']}`);
+  comprueba(primera && primera['padding-top'] === ritmo && primera['padding-bottom'] === ritmo,
+    `${titulo}, primera de la página: ${primera?.['padding-top']}/${primera?.['padding-bottom']} (token ${ritmo})`);
   const seguida = await leer('.m-n-s-token');
-  comprueba(seguida && seguida['padding-top'] === '0px' && seguida['padding-bottom'] === '96px',
+  comprueba(seguida && seguida['padding-top'] === '0px' && seguida['padding-bottom'] === ritmo,
     `${titulo}, pegada a la anterior: ${seguida?.['padding-top']}/${seguida?.['padding-bottom']}`);
 }
 

@@ -641,19 +641,12 @@
       footer.parentNode.insertBefore(spacer, footer);
     }
 
-    function opaque(v) {
-      return !!v && v !== "transparent" && v.replace(/\s/g, "") !== "rgba(0,0,0,0)";
-    }
-
     // La pagina necesita un fondo opaco: si no, el pie fijo se veria por
-    // los huecos entre secciones durante todo el scroll.
-    function paintPage() {
-      if (opaque(getComputedStyle(page).backgroundColor)) return;
-      var src = getComputedStyle(body).backgroundColor;
-      if (!opaque(src)) src = getComputedStyle(document.documentElement).backgroundColor;
-      if (opaque(src)) body.style.setProperty("--m-curtain-bg", src);
-    }
-
+    // los huecos entre secciones durante todo el scroll. Lo pone el CSS
+    // (`body.m-curtain-on .m-page`) con el color de fondo del sitio como
+    // respaldo. Aqui ya no se lee ningun color calculado: hacerlo
+    // dependia del instante de la medida y escribia un valor en linea
+    // que luego competia con lo del panel.
     var active = false;
 
     function measure() {
@@ -669,7 +662,6 @@
       active = h > 0 && vh > 0 && h <= vh * 0.92;
 
       if (active) {
-        paintPage();
         body.style.setProperty("--m-footer-h", h + "px");
         spacer.style.height = "";
         body.classList.add("m-curtain-on");
@@ -719,22 +711,34 @@
     var list = scope.querySelectorAll(".is-curtain");
     if (!list.length) return;
 
-    function opaque(v) {
-      return !!v && v !== "transparent" && v.replace(/\s/g, "") !== "rgba(0,0,0,0)";
-    }
-
     var items = [];
     Array.prototype.forEach.call(list, function (sec) {
       if (!once(sec, "krgCurtainSec")) return;
       items.push(sec);
       // Todo lo que venga despues debe pasar por delante y ser opaco.
+      //
+      // Solo se marca con una clase. El color NO se decide aqui.
+      //
+      // Antes se leia el fondo calculado de cada seccion y, si salia
+      // transparente, se le escribia `--m-curtain-bg` en el atributo
+      // `style`. Eso convertia a la cortina en un segundo sistema que
+      // decidia fondos, con dos consecuencias feas: el valor dependia
+      // del instante exacto en que se midiera (y en el constructor se
+      // mide cada vez que se repinta el lienzo), y la regla que lo
+      // pintaba —`.m-curtain-above[style*="--m-curtain-bg"]`— tenia dos
+      // piezas y le ganaba al `.m-n-xxxx{background-color:...}` que
+      // escribe el panel. Resultado: elegias un color, se veia un
+      // instante y volvia el beige de la pagina.
+      //
+      // Ahora el fondo de respaldo lo pone el CSS (`.m-curtain-above`)
+      // y el del panel le gana siempre, porque el tema vive en
+      // `@layer krg` y la hoja del documento no vive en ninguna capa.
       var next = sec.nextElementSibling;
       while (next) {
         next.classList.add("m-curtain-above");
-        if (!opaque(getComputedStyle(next).backgroundColor)) {
-          var src = getComputedStyle(document.body).backgroundColor;
-          if (opaque(src)) next.style.setProperty("--m-curtain-bg", src);
-        }
+        // Limpieza de versiones anteriores: si quedo escrito a mano, se
+        // quita, que si no seguiria pisando lo del panel.
+        next.style.removeProperty("--m-curtain-bg");
         next = next.nextElementSibling;
       }
     });
