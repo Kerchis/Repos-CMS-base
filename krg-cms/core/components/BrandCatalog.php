@@ -61,20 +61,6 @@ class BrandCatalog {
 		];
 	}
 
-	/**
-	 * Espacio propio del bloque, en pixeles.
-	 *
-	 * `allowEmpty` es lo que separa «cero» de «sin tocar»: en blanco manda
-	 * el ritmo del modulo (`--spacing-section`), y un 0 escrito a mano
-	 * pega el bloque al de arriba. Sin esa distincion el saneador
-	 * guardaba 0 en cada guardado y todos los bloques salian pegados.
-	 */
-	private static function spacing_fields(): array {
-		return [
-			self::f( 'padTop', 'number', 'spacing', __( 'Espacio superior (px)', 'meridian' ), [ 'min' => 0, 'max' => 400, 'allowEmpty' => true ] ),
-			self::f( 'padBottom', 'number', 'spacing', __( 'Espacio inferior (px)', 'meridian' ), [ 'min' => 0, 'max' => 400, 'allowEmpty' => true ] ),
-		];
-	}
 
 	/**
 	 * Colores propios del bloque, por encima del «Tema».
@@ -293,7 +279,6 @@ class BrandCatalog {
 					self::f( 'align', 'alignment', 'design', __( 'Alineación del texto', 'meridian' ), [ 'options' => [ 'left', 'center', 'right' ] ] ),
 					self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'surface', 'forest', 'light' ] ] ),
 					...self::color_fields(),
-					...self::spacing_fields(),
 				],
 			],
 			[
@@ -327,7 +312,6 @@ class BrandCatalog {
 					self::f( 'overlay', 'number', 'design', __( 'Veladura (%)', 'meridian' ), [ 'min' => 0, 'max' => 90 ] ),
 					self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'forest', 'cream', 'dark', 'light' ] ] ),
 					...self::color_fields(),
-					...self::spacing_fields(),
 					self::f( 'align', 'alignment', 'design', __( 'Alineación', 'meridian' ), [ 'options' => [ 'left', 'center', 'right' ] ] ),
 				],
 			],
@@ -387,8 +371,7 @@ class BrandCatalog {
 						self::f( 'arrows', 'toggle', 'design', __( 'Flechas de navegación', 'meridian' ) ),
 						self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'surface', 'forest', 'light' ] ] ),
 						...self::color_fields(),
-						...self::spacing_fields(),
-						self::f( 'items', 'repeater', 'content', __( 'Productos', 'meridian' ), [ 'itemFields' => $card_item ] ),
+							self::f( 'items', 'repeater', 'content', __( 'Productos', 'meridian' ), [ 'itemFields' => $card_item ] ),
 					]
 				),
 			],
@@ -426,8 +409,7 @@ class BrandCatalog {
 						self::f( 'ratio', 'select', 'design', __( 'Proporción de imagen', 'meridian' ), [ 'options' => [ 'portrait', 'square', 'landscape' ] ] ),
 						self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'surface', 'forest', 'light' ] ] ),
 						...self::color_fields(),
-						...self::spacing_fields(),
-						self::f( 'items', 'repeater', 'content', __( 'Tarjetas', 'meridian' ), [ 'itemFields' => $card_item ] ),
+							self::f( 'items', 'repeater', 'content', __( 'Tarjetas', 'meridian' ), [ 'itemFields' => $card_item ] ),
 					]
 				),
 			],
@@ -473,8 +455,7 @@ class BrandCatalog {
 						self::f( 'emptyLabel', 'text', 'content', __( 'Mensaje sin resultados', 'meridian' ) ),
 						self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'surface', 'forest', 'light' ] ] ),
 						...self::color_fields(),
-						...self::spacing_fields(),
-						self::f( 'items', 'repeater', 'content', __( 'Elementos', 'meridian' ), [ 'itemFields' => $card_item ] ),
+							self::f( 'items', 'repeater', 'content', __( 'Elementos', 'meridian' ), [ 'itemFields' => $card_item ] ),
 					]
 				),
 			],
@@ -535,8 +516,7 @@ class BrandCatalog {
 								self::f( 'cardColor', 'color', 'colors', __( 'Color de las tarjetas', 'meridian' ), [ 'allowEmpty' => true ] ),
 							]
 						),
-						...self::spacing_fields(),
-						self::f(
+							self::f(
 							'items',
 							'repeater',
 							'content',
@@ -603,8 +583,7 @@ class BrandCatalog {
 					[
 						self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'surface', 'forest', 'light' ] ] ),
 						...self::color_fields(),
-						...self::spacing_fields(),
-						self::f(
+							self::f(
 							'items',
 							'repeater',
 							'content',
@@ -647,7 +626,6 @@ class BrandCatalog {
 					self::f( 'align', 'alignment', 'design', __( 'Alineación', 'meridian' ), [ 'options' => [ 'left', 'center', 'right' ] ] ),
 					self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'surface', 'forest', 'light' ] ] ),
 					...self::color_fields(),
-					...self::spacing_fields(),
 					self::f(
 						'items',
 						'repeater',
@@ -683,7 +661,6 @@ class BrandCatalog {
 					self::f( 'maxWidth', 'number', 'layout', __( 'Ancho máximo (px)', 'meridian' ), [ 'min' => 320, 'max' => 1600 ] ),
 					self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'surface', 'forest', 'light' ] ] ),
 					...self::color_fields(),
-					...self::spacing_fields(),
 				],
 			],
 		];
@@ -734,7 +711,6 @@ class BrandCatalog {
 					self::f( 'imageId', 'image', 'content', __( 'Imagen de fondo', 'meridian' ) ),
 					self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'forest', 'cream', 'surface', 'light' ] ] ),
 					...self::color_fields(),
-					...self::spacing_fields(),
 					self::f( 'align', 'alignment', 'design', __( 'Alineación', 'meridian' ), [ 'options' => [ 'left', 'center' ] ] ),
 					self::f(
 						'steps',
@@ -776,7 +752,6 @@ class BrandCatalog {
 					self::f( 'grayscale', 'toggle', 'design', __( 'Logos en escala de grises', 'meridian' ) ),
 					self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'surface', 'forest', 'light' ] ] ),
 					...self::color_fields(),
-					...self::spacing_fields(),
 					self::f(
 						'items',
 						'repeater',
@@ -993,7 +968,6 @@ class BrandCatalog {
 							],
 						]
 					),
-					...self::spacing_fields(),
 				],
 			],
 			[
@@ -1034,7 +1008,6 @@ class BrandCatalog {
 					self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'cream', 'light', 'surface', 'forest', 'dark' ] ] ),
 					...self::color_fields(),
 					self::f( 'reveal', 'select', 'design', __( 'Revelado', 'meridian' ), [ 'options' => [ 'fade', 'letters', 'none' ] ] ),
-					...self::spacing_fields(),
 				],
 			],
 		];
@@ -1228,7 +1201,6 @@ class BrandCatalog {
 					self::f( 'linkText', 'text', 'content', __( 'Texto del botón final', 'meridian' ) ),
 					self::f( 'linkUrl', 'url', 'content', __( 'URL del botón final', 'meridian' ) ),
 					self::f( 'buttonStyle', 'select', 'design', __( 'Estilo del botón', 'meridian' ), [ 'options' => [ 'outline', 'solid', 'ghost' ] ] ),
-					...self::spacing_fields(),
 				],
 			],
 			[
@@ -1412,7 +1384,6 @@ class BrandCatalog {
 					...self::color_fields(),
 					self::f( 'align', 'alignment', 'design', __( 'Alineación del contenido', 'meridian' ), [ 'options' => [ 'left', 'center', 'right' ] ] ),
 					self::f( 'tracking', 'select', 'design', __( 'Tracking del dato destacado', 'meridian' ), [ 'options' => [ 'tight', 'normal', 'wide' ] ] ),
-					...self::spacing_fields(),
 				],
 			],
 		];

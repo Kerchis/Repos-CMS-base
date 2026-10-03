@@ -29,7 +29,15 @@ class PublicAssets {
 			$doc_css = \Meridian\Style\DocumentCssCompiler::for_current_request();
 		}
 		if ( $doc_css ) {
-			wp_add_inline_style( 'krg-components', $doc_css );
+			// La ultima hoja de la lista, no la segunda.
+			//
+			// Estaba colgada de `krg-components`, que se carga ANTES que
+			// `modules.css`. A igualdad de especificidad gana la ultima, asi
+			// que una regla del tema («.m-c-section{padding-block:64px}») le
+			// ganaba a lo escrito en el panel, y habia que compensarlo con
+			// `!important` en cada declaracion. Con la hoja del documento al
+			// final, lo del panel gana sin trucos.
+			wp_add_inline_style( 'krg-modules', $doc_css );
 		}
 
 		$types = is_array( $doc ) ? \Meridian\Media\Prefetch::types( $doc['sections'] ?? [] ) : [];

@@ -21,6 +21,7 @@ require_once $base . '/core/components/Catalog.php';
 require_once $base . '/core/components/BrandCatalog.php';
 require_once $base . '/core/components/Registry.php';
 require_once $base . '/core/security/Sanitizer.php';
+require_once $base . '/core/style/BoxStyles.php';
 require_once $base . '/core/security/UrlValidator.php';
 require_once $base . '/core/design/TokenCompiler.php';
 require_once $base . '/core/content/Document.php';
@@ -126,11 +127,108 @@ revisa(
 	]
 );
 
-echo "\nEspacio del bloque: en blanco no es cero\n";
-revisa( 'menu-list', [ 'padTop' => 40, 'padBottom' => 0 ], [ 'padTop' => 40, 'padBottom' => 0 ] );
-revisa( 'menu-list', [], [ 'padTop' => '', 'padBottom' => '' ] );
-revisa( 'review-slider', [ 'padTop' => 24 ], [ 'padTop' => 24 ] );
-revisa( 'statement-cta', [ 'padBottom' => 90 ], [ 'padBottom' => 90 ] );
+// El espacio de un bloque ya no es un campo suyo: lo lleva el mismo
+// control que el de cualquier otra cosa. Lo que si tiene que pasar es que
+// una pagina guardada con los campos viejos siga igual de separada.
+echo "\nEl espacio viejo del bloque se traduce al sistema nuevo\n";
+$viejo = \Meridian\Security\Sanitizer::node(
+	[ 'id' => 'v1', 'type' => 'menu-list', 'props' => [ 'padTop' => 40, 'padBottom' => 0 ], 'styles' => [] ],
+	0
+);
+foreach (
+	[
+		[ 'padding-top', '40px' ],
+		[ 'padding-bottom', '0px' ],
+	] as [ $prop, $esperado ]
+) {
+	$val = $viejo['styles']['desktop'][ $prop ] ?? '«no existe»';
+	if ( $esperado === $val ) {
+		++$ok;
+		echo "  OK    padTop/padBottom → styles.desktop.$prop = $esperado\n";
+	} else {
+		++$fallos;
+		echo "  FALLA styles.desktop.$prop llega como " . var_export( $val, true ) . "\n";
+	}
+}
+if ( ! isset( $viejo['props']['padTop'] ) && ! isset( $viejo['props']['padBottom'] ) ) {
+	++$ok;
+	echo "  OK    y los campos viejos ya no existen en props\n";
+} else {
+	++$fallos;
+	echo "  FALLA props sigue llevando padTop/padBottom\n";
+}
+$vacio = \Meridian\Security\Sanitizer::node(
+	[ 'id' => 'v2', 'type' => 'menu-list', 'props' => [], 'styles' => [] ],
+	0
+);
+if ( ! isset( $vacio['styles']['desktop']['padding-top'] ) ) {
+	++$ok;
+	echo "  OK    sin valores viejos no se inventa ningun relleno\n";
+} else {
+	++$fallos;
+	echo "  FALLA aparece un relleno de la nada\n";
+}
+
+// El fondo de la seccion vivia en `props.background` con un valor por
+// defecto. Ese defecto no se migra (no lo eligio nadie); un color de
+// verdad si.
+echo "\nEl fondo viejo de la seccion se traduce, y el defecto no\n";
+$conColor = \Meridian\Security\Sanitizer::node(
+	[ 'id' => 'v3', 'type' => 'section', 'props' => [ 'background' => [ 'mode' => 'custom', 'value' => '#D94E27' ] ], 'styles' => [] ],
+	0
+);
+$bg = $conColor['styles']['desktop']['background-color'] ?? '«no existe»';
+if ( '#d94e27' === $bg ) {
+	++$ok;
+	echo "  OK    props.background → styles.desktop.background-color = $bg\n";
+} else {
+	++$fallos;
+	echo "  FALLA el color viejo llega como " . var_export( $bg, true ) . "\n";
+}
+$porDefecto = \Meridian\Security\Sanitizer::node(
+	[ 'id' => 'v4', 'type' => 'section', 'props' => [ 'background' => [ 'mode' => 'token', 'token' => 'color.background' ] ], 'styles' => [] ],
+	0
+);
+if ( ! isset( $porDefecto['styles']['desktop']['background-color'] ) ) {
+	++$ok;
+	echo "  OK    el fondo por defecto no se copia a mano en cada seccion\n";
+} else {
+	++$fallos;
+	echo "  FALLA todas las secciones nacen con un color escrito\n";
+}
+
+// Atajo de cuatro lados guardado por la version anterior.
+echo "\nLos atajos viejos se despliegan en propiedades largas\n";
+$atajo = \Meridian\Security\Sanitizer::node(
+	[ 'id' => 'v5', 'type' => 'section', 'props' => [], 'styles' => [ 'desktop' => [ 'padding' => '10px 20px 30px 40px', 'margin' => '5px' ] ] ],
+	0
+);
+foreach (
+	[
+		[ 'padding-top', '10px' ],
+		[ 'padding-right', '20px' ],
+		[ 'padding-bottom', '30px' ],
+		[ 'padding-left', '40px' ],
+		[ 'margin-top', '5px' ],
+		[ 'margin-left', '5px' ],
+	] as [ $prop, $esperado ]
+) {
+	$val = $atajo['styles']['desktop'][ $prop ] ?? '«no existe»';
+	if ( $esperado === $val ) {
+		++$ok;
+		echo "  OK    $prop = $esperado\n";
+	} else {
+		++$fallos;
+		echo "  FALLA $prop llega como " . var_export( $val, true ) . "\n";
+	}
+}
+if ( ! isset( $atajo['styles']['desktop']['padding'] ) && ! isset( $atajo['styles']['desktop']['margin'] ) ) {
+	++$ok;
+	echo "  OK    y el atajo desaparece: no hay dos valores para lo mismo\n";
+} else {
+	++$fallos;
+	echo "  FALLA el atajo sigue ahi, compitiendo con las propiedades largas\n";
+}
 
 echo "\nEstilos por nodo (los que compila DocumentCssCompiler)\n";
 $nodo = [
@@ -162,7 +260,7 @@ $sec = [
 			'padding-top'    => '50px',
 			'padding-left'   => '80px',
 			'margin-bottom'  => '30px',
-			'background'     => '#D94E27',
+			'background-color' => '#D94E27',
 		],
 		'tablet'  => [ 'padding-top' => '20px' ],
 	],
@@ -176,7 +274,7 @@ foreach (
 		[ 'desktop', 'padding-top', '50px' ],
 		[ 'desktop', 'padding-left', '80px' ],
 		[ 'desktop', 'margin-bottom', '30px' ],
-		[ 'desktop', 'background', '#D94E27' ],
+		[ 'desktop', 'background-color', '#d94e27' ],
 		[ 'tablet', 'padding-top', '20px' ],
 	] as [ $bp, $prop, $esperado ]
 ) {

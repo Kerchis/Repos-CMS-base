@@ -32,6 +32,7 @@ foreach (
 		'/core/render/NodeRenderer.php',
 		'/core/security/Sanitizer.php',
 		'/core/style/Breakpoints.php',
+		'/core/style/BoxStyles.php',
 		'/core/style/DocumentCssCompiler.php',
 	] as $f
 ) {

@@ -284,7 +284,7 @@ class ComponentRenders {
 		// la cabecera cuando pasa por encima. `auto` lo deduce del fondo.
 		$skin = sanitize_key( (string) ( $props['headerSkin'] ?? 'auto' ) );
 		if ( 'auto' === $skin ) {
-			$skin = \Meridian\Design\Contrast::for_color( $props['background'] ?? null );
+			$skin = \Meridian\Design\Contrast::for_color( $node['styles']['desktop']['background-color'] ?? null );
 		}
 		if ( in_array( $skin, [ 'light', 'dark' ], true ) ) {
 			$attrs['data-header-skin'] = $skin;
@@ -292,18 +292,11 @@ class ComponentRenders {
 		if ( ! empty( $props['htmlId'] ) ) {
 			$attrs['id'] = sanitize_html_class( $props['htmlId'] );
 		}
-		$bg    = $props['background'] ?? null;
+		// El fondo no se escribe aqui: lo emite la hoja del documento a
+		// partir de `styles`, que es su unica fuente. Antes se escribia en
+		// este atributo Y en la hoja, y salia `background:...;background:...`
+		// en la misma etiqueta, ganando por orden y no por decision.
 		$style = [];
-		if ( is_array( $bg ) ) {
-			if ( ( $bg['mode'] ?? '' ) === 'token' && ! empty( $bg['token'] ) ) {
-				$style[] = 'background:' . \Meridian\Design\TokenCompiler::token_var( $bg['token'] );
-			} elseif ( ! empty( $bg['value'] ) ) {
-				$hex = sanitize_hex_color( $bg['value'] );
-				if ( $hex ) {
-					$style[] = 'background:' . $hex;
-				}
-			}
-		}
 		if ( $mh_style ) {
 			$style[] = $mh_style;
 		}
@@ -473,7 +466,7 @@ class ComponentRenders {
 		// la cabecera cuando pasa por encima. `auto` lo deduce del fondo.
 		$skin = sanitize_key( (string) ( $props['headerSkin'] ?? 'auto' ) );
 		if ( 'auto' === $skin ) {
-			$skin = \Meridian\Design\Contrast::for_color( $props['background'] ?? null );
+			$skin = \Meridian\Design\Contrast::for_color( $node['styles']['desktop']['background-color'] ?? null );
 		}
 		if ( in_array( $skin, [ 'light', 'dark' ], true ) ) {
 			$attrs['data-header-skin'] = $skin;

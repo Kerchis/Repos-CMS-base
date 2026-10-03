@@ -178,6 +178,27 @@
     return cssColor(String(v.value || ""));
   }
 
+  /**
+   * Fondo, relleno y margen: las mismas nueve claves que el servidor.
+   *
+   * Es el gemelo en JavaScript de `BoxStyles::declarations()` en PHP. Son
+   * dos porque el lienzo tiene que repintar antes de guardar, pero la
+   * lista de propiedades y la forma de escribirlas son una sola, y hay un
+   * banco que compara letra por letra lo que generan los dos.
+   */
+  const CAJA_PROPS = [
+    "background-color",
+    "padding-top", "padding-right", "padding-bottom", "padding-left",
+    "margin-top", "margin-right", "margin-bottom", "margin-left",
+  ];
+
+  function cssCaja(styles) {
+    const st = styles || {};
+    return CAJA_PROPS
+      .filter((p) => st[p] !== undefined && st[p] !== null && String(st[p]).trim() !== "")
+      .map((p) => `${p}:${String(st[p]).trim()}`);
+  }
+
   function paintLiveCss() {
     const iframe = root.querySelector("iframe");
     const doc = iframe?.contentDocument;
@@ -200,16 +221,17 @@
           const text = [];
           const img = [];
           Object.entries(st).forEach(([p, v]) => {
-            if (!v) return;
+            if (!v || CAJA_PROPS.includes(p)) return;
             const d = `${p}:${v}!important`;
             if (textProps.includes(p)) text.push(d);
             else box.push(d);
             if (imgProps.includes(p)) img.push(d);
           });
-          if (st["text-align"] === "center") {
-            box.push("margin-left:auto!important", "margin-right:auto!important");
-          }
           const sel = `.m-n-${id}`;
+          // La caja, primero y sin `!important`: esta hoja es la ultima del
+          // documento, asi que gana por orden. Lo demas sigue como estaba.
+          const caja = cssCaja(st);
+          if (caja.length) css += `${sel}{${caja.join(";")}}`;
           if (box.length) css += `${sel}{${box.join(";")}}`;
           if (text.length) css += `${sel},${sel} :is(h1,h2,h3,h4,h5,h6,p,.m-hero-title,.m-hero-sub,.m-heading,.m-eyebrow,.m-role-h1,.m-role-h2,.m-role-h3){${text.join(";")}}`;
           if (img.length) css += `${sel} img{${img.join(";")}}`;
@@ -228,13 +250,6 @@
           // sin esperar al guardado, que es lo que hacia parecer que el
           // panel de color «no actualizaba».
           const vars = [];
-          const padVar = (k, v) => {
-            const raw = n.props?.[k];
-            if (raw === "" || raw === null || raw === undefined) return;
-            vars.push(`${v}:${Math.max(0, Number(raw) || 0)}px`);
-          };
-          padVar("padTop", "--m-pad-top");
-          padVar("padBottom", "--m-pad-bottom");
           const themeVars = [];
           [["bgColor", "--m-th-bg"], ["textColor", "--m-th-fg"]].forEach(([k, v]) => {
             const c = cssColor(n.props?.[k]);
@@ -1121,18 +1136,17 @@
     if (/[a-z%]/i.test(v)) return v;
     return v + (unit || "px");
   }
+  /**
+   * El valor de un lado, tal cual esta guardado.
+   *
+   * Antes esto tambien sabia desmontar atajos («padding: 10px 20px») por
+   * si el documento traia uno. Ya no hace falta: los atajos se traducen a
+   * propiedades largas al leer la pagina, en el servidor, y no vuelven a
+   * aparecer. Una cosa menos que pueda contradecir a otra.
+   */
   function sideVal(st, kind, side) {
-    const key = `${kind}-${side}`;
-    if (st[key]) return String(st[key]).replace(/px$/i, "");
-    const sh = String(st[kind] || "").trim();
-    if (!sh) return "";
-    const p = sh.split(/\s+/);
-    const strip = (x) => String(x || "").replace(/px$/i, "");
-    if (p.length === 1) return strip(p[0]);
-    if (p.length === 2) return strip(side === "top" || side === "bottom" ? p[0] : p[1]);
-    if (p.length === 3) return strip(side === "top" ? p[0] : side === "bottom" ? p[2] : p[1]);
-    const i = { top: 0, right: 1, bottom: 2, left: 3 }[side];
-    return strip(p[i]);
+    const v = st[`${kind}-${side}`];
+    return v === undefined || v === null ? "" : String(v).replace(/px$/i, "");
   }
   function boxControl(kind, label, st) {
     const sides = [
@@ -1737,8 +1751,8 @@
 
   function panelBg(st, node) {
     return `<div class="acc"><h5>Fondo</h5>
-      ${window.KrgUi.colorField("Color de fondo", st.background || "", 'data-style="background"')}
-      <div data-bg-note>${bgNoteHtml(node, st.background || "")}</div>
+      ${window.KrgUi.colorField("Color de fondo", st["background-color"] || "", 'data-style="background-color"')}
+      <div data-bg-note>${bgNoteHtml(node, st["background-color"] || "")}</div>
     </div>`;
   }
 
@@ -1787,7 +1801,7 @@
     const caja = root.querySelector(".b-insp [data-bg-note]");
     const h = state.selected ? findNode(state.doc.sections, state.selected) : null;
     if (!caja || !h) return;
-    const nuevo = bgNoteHtml(h.node, h.node.styles?.[state.bp]?.background || "");
+    const nuevo = bgNoteHtml(h.node, h.node.styles?.[state.bp]?.["background-color"] || "");
     // Si no ha cambiado, no se toca el DOM. No es por ahorrar: al pulsar
     // «Pintar el bloque» el campo de color pierde el foco, eso dispara su
     // `change`, y repintar ahi borraba el boton justo entre el mousedown y
@@ -1808,7 +1822,7 @@
       b.onclick = () => {
         const h = state.selected ? findNode(state.doc.sections, state.selected) : null;
         const hijo = findNode(state.doc.sections, b.dataset.paintChild);
-        const color = h?.node?.styles?.[state.bp]?.background || "";
+        const color = h?.node?.styles?.[state.bp]?.["background-color"] || "";
         if (!h || !hijo || !color) return;
         snapshot();
         hijo.node.props = hijo.node.props || {};
@@ -1874,6 +1888,13 @@
       const mismo = normColor(hay) === normColor(quiero);
       const nombre = medir === prop ? prop : `${prop} (${medir})`;
       L.push(`6. ${nombre}: pedido ${quiero} · calculado ${hay} ${mismo ? "✔" : "✖"}`);
+      if (mismo) {
+        // Fondo, relleno y margen ya no se escriben en el atributo style:
+        // viven en la hoja del documento. Decir que regla los pinta evita
+        // tener que buscarla a mano cuando algo cambie en el tema.
+        const manda = reglasQueTocan(doc, el, medir);
+        if (manda.length) L.push(`   Lo pinta: ${manda[manda.length - 1]}`);
+      }
       if (!mismo) {
         const manda = reglasQueTocan(doc, el, medir);
         L.push(manda.length
@@ -1895,12 +1916,9 @@
 
   /** Atajos cuyo valor calculado hay que leer en una propiedad larga. */
   const LARGAS = {
-    background: "background-color",
     font: "font-size",
     border: "border-top-width",
     "border-radius": "border-top-left-radius",
-    padding: "padding-top",
-    margin: "margin-top",
     flex: "flex-grow",
   };
 
@@ -2012,7 +2030,7 @@
         { v: "none", l: "aa" }, { v: "uppercase", l: "AA" }, { v: "capitalize", l: "Aa" },
       ])}
       ${window.KrgUi.colorField("Color texto", st.color || "", 'data-style="color"')}
-      ${window.KrgUi.colorField("Fondo", st.background || "", 'data-style="background"')}
+      ${window.KrgUi.colorField("Fondo", st["background-color"] || "", 'data-style="background-color"')}
     </div>`;
   }
   function panelHeading(node, st) {
@@ -2439,7 +2457,7 @@
         ])}
         ${window.KrgUi.fontFamilyField("Familia", st["font-family"] || "", 'data-style="font-family"')}
         ${window.KrgUi.colorField("Color texto", st.color || "", 'data-style="color"')}
-        ${window.KrgUi.colorField("Fondo", st.background || "", 'data-style="background"')}
+        ${window.KrgUi.colorField("Fondo", st["background-color"] || "", 'data-style="background-color"')}
         <p class="m-muted">Estos dos pintan el bloque entero por encima de todo, incluido su tema. Para los colores propios del bloque (y los de cada texto, cuando los tenga) usa «Colores», más arriba.</p>
       </div>`;
     const spaceHtml = `
@@ -2828,19 +2846,13 @@
       // acaba de saltar.
       const apply = () => {
         setStyle(inp.dataset.style, inp.value);
-        if (inp.dataset.style === "background") { repaintBgNote(); paintLiveCss(); }
+        if (inp.dataset.style === "background-color") { repaintBgNote(); paintLiveCss(); }
       };
       inp.addEventListener("input", apply);
       inp.addEventListener("change", apply);
     });
     box.querySelectorAll("[data-side]").forEach((inp) => {
-      inp.addEventListener("input", () => {
-        const prop = inp.dataset.side;
-        const kind = prop.split("-")[0];
-        setStyle(prop, unitize(inp.value, "px"));
-        const h = hit();
-        if (h?.node?.styles?.[state.bp]) delete h.node.styles[state.bp][kind];
-      });
+      inp.addEventListener("input", () => setStyle(inp.dataset.side, unitize(inp.value, "px")));
     });
     box.querySelectorAll("[data-diag]").forEach((b) => {
       b.onclick = () => {

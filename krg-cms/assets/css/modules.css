@@ -162,13 +162,20 @@
 .is-theme-forest h1, .is-theme-forest h2, .is-theme-forest h3, .is-theme-forest h4,
 .is-theme-dark h1, .is-theme-dark h2, .is-theme-dark h3, .is-theme-dark h4 { color: inherit; }
 
-/* Bloques de sistema: ritmo vertical propio. */
+/* Bloques de sistema: ritmo vertical propio.
+   El relleno va en `:where()` —especificidad cero— porque es un valor por
+   defecto, no una decisión: en cuanto alguien escribe un relleno en el
+   panel, el suyo gana sin necesidad de `!important`. Antes esto competía
+   de tú a tú con la hoja del documento, y como esa hoja se cargaba antes,
+   ganaba el tema. */
+:where(.m-rail, .m-cg, .m-fc, .m-rev, .m-nl, .m-sl, .m-sf, .m-sc, .m-tr, .m-rs, .m-st) {
+  padding-block: var(--spacing-section, 110px);
+}
 .m-rail, .m-cg, .m-fc, .m-rev, .m-nl, .m-sl, .m-sf, .m-sc, .m-tr, .m-rs, .m-st {
-  padding-block: var(--m-pad-top, var(--spacing-section, 110px)) var(--m-pad-bottom, var(--spacing-section, 110px));
   position: relative;
 }
-.m-c-section > .m-container > .m-rail:first-child,
-.m-c-section > .m-container > .m-cg:first-child { padding-top: 0; }
+:where(.m-c-section > .m-container > .m-rail:first-child),
+:where(.m-c-section > .m-container > .m-cg:first-child) { padding-top: 0; }
 
 .is-align-left   { text-align: left; }
 .is-align-center { text-align: center; }
@@ -178,8 +185,8 @@
    ritmo vertical, así que la sección que los envuelve se vuelve transparente.
    `.m-bleed` es el contrato explícito (lo aplica el seeder y el usuario puede
    quitarlo); el bloque `:has()` lo resuelve solo cuando se inserta a mano. */
-.m-c-section.m-bleed { padding-block: 0; }
-.m-c-section.m-bleed > .m-container { width: 100%; max-width: none; margin-inline: 0; }
+:where(.m-c-section.m-bleed) { padding-block: 0; }
+:where(.m-c-section.m-bleed > .m-container) { width: 100%; max-width: none; margin-inline: 0; }
 
 /* Ancho del contenido de la sección.
      boxed  → centrado y limitado al ancho de página.
@@ -188,25 +195,32 @@
    `full` es el valor por defecto porque es lo que la casilla «Ancho
    completo» prometía desde el principio. El margen de respiración es una
    opción aparte, no algo que se imponga. */
-.m-c-section.is-w-boxed > .m-container {
+:where(.m-c-section.is-w-boxed > .m-container) {
   width: min(100% - 40px, var(--page-max-width, 1200px));
   margin-inline: auto;
 }
 
-.m-c-section.is-w-padded > .m-container {
+:where(.m-c-section.is-w-padded > .m-container) {
   width: 100%;
   max-width: none;
   margin-inline: 0;
   padding-inline: clamp(20px, 4vw, 64px);
 }
 
-.m-c-section.is-w-full,
-.m-c-section.is-w-bleed {
+:where(.m-c-section.is-w-full),
+:where(.m-c-section.is-w-bleed) {
   padding-inline: 0;
 }
 
-.m-c-section.is-w-full > .m-container,
-.m-c-section.is-w-bleed > .m-container {
+/* A partir de aquí, todo lo que el tema decide sobre relleno y margen de
+   una sección, una fila o una columna va dentro de `:where()`.
+   Especificidad cero: siguen siendo el comportamiento por defecto, pero
+   cualquier valor escrito en el panel les gana sin `!important`. Antes
+   esta familia de reglas llegaba a (0,3,0) por el `:has()`, muy por
+   encima del `.m-n-{id}` del documento, y por eso el relleno de las
+   secciones con un bloque de sistema dentro no se movía. */
+:where(.m-c-section.is-w-full > .m-container),
+:where(.m-c-section.is-w-bleed > .m-container) {
   width: 100%;
   max-width: none;
   margin-inline: 0;
@@ -215,59 +229,59 @@
 
 /* La fila y la columna que el constructor intercala no deben reintroducir
    el margen que acabamos de quitar, esten a la profundidad que esten. */
-.m-c-section.is-w-full .m-c-row,
-.m-c-section.is-w-bleed .m-c-row {
+:where(.m-c-section.is-w-full .m-c-row),
+:where(.m-c-section.is-w-bleed .m-c-row) {
   margin-inline: 0;
   max-width: none;
 }
 
-.m-c-section.is-w-full .m-c-column,
-.m-c-section.is-w-bleed .m-c-column {
+:where(.m-c-section.is-w-full .m-c-column),
+:where(.m-c-section.is-w-bleed .m-c-column) {
   padding-inline: 0;
 }
 
-.m-c-section.m-bleed > .m-container { padding-inline: 0; }
+:where(.m-c-section.m-bleed > .m-container) { padding-inline: 0; }
 
 @supports selector(:has(*)) {
   /* El constructor envuelve todo en fila y columna, asi que el modulo casi
      nunca es hijo directo del contenedor: la deteccion va a cualquier
      profundidad. */
-  .m-c-section > .m-container:has(:is(
+  :where(.m-c-section > .m-container:has(:is(
     .m-bh, .m-marquee, .m-sc, .m-tr, .m-rail, .m-cg, .m-fc, .m-rev,
     .m-nl, .m-sl, .m-sf, .m-rs, .m-st, .m-preloader, .m-sp, .m-wm,
     .m-dt, .m-it, .m-carta, .m-fs
-  )) {
+  ))) {
     width: 100%;
     max-width: none;
     margin-inline: 0;
     padding-inline: 0;
   }
 
-  .m-c-section:has(> .m-container :is(
+  :where(.m-c-section:has(> .m-container :is(
     .m-bh, .m-marquee, .m-sc, .m-tr, .m-rail, .m-cg, .m-fc, .m-rev,
     .m-nl, .m-sl, .m-sf, .m-rs, .m-st, .m-preloader, .m-sp, .m-wm,
     .m-dt, .m-it, .m-carta, .m-fs
-  )) {
+  ))) {
     padding-block: 0;
   }
 
   /* Filas y columnas intermedias: sin huecos ni margenes que reintroduzcan
      el aire que el modulo ya gestiona por su cuenta. */
-  .m-c-row:has(> .m-c-column > :is(
+  :where(.m-c-row:has(> .m-c-column > :is(
     .m-bh, .m-marquee, .m-sc, .m-tr, .m-rail, .m-cg, .m-fc, .m-rev,
     .m-nl, .m-sl, .m-sf, .m-rs, .m-st, .m-preloader, .m-sp, .m-wm,
     .m-dt, .m-it, .m-carta, .m-fs
-  )) {
+  ))) {
     gap: 0;
     margin-inline: 0;
     max-width: none;
   }
 
-  .m-c-column:has(> :is(
+  :where(.m-c-column:has(> :is(
     .m-bh, .m-marquee, .m-sc, .m-tr, .m-rail, .m-cg, .m-fc, .m-rev,
     .m-nl, .m-sl, .m-sf, .m-rs, .m-st, .m-preloader, .m-sp, .m-wm,
     .m-dt, .m-it, .m-carta, .m-fs
-  )) {
+  ))) {
     padding-inline: 0;
   }
 }
@@ -1398,9 +1412,9 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
   --m-wm-shadow: var(--color-tertiary, #5c7d76);
   --m-wm-x: 6px;
   --m-wm-y: 6px;
-  padding-block: var(--m-pad-top, var(--spacing-xl, 48px)) var(--m-pad-bottom, var(--spacing-xl, 48px));
   overflow: hidden;
 }
+:where(.m-wm) { padding-block: var(--spacing-xl, 48px); }
 .m-wm-inner { width: 100%; }
 .m-wm.is-fit-fill .m-wm-inner { width: 100%; max-width: none; padding-inline: clamp(12px, 2vw, 28px); }
 .m-wm-link { text-decoration: none; color: inherit; display: block; }
@@ -1968,8 +1982,8 @@ body.m-curtain-on .m-page::after {
 .m-carta {
   --m-carta-accent: var(--color-primary);
   --m-carta-img: 96px;
-  padding-block: var(--m-pad-top, var(--spacing-section, 110px)) var(--m-pad-bottom, var(--spacing-section, 110px));
 }
+:where(.m-carta) { padding-block: var(--spacing-section, 110px); }
 
 .m-carta-head {
   display: grid;

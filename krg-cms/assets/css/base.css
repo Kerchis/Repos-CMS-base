@@ -41,7 +41,9 @@ a:hover { color: var(--color-primary); }
   clip: rect(0, 0, 0, 0);
   border: 0;
 }
-.m-container {
+/* El contenedor centrado es un valor por defecto, no una ley: va en
+   `:where()` para que un margen escrito en el panel le gane sin pelear. */
+:where(.m-container) {
   width: min(100% - 40px, var(--page-max-width, 1200px));
   margin-inline: auto;
 }
@@ -74,16 +76,26 @@ h1,h2,h3,h4,h5,h6, .m-role-h1, .m-role-h2, .m-role-h3 {
 @media (max-width: 1023px) {
   .m-page { overflow-x: clip; }
 }
-.m-c-section {
+/* Ritmo vertical por defecto de las secciones.
+   En `:where()` a propósito: es lo que trae el tema cuando nadie ha dicho
+   nada. El relleno escrito en el panel viaja en la hoja del documento, que
+   se carga la última, así que gana por orden y sin `!important`. La segunda
+   regla —quitar el relleno de arriba a dos secciones seguidas— tenía dos
+   clases de especificidad y le ganaba a cualquier valor del panel. */
+:where(.m-c-section) {
   padding-block: var(--spacing-section, 96px);
 }
-.m-c-section + .m-c-section { padding-top: 0; }
-.m-c-section.is-boxed {
+:where(.m-c-section + .m-c-section) { padding-top: 0; }
+:where(.m-c-section.is-boxed) {
   width: min(100% - 40px, var(--page-max-width, 1200px));
   margin-inline: auto;
 }
 .m-c-section.is-boxed > .m-container { width: 100%; }
-.m-site-footer .m-c-section.is-boxed {
+/* Dentro del pie la sección encajonada no se encajona otra vez. El
+   contexto (`.m-site-footer`) mantiene su peso y la parte que apunta al
+   bloque va en `:where()`: así le gana a la regla de arriba pero pierde
+   contra la hoja del documento, que se carga después. */
+.m-site-footer :where(.m-c-section.is-boxed) {
   width: 100%;
   margin-inline: 0;
 }
@@ -218,9 +230,12 @@ h1,h2,h3,h4,h5,h6, .m-role-h1, .m-role-h2, .m-role-h3 {
   gap: 40px;
 }
 .m-footer-sections { padding: 8px 0 24px; }
-.m-site-footer .m-c-section {
-  padding-block: 0 !important;
-  background: transparent !important;
+/* El pie maqueta sus secciones a su manera. Antes lo imponía con
+   `!important`, que también tapaba lo que se escribiera en el panel;
+   ahora basta el peso del contexto más el orden de carga. */
+.m-site-footer :where(.m-c-section) {
+  padding-block: 0;
+  background-color: transparent;
 }
 .m-site-footer .m-c-section > .m-container {
   width: min(1200px, calc(100% - 40px));
@@ -417,7 +432,7 @@ h1,h2,h3,h4,h5,h6, .m-role-h1, .m-role-h2, .m-role-h3 {
   }
   .m-site-header[data-nav-m="bar"] .m-header-cta-in { display: inline-flex; }
   .m-footer-grid { grid-template-columns: 1fr; }
-  .m-c-section { padding-block: 64px; }
+  :where(.m-c-section) { padding-block: 64px; }
   .m-role-h1, h1.m-heading, .m-hero-title { font-size: 30px; }
 }
 

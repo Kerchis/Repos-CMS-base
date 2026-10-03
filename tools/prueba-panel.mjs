@@ -162,12 +162,12 @@ ok(sec?.styles?.desktop?.['padding-top'] === '50px', `padding-top guardado = ${s
 ok(sec?.styles?.desktop?.['margin-bottom'] === '30px', `margin-bottom guardado = ${sec?.styles?.desktop?.['margin-bottom']}`);
 
 console.log('\nSección: color de fondo');
-await page.waitForSelector('.b-insp [data-style="background"]');
-await page.fill('.b-insp [data-style="background"]', '#D94E27');
+await page.waitForSelector('.b-insp [data-style="background-color"]');
+await page.fill('.b-insp [data-style="background-color"]', '#D94E27');
 const n0 = guardados.length;
 ok(await esperarGuardado(n0 + 1), 'el color dispara un guardado');
 sec = nodoDe(guardados[guardados.length - 1], 'secCta');
-ok(sec?.styles?.desktop?.background === '#D94E27', `background guardado = ${sec?.styles?.desktop?.background}`);
+ok(sec?.styles?.desktop?.['background-color'] === '#D94E27', `background guardado = ${sec?.styles?.desktop?.['background-color']}`);
 
 // Aqui no hay lienzo que mirar (la API simulada no devuelve pagina), asi
 // que el panel decide por lo que declara el documento: el bloque lleva su
@@ -198,7 +198,7 @@ ok(blo?.styles?.desktop?.['padding-top'] === '25px', `padding-top del bloque = $
 console.log('\nLo anterior no se pierde al seguir editando');
 sec = nodoDe(guardados[guardados.length - 1], 'secCta');
 ok(sec?.styles?.desktop?.['padding-top'] === '50px', 'la sección conserva su relleno');
-ok(sec?.styles?.desktop?.background === '#D94E27', 'la sección conserva su fondo');
+ok(sec?.styles?.desktop?.['background-color'] === '#D94E27', 'la sección conserva su fondo');
 
 console.log('\nEl panel vuelve a enseñar lo guardado');
 await seleccionar('secCta');
@@ -210,8 +210,8 @@ await page.reload();
 await page.waitForSelector('#krg-builder .b-insp', { timeout: 15000 });
 await seleccionar('secCta');
 const tras = await page.evaluate(() => ({
-  texto: document.querySelector('.b-insp [data-style="background"]')?.value,
-  muestra: document.querySelector('.b-insp [data-style="background"]')?.closest('.m-pick')?.querySelector('[data-pick-hex]')?.value,
+  texto: document.querySelector('.b-insp [data-style="background-color"]')?.value,
+  muestra: document.querySelector('.b-insp [data-style="background-color"]')?.closest('.m-pick')?.querySelector('[data-pick-hex]')?.value,
   relleno: document.querySelector('.b-insp [data-side="padding-top"]')?.value,
 }));
 ok(tras.texto === '#D94E27', `campo de texto = ${tras.texto}`);
@@ -237,7 +237,7 @@ servidorTragon = false;
 console.log('\nUn campo de color vacío se ve vacío');
 await seleccionar('secTxt');
 const vacio = await page.evaluate(() => {
-  const campo = document.querySelector('.b-insp [data-style="background"]');
+  const campo = document.querySelector('.b-insp [data-style="background-color"]');
   const fila = campo.closest('.m-pick');
   return { valor: campo.value, hueco: campo.placeholder, marcado: fila.classList.contains('is-empty'), tieneX: !!fila.querySelector('[data-pick-clear]') };
 });
@@ -249,7 +249,7 @@ ok(vacio.tieneX, 'hay botón para quitar el color');
 console.log('\nElegir el color con el cuadrito (no escribiendo el hex)');
 await seleccionar('secTxt');
 await page.evaluate(() => {
-  const campo = document.querySelector('.b-insp [data-style="background"]');
+  const campo = document.querySelector('.b-insp [data-style="background-color"]');
   const cuadro = campo.closest('.m-pick').querySelector('[data-pick-hex]');
   cuadro.value = '#00ff00';
   cuadro.dispatchEvent(new Event('input', { bubbles: true }));
@@ -257,10 +257,10 @@ await page.evaluate(() => {
 const n7 = guardados.length;
 ok(await esperarGuardado(n7 + 1), 'elegir en el cuadrito dispara un guardado');
 const secV = nodoDe(guardados[guardados.length - 1], 'secTxt');
-ok(secV?.styles?.desktop?.background === '#00ff00', `fondo elegido con el cuadrito = ${secV?.styles?.desktop?.background}`);
+ok(secV?.styles?.desktop?.['background-color'] === '#00ff00', `fondo elegido con el cuadrito = ${secV?.styles?.desktop?.['background-color']}`);
 
 const trasElegir = await page.evaluate(() => {
-  const fila = document.querySelector('.b-insp [data-style="background"]').closest('.m-pick');
+  const fila = document.querySelector('.b-insp [data-style="background-color"]').closest('.m-pick');
   return { marcado: fila.classList.contains('is-empty'), texto: fila.querySelector('.m-pick-val').value };
 });
 ok(!trasElegir.marcado, 'al elegir color se quita la marca de vacío');
@@ -270,7 +270,7 @@ console.log('\nLa ✕ vuelve a dejarlo sin color');
 // Ojo: hay otra ✕ antes (la del color de borde). Hay que pulsar la del
 // campo de fondo, no la primera que aparezca.
 await page.evaluate(() => {
-  document.querySelector('.b-insp [data-style="background"]').closest('.m-pick').querySelector('[data-pick-clear]').click();
+  document.querySelector('.b-insp [data-style="background-color"]').closest('.m-pick').querySelector('[data-pick-clear]').click();
 });
 const nX = guardados.length;
 ok(await esperarGuardado(nX + 1), 'quitar el color dispara un guardado');
@@ -297,7 +297,7 @@ console.log('\nEl aviso entiende el color guardado como objeto, no lo escupe en 
 // El selector de color guarda {mode,token,value}. Si el aviso lo trata
 // como una cadena, enseña «[object Object]» y queda como un error.
 await seleccionar('secCta');
-await page.fill('.b-insp [data-style="background"]', '#D94E27');
+await page.fill('.b-insp [data-style="background-color"]', '#D94E27');
 await page.waitForSelector('.b-insp [data-bg-note] p');
 const textoAviso = await page.locator('.b-insp [data-bg-note]').innerText();
 ok(!/object Object/.test(textoAviso), `el aviso no enseña basura: «${textoAviso.replace(/\s+/g, ' ').trim().slice(0, 90)}»`);

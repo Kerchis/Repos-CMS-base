@@ -93,7 +93,17 @@ const seccionConCta = [
   ['.m-sc', 'background-color', 'rgb(63, 94, 88)'],
 ];
 await caso('estilos-seccion-cta-relleno', seccionConCta);
-await caso('estilos-seccion-cta-relleno', seccionConCta, { sinHoja: true });
+
+// Sin la hoja del documento no hay fondo ni relleno, y eso es lo
+// correcto: hay un unico sitio que los escribe. Antes se duplicaban en el
+// atributo style «por si acaso», y esa copia era justo la que se
+// contradecia con la hoja. Lo que si tiene que aguantar sin la hoja es el
+// tema del bloque, que viaja en variables en linea.
+await caso('estilos-seccion-cta-relleno', [
+  ['.m-n-secX', 'background-color', 'rgba(0, 0, 0, 0)'],
+  ['.m-n-secX', 'padding-left', '0px'],
+  ['.m-sc', 'background-color', 'rgb(63, 94, 88)'],
+], { sinHoja: true });
 
 // Carrusel de reseñas: la tarjeta pinta su propio fondo encima del bloque,
 // así que tiene color aparte. Sin eso, cambiar el color del bloque dejaba
@@ -113,8 +123,9 @@ await caso('colores-rev-propio', [
 await caso('estilos-tres-tamanos', [['.m-n-secBp', 'padding-top', '80px'], ['.m-n-secBp', 'background-color', 'rgb(217, 78, 39)']], { ancho: 1440, etiqueta: '· escritorio' });
 await caso('estilos-tres-tamanos', [['.m-n-secBp', 'padding-top', '40px'], ['.m-n-secBp', 'background-color', 'rgb(217, 78, 39)']], { ancho: 900, etiqueta: '· tablet' });
 await caso('estilos-tres-tamanos', [['.m-n-secBp', 'padding-top', '20px'], ['.m-n-secBp', 'background-color', 'rgb(217, 78, 39)']], { ancho: 420, etiqueta: '· móvil' });
-// ...y sin la hoja del documento el tamaño base sigue en pie.
-await caso('estilos-tres-tamanos', [['.m-n-secBp', 'padding-top', '80px']], { ancho: 1440, sinHoja: true });
+// Sin la hoja del documento no queda ningun relleno escrito a mano: el
+// unico emisor es esa hoja (ver el caso de arriba).
+await caso('estilos-tres-tamanos', [['.m-n-secBp', 'padding-top', (v) => v !== '80px']], { ancho: 1440, sinHoja: true });
 
 // Los cuatro lados y el margen, en cinco bloques distintos.
 const cinco = [];

@@ -191,19 +191,7 @@ class BrandRenders {
 	 * si significa cero.
 	 */
 	private static function section_style( array $p ): string {
-		return self::pad_style( $p ) . self::theme_style( $p );
-	}
-
-	/** Solo el espacio propio: para bloques cuyo tema vive en un hijo. */
-	private static function pad_style( array $p ): string {
-		$style = '';
-		if ( isset( $p['padTop'] ) && '' !== $p['padTop'] ) {
-			$style .= '--m-pad-top:' . absint( $p['padTop'] ) . 'px;';
-		}
-		if ( isset( $p['padBottom'] ) && '' !== $p['padBottom'] ) {
-			$style .= '--m-pad-bottom:' . absint( $p['padBottom'] ) . 'px;';
-		}
-		return $style;
+		return self::theme_style( $p );
 	}
 
 	/** Fondo y texto propios del bloque, por encima del tema. */
@@ -1214,7 +1202,7 @@ class BrandRenders {
 				[
 					'class' => 'm-sp is-media-' . $side . ' is-ratio-' . $ratio . ' is-h-' . $height
 						. ( $media_panel ? '' : ' is-single' ),
-					'style' => trim( self::pad_style( $props ) . ( $h_style ? ';' . $h_style : '' ), ';' ),
+					'style' => trim( (string) $h_style, ';' ),
 				],
 				self::skin( $theme )
 			)
@@ -1580,7 +1568,7 @@ class BrandRenders {
 		$align  = self::align( $props['align'] ?? 'left' );
 		$track  = self::tracking( $props['tracking'] ?? 'normal' );
 
-		$style = self::pad_style( $props );
+		$style = '';
 		if ( 'custom' === $height ) {
 			$unit   = ( ( $props['heightUnit'] ?? 'px' ) === 'vh' ) ? 'svh' : 'px';
 			$max    = 'px' === $unit ? 4000 : 400;

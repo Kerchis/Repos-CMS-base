@@ -11,21 +11,17 @@ defined( 'ABSPATH' ) || exit;
 
 class DocumentCssCompiler {
 
+	/**
+	 * Propiedades que esta clase emite por si misma.
+	 *
+	 * Fondo, relleno y margen NO estan aqui: los lleva
+	 * {@see \Meridian\Style\BoxStyles}, que es su unica fuente. Tenerlos
+	 * tambien en esta lista es lo que creaba dos reglas distintas para el
+	 * mismo valor.
+	 */
 	private const STYLE_PROPS = [
-		'padding',
-		'padding-top',
-		'padding-right',
-		'padding-bottom',
-		'padding-left',
-		'margin',
-		'margin-top',
-		'margin-right',
-		'margin-bottom',
-		'margin-left',
 		'text-align',
 		'color',
-		'background',
-		'background-color',
 		'order',
 		'max-width',
 		'max-height',
@@ -116,6 +112,17 @@ class DocumentCssCompiler {
 				$id = sanitize_html_class( $n['id'] ?? '' );
 				if ( $id ) {
 					$sel = '.m-n-' . $id;
+					// Fondo, relleno y margen: una regla por tamano, sin
+					// `!important`. Van las primeras de cada bloque para que
+					// cualquier otra cosa que el nodo necesite pueda
+					// afinarlas despues.
+					foreach ( [ 'desktop' => &$base, 'tablet' => &$tab, 'mobile' => &$mob ] as $bp => &$bucket ) {
+						$caja = \Meridian\Style\BoxStyles::rule( $sel, $n['styles'][ $bp ] ?? [] );
+						if ( '' !== $caja ) {
+							$bucket[] = $caja;
+						}
+					}
+					unset( $bucket );
 					self::push_styles( $sel, $n['styles']['desktop'] ?? [], $base );
 					self::push_styles( $sel, $n['styles']['tablet'] ?? [], $tab );
 					self::push_styles( $sel, $n['styles']['mobile'] ?? [], $mob );
@@ -227,6 +234,12 @@ class DocumentCssCompiler {
 	/**
 	 * Estilos de un nodo listos para el atributo `style` del elemento.
 	 *
+	 * Ojo: fondo, relleno y margen ya no pasan por aqui. Estaban en el
+	 * atributo Y en la hoja, dos copias del mismo valor que solo coincidian
+	 * por casualidad: la de escritorio ganaba desde el atributo y las de
+	 * tablet y movil tenian que ponerse `!important` para ganar desde la
+	 * hoja. Ahora las tres salen de la hoja, iguales entre si.
+	 *
 	 * Por que en linea y no solo en la hoja del documento: la hoja viaja
 	 * aparte (`wp_add_inline_style`), y cualquier capa intermedia que
 	 * agrupe, cachee o reordene el CSS puede dejarla vieja o fuera. Lo
@@ -256,10 +269,6 @@ class DocumentCssCompiler {
 			}
 			$decls[] = $prop . ':' . $val;
 		}
-		if ( ( $styles['text-align'] ?? '' ) === 'center' ) {
-			$decls[] = 'margin-left:auto';
-			$decls[] = 'margin-right:auto';
-		}
 		return $decls ? implode( ';', $decls ) : '';
 	}
 
@@ -288,10 +297,6 @@ class DocumentCssCompiler {
 			if ( in_array( $prop, [ 'width', 'height', 'max-width', 'max-height', 'object-fit', 'object-position', 'border-radius', 'box-shadow', 'filter', 'border-width', 'border-style', 'border-color', 'border-top-left-radius', 'border-top-right-radius', 'border-bottom-right-radius', 'border-bottom-left-radius' ], true ) ) {
 				$img[] = $decl;
 			}
-		}
-		if ( ( $styles['text-align'] ?? '' ) === 'center' ) {
-			$decls[] = 'margin-left:auto!important';
-			$decls[] = 'margin-right:auto!important';
 		}
 		if ( $decls ) {
 			$bucket[] = $sel . '{' . implode( ';', $decls ) . ';}';

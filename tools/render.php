@@ -180,6 +180,7 @@ foreach (
 		'/core/render/NodeRenderer.php',
 		'/core/security/Sanitizer.php',
 		'/core/style/Breakpoints.php',
+		'/core/style/BoxStyles.php',
 		'/core/style/DocumentCssCompiler.php',
 	] as $f
 ) {
@@ -877,11 +878,12 @@ $cases = [
 				'theme'      => 'forest',
 				'bgColor'    => [ 'mode' => 'custom', 'value' => '#D94E27' ],
 				'textColor'  => [ 'mode' => 'custom', 'value' => '#FFF9F0' ],
-				'padTop'     => 40,
-				'padBottom'  => 40,
 			],
 			'cta3'
 		);
+		// El relleno del bloque es un estilo del nodo, igual que el de
+		// cualquier otra cosa: ya no hay campos propios para esto.
+		$cta['styles'] = [ 'desktop' => [ 'padding-top' => '40px', 'padding-bottom' => '40px' ] ];
 		return documento( [ arbol( [ 'width' => 'full' ], [ $cta ] ) ] );
 	},
 
@@ -904,11 +906,11 @@ $cases = [
 				'descColor'  => [ 'mode' => 'custom', 'value' => '#EF476F' ],
 				'priceColor' => [ 'mode' => 'custom', 'value' => '#073B4C' ],
 				'badgeColor' => [ 'mode' => 'custom', 'value' => '#8338EC' ],
-				'padTop'     => 50,
-				'padBottom'  => 70,
 			]
 		);
-		return documento( [ arbol( [ 'width' => 'full' ], [ node( 'menu-list', $props, 'carta4' ) ] ) ] );
+		$carta           = node( 'menu-list', $props, 'carta4' );
+		$carta['styles'] = [ 'desktop' => [ 'padding-top' => '50px', 'padding-bottom' => '70px' ] ];
+		return documento( [ arbol( [ 'width' => 'full' ], [ $carta ] ) ] );
 	},
 
 	'colores-carta-tema'   => function () {

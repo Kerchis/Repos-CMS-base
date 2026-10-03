@@ -77,7 +77,6 @@ class Catalog {
 					'vAlign'     => 'start',
 					'headerSkin' => 'auto',
 					'curtain'    => 'off',
-					'background' => [ 'mode' => 'token', 'token' => 'color.background' ],
 				],
 				'fields'      => [
 					self::f( 'name', 'text', 'content', __( 'Nombre interno', 'meridian' ) ),
@@ -183,7 +182,6 @@ class Catalog {
 							'help'    => __( 'La sección se queda quieta y la siguiente se desliza por encima, tapándola.', 'meridian' ),
 						]
 					),
-					self::f( 'background', 'color', 'colors', __( 'Fondo', 'meridian' ) ),
 					self::f( 'htmlId', 'text', 'advanced', __( 'ID HTML', 'meridian' ) ),
 				],
 			],

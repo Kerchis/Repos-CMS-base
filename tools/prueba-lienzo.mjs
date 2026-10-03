@@ -168,7 +168,7 @@ async function recargarMarco() {
 /* ================================================================== */
 console.log('\nPRUEBA 1 — color de fondo #ff0000 en una sección');
 await seleccionar('secA');
-await page.fill('.b-insp [data-style="background"]', '#ff0000');
+await page.fill('.b-insp [data-style="background-color"]', '#ff0000');
 await esperarGuardado();
 
 const guardado1 = JSON.stringify(ultimo?.sections?.[0]?.styles?.desktop || {});
@@ -177,11 +177,36 @@ comprueba(/#ff0000/.test(guardado1), `1-4. llega al estado y al documento guarda
 await recargarMarco();
 let m = await calculado('.m-n-secA', ['background-color', 'padding-top', 'margin-top']);
 comprueba(m['background-color'] === 'rgb(255, 0, 0)', `5-7. en el DOM del lienzo: background-color = ${m['background-color']}`);
-comprueba(/#ff0000/.test(m.enLinea), `   y en el atributo style del elemento: ${m.enLinea}`);
+// Ya no se escribe en el atributo style: el fondo, el relleno y el margen
+// viven en la hoja del documento, una sola regla por bloque y tamaño. Que
+// el atributo este vacio es parte del contrato, no un descuido.
+comprueba(!/background/.test(m.enLinea || ''), `   y NO en el atributo style (${m.enLinea || 'vacío'})`);
+const regla = await page.evaluate(() => {
+  const d = document.querySelector('iframe').contentDocument;
+  const out = [];
+  [...d.styleSheets].forEach((h) => {
+    let r = null;
+    try { r = h.cssRules; } catch (e) { return; }
+    [...r].forEach((x) => {
+      if (x.selectorText === '.m-n-secA' && x.style?.getPropertyValue('background-color')) {
+        out.push(`${x.cssText}|${x.style.getPropertyPriority('background-color')}`);
+      }
+    });
+  });
+  return out;
+});
+// En el lienzo hay dos emisores del mismo estado: la hoja del documento
+// que escribe el servidor y el eco inmediato del editor, que existe para
+// que el color se vea antes de guardar. No son dos sistemas: son la misma
+// regla escrita dos veces, y aqui se comprueba que dicen exactamente lo
+// mismo. En la web publica solo existe la primera.
+const dichos = [...new Set(regla.map((r) => r.split('|')[0]))];
+comprueba(dichos.length === 1, `   todas las reglas dicen lo mismo: ${dichos.join(' // ') || 'ninguna'}`);
+comprueba(regla.length > 0 && regla.every((r) => !r.endsWith('|important')), '   y ninguna lleva !important');
 
 console.log('\nPRUEBA 1b — repintado inmediato, sin guardar ni recargar el lienzo');
 await seleccionar('secB');
-await page.fill('.b-insp [data-style="background"]', '#0000ff');
+await page.fill('.b-insp [data-style="background-color"]', '#0000ff');
 await page.waitForTimeout(250);
 let viva = await calculado('.m-n-secB', ['background-color']);
 comprueba(viva['background-color'] === 'rgb(0, 0, 255)', `al instante en el lienzo: ${viva['background-color']}`);
@@ -212,7 +237,7 @@ await page.waitForSelector('#krg-builder .b-insp', { timeout: 15000 });
 await page.waitForTimeout(800);
 await seleccionar('secA');
 const panel = await page.evaluate(() => ({
-  fondo: document.querySelector('.b-insp [data-style="background"]')?.value,
+  fondo: document.querySelector('.b-insp [data-style="background-color"]')?.value,
   relleno: document.querySelector('.b-insp [data-side="padding-top"]')?.value,
   margen: document.querySelector('.b-insp [data-side="margin-top"]')?.value,
 }));
@@ -270,8 +295,9 @@ await page.click('.b-insp [data-insp-tab="advanced"]');
 await page.click('.b-insp [data-diag]');
 let informe = await page.inputValue('.b-insp .b-diag');
 comprueba(/Elementos con \.m-n-secA en el lienzo: 1/.test(informe), 'cuenta el elemento en el lienzo');
-comprueba(/background:\s*#ff0000/.test(informe), 'enseña el atributo style real');
-comprueba(/background \(background-color\): pedido #ff0000 · calculado rgb\(255, 0, 0\) ✔/.test(informe), 'marca la propiedad como aplicada');
+comprueba(/5\. Atributo style: \(vacío\)/.test(informe), 'dice que el atributo style está vacío, como debe');
+comprueba(/background-color: pedido #ff0000 · calculado rgb\(255, 0, 0\) ✔/.test(informe), 'marca la propiedad como aplicada');
+comprueba(/Lo pinta: \.m-n-secA \{ background-color: rgb\(255, 0, 0\) \}/.test(informe), 'y nombra la regla que la pinta');
 comprueba(!/✖/.test(informe), 'ningún paso roto');
 
 console.log('\nPRUEBA 9 — y señala al culpable cuando otra hoja pisa el valor');
@@ -283,7 +309,7 @@ await page.evaluate(() => {
 });
 await page.click('.b-insp [data-diag]');
 informe = await page.inputValue('.b-insp .b-diag');
-comprueba(/background \(background-color\): pedido #ff0000 · calculado rgb\(255, 0, 255\) ✖/.test(informe), 'detecta que lo calculado no es lo pedido');
+comprueba(/background-color: pedido #ff0000 · calculado rgb\(255, 0, 255\) ✖/.test(informe), 'detecta que lo calculado no es lo pedido');
 comprueba(/\.m-c-section \{ background-color: rgb\(255, 0, 255\) !important \}/.test(informe), 'nombra la regla que gana');
 comprueba(/@media \(min-width: 300px\)/.test(informe), 'y la media query en la que vive');
 await page.evaluate(() => document.querySelector('.b-insp .b-diag').scrollIntoView({ block: 'center' }));
@@ -313,7 +339,7 @@ const queSeVe = async (sel) => {
   }, sel);
 };
 await seleccionar('secA');
-await page.fill('.b-insp [data-style="background"]', '#f5f500');
+await page.fill('.b-insp [data-style="background-color"]', '#f5f500');
 await esperarGuardado();
 await recargarMarco();
 const visto = await queSeVe('.m-n-secA');
@@ -379,7 +405,7 @@ await seleccionar('secA');
 await page.click('.b-insp [data-insp-tab="design"]');
 // La ✕ del borde y la del fondo son dos botones distintos: hay que
 // apuntar a la del campo de fondo, no a la primera que aparezca.
-await page.click('.b-insp .m-pick:has([data-style="background"]) [data-pick-clear]');
+await page.click('.b-insp .m-pick:has([data-style="background-color"]) [data-pick-clear]');
 await esperarGuardado();
 await page.waitForTimeout(1200);
 await seleccionar('secA');

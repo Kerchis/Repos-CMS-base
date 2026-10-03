@@ -290,8 +290,14 @@ Sección → Diseño → **Efecto cortina**.
   `nameColor`, `descColor`, `priceColor`, `badgeColor`). Valor vacío =
   manda el tema. Se aceptan hexadecimal y tokens (`var(--color-primary)`).
   El renderizador los emite como variables en línea sobre el elemento que
-  lleva la clase del tema; `BrandRenders::theme_style()` y
-  `BrandRenders::pad_style()` son el único punto donde se decide eso.
+  lleva la clase del tema; `BrandRenders::theme_style()` es el único punto
+  donde se decide eso.
+- **Fondo, relleno y margen de un bloque o una sección**: no son campos del
+  bloque, son estilos del nodo. Viven en `node.styles.{desktop,tablet,
+  mobile}` con nombres de CSS (`background-color`, `padding-top`,
+  `margin-left`…), los valida `core/style/BoxStyles.php` y los escribe
+  `DocumentCssCompiler` como una regla `.m-n-{id}` por tamaño. No se
+  duplican en el atributo `style` ni en variables propias.
 - **Colores del CMS** (`core/admin/Skin.php`): doce variables de `admin.css`
   guardadas en `meridian_admin_skin` e inyectadas con `wp_add_inline_style`.
   Si no hay nada personalizado no se emite ni un byte. No tocan el frontend.

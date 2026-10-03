@@ -339,8 +339,10 @@ body.krg-canvas .m-col {
     margin-left: -20px;
     margin-right: -20px;
   }
-  .m-c-section.is-boxed .m-gallery.is-full,
-  .m-c-section:not(.is-full) .m-gallery.is-full {
+  /* La galería a sangre no se sale de una sección encajonada. El bloque
+     va en `:where()` para no pesar más que lo escrito en el panel. */
+  .m-c-section.is-boxed :where(.m-gallery.is-full),
+  .m-c-section:not(.is-full) :where(.m-gallery.is-full) {
     width: 100%;
     max-width: 100%;
     margin-left: 0;

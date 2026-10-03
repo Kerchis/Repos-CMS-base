@@ -25,6 +25,8 @@ bash tools/devenv.sh     # PHP 8.3 estático + Chromium + playwright-core en .to
 | `tools/prueba-estilos.mjs` | Contrato de «lo que escribes en el panel manda»: documento real → saneador → compilador de CSS → navegador, y se lee el color, el relleno y la posición calculados. |
 | `tools/prueba-panel.mjs` | El tramo anterior: el panel del constructor de verdad en Chromium con la API simulada. Teclea en «Relleno» y «Margen», elige color con el cuadrito, lo quita con la ✕, recarga y comprueba el cuerpo de cada POST (35). |
 | `tools/prueba-lienzo.mjs` | El tramo que faltaba: el constructor entero con su iframe de verdad. Teclea en el panel y lee el color que **se ve** dentro del lienzo (33). |
+| `tools/prueba-caja.mjs` | Contrato de fondo, relleno y margen: seis tipos de sección × tres tamaños × web pública / «Preview» / lienzo, herencia hacia abajo, sección vacía con relleno, cero `!important` y comparación letra por letra entre el PHP y el editor (72). |
+| `tools/caja-php.php` | Escribe las declaraciones de caja de un estado JSON. Lo usa `prueba-caja.mjs` para comparar los dos emisores. |
 | `tools/render-doc.php` | Convierte un documento JSON en una página HTML completa por la cadena real, con los CSS del tema incrustados. Lo usa `prueba-lienzo.mjs` para servir el lienzo. |
 | `tools/dump-registry.php` | Vuelca el catálogo de componentes como JSON para alimentar al constructor en `prueba-panel.mjs`. |
 
@@ -45,6 +47,7 @@ node tools/prueba-vacias.mjs
 node tools/prueba-estilos.mjs
 node tools/prueba-panel.mjs
 node tools/prueba-lienzo.mjs
+node tools/prueba-caja.mjs
 ```
 
 `tools/render.php` trae dos ayudantes para montar casos por el camino

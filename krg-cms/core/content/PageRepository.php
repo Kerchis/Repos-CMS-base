@@ -85,6 +85,13 @@ class PageRepository {
 		if ( ! $doc ) {
 			$doc = Document::empty( $id, $post->post_title, $post->post_name );
 		}
+		// Una pagina guardada por el sistema anterior llega aqui con el
+		// fondo en `props` y los atajos de relleno sin desplegar. Se
+		// traduce al leer —una sola vez, en el unico sitio por el que pasan
+		// editor, «Preview» y web publica— asi que los tres ven exactamente
+		// la misma estructura sin que nadie tenga que reabrir y guardar.
+		$doc = \Meridian\Style\BoxStyles::migrate_document( $doc );
+
 		$doc['id']     = $id;
 		$doc['title']  = $post->post_title;
 		$doc['slug']   = $post->post_name;

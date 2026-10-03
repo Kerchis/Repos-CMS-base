@@ -56,6 +56,12 @@ class Sanitizer {
 		}
 		$type = sanitize_key( $node['type'] ?? 'paragraph' );
 		$def  = \Meridian\Components\Registry::get( $type );
+		// Fondo, relleno y margen tienen un solo sitio donde vivir. Lo que
+		// guardo el sistema anterior fuera de `styles` (el `background` de
+		// la seccion, los `padTop`/`padBottom` de los bloques de marca) se
+		// trae aqui, antes de que `props()` lo tire por no estar ya en el
+		// catalogo. Es la unica copia de esta traduccion.
+		$node = \Meridian\Style\BoxStyles::migrate_node( $node );
 		$out  = [
 			'id'       => self::id( $node['id'] ?? '' ),
 			'type'     => $type,
@@ -345,12 +351,18 @@ class Sanitizer {
 		return $bp;
 	}
 
+	/**
+	 * Estilos de un tamano.
+	 *
+	 * Fondo, relleno y margen los lleva {@see \Meridian\Style\BoxStyles}
+	 * —claves largas, valores validados, sin atajos—. El resto
+	 * (tipografia, bordes, tamanos...) sigue por la lista de siempre.
+	 */
 	public static function style_props( array $styles ): array {
+		$box     = \Meridian\Style\BoxStyles::clean( \Meridian\Style\BoxStyles::from_legacy( $styles ) );
 		$allowed = [
-			'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
-			'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
 			'font-size', 'font-weight', 'font-family', 'font-style', 'line-height', 'letter-spacing', 'text-transform', 'text-decoration',
-			'color', 'background', 'background-color', 'text-align',
+			'color', 'text-align',
 			'border-radius', 'box-shadow', 'border', 'border-color', 'border-width', 'border-style',
 			'gap', 'display', 'grid-template-columns', 'order', 'max-width', 'max-height', 'min-width', 'min-height', 'width', 'height',
 			'opacity', 'align-items', 'justify-content', 'flex-direction', 'object-fit', 'object-position',
@@ -381,7 +393,7 @@ class Sanitizer {
 				$out[ $prop ] = \Meridian\Design\TokenCompiler::safe_css( (string) $val );
 			}
 		}
-		return $out;
+		return array_merge( $out, $box );
 	}
 
 	public static function seo( $seo ): array {
