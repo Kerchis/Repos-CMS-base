@@ -891,3 +891,83 @@ porque no existe el hueco de las adiciones.
 Barrido completo en verde: lint 61 · guardado 63 · tokens 32 · estilos 82 ·
 panel 35 · lienzo 37 · matriz 91 · caja 72 · inspector 77 · chrome 31 ·
 cortina 83 · motor 58 · estirar 18 · **carta 106** · vacías · preview.
+
+
+---
+
+# Parte 10 — Editar sin perder el sitio
+
+## 47. Por qué saltaba al principio
+
+Al pulsar «Añadir adición» —o cualquier cosa que repinte el inspector— la
+lista volvía al principio. Lo primero fue mirar **qué** se movía, porque en
+las capturas del usuario el panel derecho no se había movido ni un píxel:
+los campos de abajo («Título de las adiciones», «Símbolo de la moneda») se
+veían exactamente igual antes y después.
+
+Lo que se movía era la caja de dentro. El árbol de la carta tiene su propia
+barra:
+
+```css
+.b-tree { max-height: 42vh; overflow: auto; }
+```
+
+`panelSnap()` ya guardaba la posición de los dos paneles, y por eso el panel
+no saltaba. Pero el panel **es el mismo elemento** entre repintados, así que
+el navegador le conserva la posición casi siempre; el árbol, en cambio, es
+un elemento **nuevo** cada vez (`innerHTML`), y un elemento nuevo nace en
+cero. No había nada que recuperar porque nadie lo había guardado.
+
+## 48. Arreglo: guardar todo lo que esté desplazado, no solo el panel
+
+Dos ayudantes en `builder-core.js` —el núcleo que ya comparten la pantalla
+de páginas y la de cabecera y pie, para no hacer dos copias—:
+
+- `scrollSnap(raíz)` recorre la rama y apunta la posición de **cada** caja
+  desplazada, con una referencia estable: `data-tree` si la tiene (así
+  sobrevive aunque al repintar sobre o falte un hijo) y, si no, su camino
+  por posición.
+- `scrollRestore(raíz, lista)` las devuelve a su sitio.
+
+`panelSnap()`/`panelRestore()` los usan para los dos paneles, y
+`chrome.js::paintInspector()` hace lo mismo. **Sin un segundo sistema:** es
+el mecanismo que ya existía, ampliado.
+
+De paso, al añadir una adición **el cursor cae en el campo nuevo**, listo
+para escribir. Y si esa fila queda justo fuera de la caja, se empuja a mano
+lo mínimo y **solo la caja del árbol**: `scrollIntoView()` mueve todos los
+contenedores de arriba, y ese era precisamente el salto que molestaba —se
+probó, movía el panel 177 px, y se descartó.
+
+## 49. El banco de cabecera y pie no cargaba los estilos
+
+Al escribir la prueba equivalente para `chrome.js` apareció otra vez el
+agujero de §36: **ese banco montaba el panel sin una sola hoja de estilos**,
+así que `.b-right` no tenía ni altura ni barra y cualquier medida de
+desplazamiento daba cero. Ahora monta `admin.css` + `builder.css` dentro del
+armazón del admin, como el de la carta.
+
+Dicho con todas las letras: en cabecera y pie el arreglo es **un seguro**,
+no una corrección de algo roto. Ahí el inspector no tiene cajas con barra
+propia y el panel exterior conservaba la posición solo. La prueba de esa
+pantalla pasa también con el código anterior; la que demuestra el fallo y su
+arreglo es la de la carta.
+
+## 50. Pruebas
+
+`prueba-carta` **106 → 113**, `prueba-chrome` **31 → 33**:
+
+- el árbol se puede desplazar por dentro;
+- tras «Añadir adición» se queda donde estaba (± 2 px) y el panel no se
+  mueve ni un píxel;
+- el cursor cae en la fila nueva y la fila nueva se ve;
+- añadir un plato y borrar una adición tampoco mueven nada;
+- y en cabecera y pie, repintar no mueve el panel.
+
+Verificado al revés con `builder.js` de la versión anterior:
+**«tras Añadir adición la lista se queda donde estaba: 1077 → 0px»** —
+exactamente lo que contaba el usuario— y el foco se quedaba en `BODY`.
+
+Barrido completo en verde: lint 61 · guardado 63 · tokens 32 · estilos 82 ·
+panel 35 · lienzo 37 · matriz 91 · caja 72 · inspector 77 · **chrome 33** ·
+cortina 83 · motor 58 · estirar 18 · **carta 113** · vacías · preview.

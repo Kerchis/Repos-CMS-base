@@ -15,13 +15,14 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { writeFileSync, mkdtempSync } from 'node:fs';
+import { writeFileSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT, chromiumLib } from './harness.mjs';
 
 const { chromium } = chromiumLib();
 const JS = `${ROOT}/krg-cms/admin/assets/js`;
+const CSS = `${ROOT}/krg-cms/admin/assets/css`;
 const REST = 'https://krg.test/wp-json/krg/v1';
 
 const registry = JSON.parse(
@@ -64,8 +65,16 @@ const ok = (cond, msg) => {
 };
 
 function paginaHtml(region) {
+  // Con los estilos de verdad y dentro del armazón del admin de
+  // WordPress. Sin ellos el panel no tiene ni altura ni barra, y lo que
+  // se midiera aquí no sería lo que ve nadie.
   return `<!doctype html><meta charset="utf-8"><title>chrome</title>
-<body><div id="krg-builder"></div>
+<style>${readFileSync(`${CSS}/admin.css`, 'utf8')}</style>
+<style>${readFileSync(`${CSS}/builder.css`, 'utf8')}</style>
+<body class="wp-admin">
+<div id="wpwrap"><div id="wpcontent" style="margin-left:160px"><div id="wpbody"><div id="wpbody-content">
+<div id="krg-builder"></div>
+</div></div></div></div>
 <script>window.KrgAdmin={chrome:${JSON.stringify(region)},rest:${JSON.stringify(REST)},nonce:'n',admin:'/wp-admin/admin.php?'};</script>
 <script src="file://${JS}/app.js"></script>
 <script src="file://${JS}/builder-core.js"></script>
@@ -241,7 +250,31 @@ const recordado = await page.evaluate(() => {
 });
 ok(recordado === false, 'el grupo que se cerró sigue cerrado después de recargar');
 
-console.log('\nPRUEBA 9 — ningún error de JavaScript');
+console.log('\nPRUEBA 9 — repintar no te devuelve al principio del panel');
+// Mismo arreglo que en la pantalla de páginas, mismo ayudante del núcleo:
+// el panel se rehace entero con innerHTML y antes volvía arriba.
+await page.click('.b-insp [data-insp-tab="design"]');
+await esperar(150);
+await abrirTodos();
+// Pantalla baja a propósito: así hay barra que perder, que es el caso
+// que se nos escapaba.
+await page.setViewportSize({ width: 1600, height: 520 });
+await esperar(200);
+await page.evaluate(() => { document.querySelector('.b-insp').scrollTop = 99999; });
+await esperar(150);
+const antesY = await page.evaluate(() => Math.round(document.querySelector('.b-insp').scrollTop));
+ok(antesY > 40, `el panel se puede desplazar: ${antesY}px`);
+await page.evaluate(() => {
+  const b = document.querySelector('.b-insp [data-f-set], .b-insp [data-h-set]');
+  if (b) b.click();
+});
+await esperar(250);
+const despuesY = await page.evaluate(() => Math.round(document.querySelector('.b-insp').scrollTop));
+ok(Math.abs(despuesY - antesY) <= 2, `y tras tocar un ajuste sigue donde estaba: ${antesY} → ${despuesY}px`);
+
+await page.setViewportSize({ width: 1600, height: 1100 });
+
+console.log('\nPRUEBA 10 — ningún error de JavaScript');
 ok(errores.length === 0, errores.length ? errores.slice(0, 3).join(' | ') : 'ninguno');
 
 await browser.close();

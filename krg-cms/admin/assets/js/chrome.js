@@ -1484,8 +1484,16 @@
   function paintInspector() {
     const box = root.querySelector(".b-insp");
     if (!box) return;
+    // Repintar no puede devolverte al principio de la lista: se guarda
+    // donde estabas —el panel y las cajas con barra propia de dentro— y
+    // se devuelve. Es el mismo ayudante que usa la pantalla de páginas.
+    const CORE = window.KrgBuilderCore;
+    const arriba = box.scrollTop;
+    const dentro = CORE.scrollSnap(box);
     box.innerHTML = inspector();
     bindInspector();
+    box.scrollTop = arriba;
+    CORE.scrollRestore(box, dentro);
   }
 
   function ensureShell() {

@@ -764,6 +764,65 @@ comprueba(rama?.miniaturas === 3, `y las enseña como miniaturas, no como IDs: $
 comprueba(rama?.alt === 'El plato entero', `con su texto alternativo editable: «${rama?.alt}»`);
 comprueba(rama?.boton, 'y un botón para añadir varias de una vez');
 
+console.log('\n--- Tocar algo no te manda al principio de la lista');
+// El arbol de la carta tiene su propia barra (`max-height`). Al repintar
+// el inspector se iba al principio: el panel no se movia, pero la lista
+// de dentro si, que es justo lo que se nota.
+await page.evaluate(() => {
+  const t = document.querySelector('.b-insp .b-tree');
+  t.scrollTop = t.scrollHeight;
+  // Y ahora, como haria cualquiera: dejar a la vista el boton que se va
+  // a pulsar, sin tocar el panel. Si se prueba con el boton fuera de la
+  // pantalla no se prueba nada que pueda pasar de verdad.
+  const b = document.querySelector('.b-insp .tree-n.is-plato [data-sub-add]');
+  t.scrollTop += b.getBoundingClientRect().top - t.getBoundingClientRect().top - 120;
+});
+await page.waitForTimeout(150);
+const sitio = () => page.evaluate(() => {
+  const t = document.querySelector('.b-insp .b-tree');
+  const a = document.activeElement;
+  return {
+    arbol: Math.round(t.scrollTop),
+    margen: Math.round(t.scrollHeight - t.clientHeight),
+    panel: Math.round(document.querySelector('.b-insp').scrollTop),
+    foco: a ? (a.dataset.sk || a.tagName) : '',
+    focoJ: a ? a.dataset.j : '',
+  };
+});
+const s0 = await sitio();
+comprueba(s0.arbol > 40, `el árbol se puede desplazar por dentro: ${s0.arbol}px de ${s0.margen}`);
+
+await page.evaluate(() => document.querySelector('.b-insp .tree-n.is-plato [data-sub-add]').click());
+await page.waitForTimeout(350);
+let s1 = await sitio();
+comprueba(
+  Math.abs(s1.arbol - s0.arbol) <= 2,
+  `tras «Añadir adición» la lista se queda donde estaba: ${s0.arbol} → ${s1.arbol}px`
+);
+comprueba(s1.panel === s0.panel, `y el panel no se mueve ni un píxel: ${s0.panel} → ${s1.panel}px`);
+comprueba(s1.foco === 'name', `el cursor cae en la adición nueva, lista para escribir: «${s1.foco}»`);
+const seVe = await page.evaluate(() => {
+  const a = document.activeElement;
+  const c = a.closest('.b-tree').getBoundingClientRect();
+  const r = a.getBoundingClientRect();
+  return r.top >= c.top - 1 && r.bottom <= c.bottom + 1;
+});
+comprueba(seVe, 'y la fila nueva queda a la vista, sin mover nada más');
+
+// Lo mismo al añadir un plato entero y al borrar: cualquier repintado.
+const antesPlato = await sitio();
+await page.evaluate(() => {
+  const b = [...document.querySelectorAll('.b-insp [data-rep-add="items"][data-preset-k]')][0];
+  b.click();
+});
+await page.waitForTimeout(350);
+s1 = await sitio();
+comprueba(Math.abs(s1.arbol - antesPlato.arbol) <= 2, `añadir un plato tampoco mueve la lista: ${antesPlato.arbol} → ${s1.arbol}px`);
+await page.evaluate(() => document.querySelector('.b-insp .tree-n.is-plato [data-sub-del]').click());
+await page.waitForTimeout(350);
+s1 = await sitio();
+comprueba(Math.abs(s1.arbol - antesPlato.arbol) <= 2, `y borrar una adición tampoco: ${antesPlato.arbol} → ${s1.arbol}px`);
+
 console.log('\n--- Las fotos sobreviven al guardado');
 const saneado = sanear(docPestanas());
 const mod = (function buscarN(lista) {

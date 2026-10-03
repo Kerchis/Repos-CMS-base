@@ -3523,6 +3523,25 @@
         CORE.setOpen(`tree.${h.node.id}.sub.${b.dataset.subAdd}.${b.dataset.i}.${b.dataset.k}`, true);
         markDirty();
         render();
+        // Y el cursor en la fila recien creada: se pulsa «Añadir» para
+        // escribir, no para buscar donde ha caido.
+        const nueva = root.querySelector(
+          `[data-sub="${CSS.escape(b.dataset.subAdd)}"][data-i="${CSS.escape(b.dataset.i)}"]`
+          + `[data-k="${CSS.escape(b.dataset.k)}"][data-j="${lista.length - 1}"]`
+        );
+        if (nueva) {
+          nueva.focus({ preventScroll: true });
+          // `scrollIntoView` mueve TODOS los contenedores de arriba, y eso
+          // es justo el salto que molesta. Aqui se empuja a mano lo
+          // minimo y solo la caja del arbol: el panel no se entera.
+          const caja = nueva.closest(".b-tree");
+          if (caja) {
+            const r = nueva.getBoundingClientRect();
+            const c = caja.getBoundingClientRect();
+            if (r.bottom > c.bottom) caja.scrollTop += r.bottom - c.bottom + 8;
+            else if (r.top < c.top) caja.scrollTop -= c.top - r.top + 8;
+          }
+        }
       };
     });
     box.querySelectorAll("[data-sub-fotos]").forEach((b) => {
@@ -4195,6 +4214,11 @@
   const FOCUS_KEYS = ["data-prop", "data-style", "data-node", "data-page",
     "data-rep", "data-style-num", "data-range", "data-page-num", "data-typo"];
 
+  /* El guardar y devolver el sitio vive en el nucleo (`builder-core.js`):
+     la pantalla de cabecera y pie hace exactamente lo mismo. */
+  const scrollSnap = CORE.scrollSnap;
+  const scrollRestore = CORE.scrollRestore;
+
   function panelSnap() {
     const ae = document.activeElement;
     let focus = null;
@@ -4215,6 +4239,8 @@
     return {
       right: root.querySelector(".b-right")?.scrollTop || 0,
       left: root.querySelector(".b-left")?.scrollTop || 0,
+      dentroDer: scrollSnap(root.querySelector(".b-right")),
+      dentroIzq: scrollSnap(root.querySelector(".b-left")),
       focus,
     };
   }
@@ -4225,6 +4251,8 @@
     const left = root.querySelector(".b-left");
     if (right) right.scrollTop = snap.right;
     if (left) left.scrollTop = snap.left;
+    scrollRestore(right, snap.dentroDer);
+    scrollRestore(left, snap.dentroIzq);
     if (!snap.focus) return;
     let el = null;
     try { el = root.querySelector(snap.focus.sel); } catch (e) { return; }

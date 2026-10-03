@@ -296,8 +296,58 @@
     return doc;
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Guardar el sitio donde estabas                                       */
+  /*                                                                      */
+  /* Los dos paneles se rehacen enteros con innerHTML, y dentro hay cajas */
+  /* con su PROPIA barra de desplazamiento (el arbol de la carta lleva    */
+  /* `max-height`). Al repintar, esas cajas volvian al principio: el      */
+  /* panel no se movia, pero la lista de dentro si, que es lo que se      */
+  /* nota. Vive aqui porque le pasa igual a la pantalla de paginas y a la */
+  /* de cabecera y pie: un solo sitio, no dos copias.                     */
+  /* ------------------------------------------------------------------ */
+  function caminoDe(el, raiz) {
+    const partes = [];
+    let n = el;
+    while (n && n !== raiz) {
+      const p = n.parentElement;
+      if (!p) return null;
+      partes.unshift(":nth-child(" + (Array.prototype.indexOf.call(p.children, n) + 1) + ")");
+      n = p;
+    }
+    return n === raiz && partes.length ? ":scope > " + partes.join(" > ") : null;
+  }
+
+  function scrollSnap(raiz) {
+    if (!raiz) return [];
+    const out = [];
+    raiz.querySelectorAll("*").forEach((el) => {
+      if (!el.scrollTop && !el.scrollLeft) return;
+      // Una referencia estable gana a la posicion: si al repintar sobra o
+      // falta un hijo, `data-tree` sigue apuntando a la misma caja.
+      const sel = el.dataset.tree
+        ? `[data-tree="${CSS.escape(el.dataset.tree)}"]`
+        : caminoDe(el, raiz);
+      if (sel) out.push({ sel: sel, top: el.scrollTop, left: el.scrollLeft });
+    });
+    return out;
+  }
+
+  function scrollRestore(raiz, lista) {
+    if (!raiz || !lista) return;
+    lista.forEach((s) => {
+      let el = null;
+      try { el = raiz.querySelector(s.sel); } catch (e) { return; }
+      if (!el) return;
+      el.scrollTop = s.top;
+      el.scrollLeft = s.left;
+    });
+  }
+
   window.KrgBuilderCore = {
     dict: dict,
+    scrollSnap: scrollSnap,
+    scrollRestore: scrollRestore,
     styleBucket: styleBucket,
     normalizeNode: normalizeNode,
     adoptDoc: adoptDoc,
