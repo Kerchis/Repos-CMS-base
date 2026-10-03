@@ -240,7 +240,8 @@
             const c = cssColor(n.props?.[k]);
             if (c) themeVars.push(`${v}:${c}`);
           });
-          [["accent", "--m-carta-accent"], ["titleColor", "--m-carta-h-c"], ["catColor", "--m-carta-cat-c"],
+          [["cardColor", "--m-rev-card-bg"],
+            ["accent", "--m-carta-accent"], ["titleColor", "--m-carta-h-c"], ["catColor", "--m-carta-cat-c"],
             ["nameColor", "--m-carta-name-c"], ["descColor", "--m-carta-desc-c"],
             ["priceColor", "--m-carta-price-c"], ["badgeColor", "--m-carta-badge-c"]].forEach(([k, v]) => {
             const c = cssColor(n.props?.[k]);
@@ -1677,8 +1678,11 @@
     // atajo al bloque, que es donde esta el color que se ve.
     const tapan = node ? blockingBg(node) : [];
     const aviso = tapan.length
-      ? `<p class="m-muted">Ojo: <strong>${esc(tapan[0].name)}</strong> pinta su propio fondo y ocupa toda la sección, así que la tapa. Este color sólo asomará por el relleno o el margen que dejes. Para cambiar el color que se ve, abre el bloque → Colores.</p>
-         <button type="button" class="m-btn ghost" data-sel="${tapan[0].id}">Ir a ${esc(tapan[0].name)}</button>`
+      ? `<p class="m-muted">Ojo: <strong>${esc(tapan[0].name)}</strong> pinta su propio fondo y ocupa toda la sección, así que la tapa. Este color sólo asomará por el relleno o el margen que dejes.</p>
+         <div class="b-row">
+           <button type="button" class="m-btn" data-paint-child="${tapan[0].id}">Pintar también el bloque</button>
+           <button type="button" class="m-btn ghost" data-sel="${tapan[0].id}">Ir a ${esc(tapan[0].name)}</button>
+         </div>`
       : "";
     return `<div class="acc"><h5>Fondo</h5>
       ${window.KrgUi.colorField("Color de fondo", st.background || "", 'data-style="background"')}
@@ -2556,6 +2560,30 @@
         const h = hit();
         if (h?.node?.styles?.[state.bp]) delete h.node.styles[state.bp][kind];
       });
+    });
+    // «Pintar también el bloque»: el color de la sección queda detrás del
+    // bloque, asi que lo normal al ponerlo es querer ver ese color. Esto lo
+    // copia al campo propio del bloque de un clic, en vez de obligar a
+    // buscarlo. Se deshace con Ctrl+Z como cualquier otro cambio.
+    box.querySelectorAll("[data-paint-child]").forEach((b) => {
+      b.onclick = () => {
+        const h = hit();
+        const hijo = findNode(state.doc.sections, b.dataset.paintChild);
+        if (!h || !hijo) return;
+        const color = h.node.styles?.[state.bp]?.background || "";
+        if (!color) {
+          state.styleWarn = "Elige antes un color de fondo para la sección.";
+          paintStatus();
+          return;
+        }
+        snapshot();
+        hijo.node.props = hijo.node.props || {};
+        hijo.node.props.bgColor = color;
+        if (hijo.node.type === "review-slider") hijo.node.props.cardColor = color;
+        state.selected = hijo.node.id;
+        markDirty();
+        render();
+      };
     });
     box.querySelectorAll("[data-style-set]").forEach((b) => {
       b.onclick = () => {

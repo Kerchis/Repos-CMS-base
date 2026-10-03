@@ -289,6 +289,14 @@ partido, reseñas, CTA, acordeón, hitos y colección filtrable).
 
 ## 5. Mejoras del editor y del admin
 
+- **«Pintar también el bloque».** Cuando el bloque de dentro tapa el fondo
+  de la sección, el aviso trae un botón que copia ese color al campo propio
+  del bloque de un clic (y a las tarjetas, en el carrusel de reseñas), en
+  vez de obligar a buscarlo. Se deshace con Ctrl+Z.
+- **Carrusel de reseñas: «Color de las tarjetas».** La tarjeta pinta su
+  propio fondo encima del bloque, así que cambiar sólo el del bloque dejaba
+  las tarjetas igual. Ahora es un campo (`--m-rev-card-bg`) que funciona en
+  los cinco temas; en blanco, manda el tema.
 - **Cada archivo lleva su propia versión.** El CSS y el JavaScript se
   encolaban con una constante escrita a mano (`MERIDIAN_VERSION`), así que
   subir archivos nuevos sin tocarla dejaba al navegador —y a cualquier CDN o

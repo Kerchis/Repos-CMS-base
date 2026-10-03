@@ -755,6 +755,8 @@ class BrandRenders {
 		}
 		$autoplay = ! empty( $props['autoplay'] );
 		$interval = max( 2000, min( 20000, absint( $props['interval'] ?? 6000 ) ) );
+		$card_c   = self::color_value( $props['cardColor'] ?? null );
+		$card     = '' !== $card_c ? '--m-rev-card-bg:' . $card_c . ';' : '';
 
 		$slides = '';
 		$dots   = '';
@@ -801,7 +803,10 @@ class BrandRenders {
 			$inner,
 			[
 				'class'          => 'm-rev is-theme-' . $theme . ( $upper ? ' is-upper' : '' ),
-				'style'          => '--m-rev-per:' . $per . ';' . self::section_style( $props ),
+				// El color de las tarjetas va aparte del fondo del bloque:
+				// la tarjeta pinta el suyo encima, asi que cambiar solo el
+				// del bloque dejaba las tarjetas igual.
+				'style'          => '--m-rev-per:' . $per . ';' . $card . self::section_style( $props ),
 				'data-review-slider' => '1',
 				'data-autoplay'  => $autoplay ? $interval : '0',
 			]

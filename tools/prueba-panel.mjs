@@ -163,6 +163,14 @@ ok(await esperarGuardado(n0 + 1), 'el color dispara un guardado');
 sec = nodoDe(guardados[guardados.length - 1], 'secCta');
 ok(sec?.styles?.desktop?.background === '#D94E27', `background guardado = ${sec?.styles?.desktop?.background}`);
 
+console.log('\n«Pintar también el bloque» copia el color al bloque de dentro');
+await page.waitForSelector('.b-insp [data-paint-child]');
+await page.click('.b-insp [data-paint-child]');
+const n9 = guardados.length;
+ok(await esperarGuardado(n9 + 1), 'pintar el bloque dispara un guardado');
+const cta = nodoDe(guardados[guardados.length - 1], 'cta1');
+ok(cta?.props?.bgColor === '#D94E27', `el bloque recibe bgColor = ${cta?.props?.bgColor}`);
+
 console.log('\nBloque de dentro (panel «Espaciado»)');
 await seleccionar('cta1');
 await escribirLado('padding-top', 25);
@@ -200,6 +208,6 @@ if (errores.length) {
 }
 
 await browser.close();
-const total = 13 + errores.length;
+const total = 15 + errores.length;
 console.log(`\n${total - fallos}/${total} comprobaciones correctas`);
 process.exit(fallos ? 1 : 0);

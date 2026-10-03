@@ -956,6 +956,32 @@ $cases = [
 		return documento( [ $sec ] );
 	},
 
+	'colores-rev-propio' => function () {
+		$props = [
+			'title'     => 'Reseñas',
+			'theme'     => 'surface',
+			'bgColor'   => [ 'mode' => 'custom', 'value' => '#2B413D' ],
+			'textColor' => [ 'mode' => 'custom', 'value' => '#FEF6E7' ],
+			'cardColor' => [ 'mode' => 'custom', 'value' => '#D94E27' ],
+			'items'     => [
+				[ 'text' => 'Una reseña.', 'author' => 'Ana', 'source' => 'Google', 'rating' => 5 ],
+				[ 'text' => 'Otra reseña.', 'author' => 'Luis', 'source' => 'Google', 'rating' => 5 ],
+			],
+		];
+		return documento( [ arbol( [ 'width' => 'full' ], [ node( 'review-slider', $props, 'rev1' ) ], 'secRev' ) ] );
+	},
+
+	'colores-rev-tema' => function () {
+		$props = [
+			'title' => 'Reseñas',
+			'theme' => 'forest',
+			'items' => [
+				[ 'text' => 'Una reseña.', 'author' => 'Ana', 'source' => 'Google', 'rating' => 5 ],
+			],
+		];
+		return documento( [ arbol( [ 'width' => 'full' ], [ node( 'review-slider', $props, 'rev2' ) ], 'secRev2' ) ] );
+	},
+
 ];
 
 $want = $argv[1] ?? '';

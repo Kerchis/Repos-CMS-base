@@ -530,7 +530,11 @@ class BrandCatalog {
 							[ 'help' => __( 'Desactivado, el texto sale tal y como lo escribes.', 'meridian' ) ]
 						),
 						self::f( 'theme', 'select', 'colors', __( 'Tema', 'meridian' ), [ 'options' => [ 'surface', 'cream', 'forest', 'light' ] ] ),
-						...self::color_fields(),
+						...self::color_fields(
+							[
+								self::f( 'cardColor', 'color', 'colors', __( 'Color de las tarjetas', 'meridian' ), [ 'allowEmpty' => true ] ),
+							]
+						),
 						...self::spacing_fields(),
 						self::f(
 							'items',

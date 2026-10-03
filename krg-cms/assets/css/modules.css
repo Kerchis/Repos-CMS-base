@@ -776,7 +776,7 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 .m-rev-card {
   margin: 0;
   height: 100%;
-  background: var(--color-surface-alt, #fff);
+  background: var(--m-rev-card-bg, var(--color-surface-alt, #fff));
   border-radius: var(--radius-cards, 20px);
   padding: var(--card-padding, 28px);
   display: grid;
@@ -785,7 +785,7 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
   border: var(--m-rule);
 }
 .is-theme-forest .m-rev-card,
-.is-theme-dark .m-rev-card { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.22); }
+.is-theme-dark .m-rev-card { background: var(--m-rev-card-bg, rgba(255, 255, 255, 0.08)); border-color: rgba(255, 255, 255, 0.22); }
 .m-rev-stars { color: var(--color-primary); letter-spacing: 0.18em; font-size: 14px; }
 .is-theme-forest .m-rev-stars, .is-theme-dark .m-rev-stars { color: inherit; }
 .m-rev-text {

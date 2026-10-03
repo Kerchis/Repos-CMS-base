@@ -552,3 +552,6 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   font-size: 12px;
   line-height: 1.35;
 }
+
+/* Fila de botones dentro de un panel del inspector. */
+.b-insp .b-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }

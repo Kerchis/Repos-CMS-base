@@ -92,6 +92,19 @@ const seccionConCta = [
 await caso('estilos-seccion-cta-relleno', seccionConCta);
 await caso('estilos-seccion-cta-relleno', seccionConCta, { sinHoja: true });
 
+// Carrusel de reseñas: la tarjeta pinta su propio fondo encima del bloque,
+// así que tiene color aparte. Sin eso, cambiar el color del bloque dejaba
+// las tarjetas igual y parecía que no hacía nada.
+await caso('colores-rev-tema', [
+  ['.m-rev', 'background-color', 'rgb(63, 94, 88)'],
+  ['.m-rev-card', 'background-color', 'rgba(255, 255, 255, 0.08)'],
+]);
+await caso('colores-rev-propio', [
+  ['.m-rev', 'background-color', 'rgb(43, 65, 61)'],
+  ['.m-rev', 'color', 'rgb(254, 246, 231)'],
+  ['.m-rev-card', 'background-color', 'rgb(217, 78, 39)'],
+]);
+
 /* ------------------------------------------------------------------ */
 /* 2. Alineación vertical dentro de una sección con alto              */
 /* ------------------------------------------------------------------ */
