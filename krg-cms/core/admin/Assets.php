@@ -30,6 +30,9 @@ class Assets {
 		// Lo usan tanto el constructor de paginas como el de cabecera y pie,
 		// asi que va antes que los dos y no depende de ninguno.
 		wp_enqueue_script( 'krg-builder-core', MERIDIAN_URI . '/admin/assets/js/builder-core.js', [ 'krg-admin' ], meridian_ver( '/admin/assets/js/builder-core.js' ), true );
+		// Los campos del inspector, tambien compartidos: paginas y
+		// navegacion montan el mismo, cada una con su documento.
+		wp_enqueue_script( 'krg-builder-fields', MERIDIAN_URI . '/admin/assets/js/builder-fields.js', [ 'krg-builder-core' ], meridian_ver( '/admin/assets/js/builder-fields.js' ), true );
 		$skin_css = \Meridian\Admin\Skin::css();
 		if ( $skin_css ) {
 			wp_add_inline_style( 'krg-admin', $skin_css );
@@ -61,9 +64,9 @@ class Assets {
 		if ( $is_builder ) {
 			wp_enqueue_style( 'krg-builder', MERIDIAN_URI . '/admin/assets/css/builder.css', [ 'krg-admin' ], meridian_ver( '/admin/assets/css/builder.css' ) );
 			if ( ! empty( $config['chrome'] ) ) {
-				wp_enqueue_script( 'krg-chrome', MERIDIAN_URI . '/admin/assets/js/chrome.js', [ 'krg-admin', 'krg-builder-core' ], meridian_ver( '/admin/assets/js/chrome.js' ), true );
+				wp_enqueue_script( 'krg-chrome', MERIDIAN_URI . '/admin/assets/js/chrome.js', [ 'krg-admin', 'krg-builder-core', 'krg-builder-fields' ], meridian_ver( '/admin/assets/js/chrome.js' ), true );
 			} else {
-				wp_enqueue_script( 'krg-builder', MERIDIAN_URI . '/admin/assets/js/builder.js', [ 'krg-admin', 'krg-builder-core' ], meridian_ver( '/admin/assets/js/builder.js' ), true );
+				wp_enqueue_script( 'krg-builder', MERIDIAN_URI . '/admin/assets/js/builder.js', [ 'krg-admin', 'krg-builder-core', 'krg-builder-fields' ], meridian_ver( '/admin/assets/js/builder.js' ), true );
 			}
 		}
 

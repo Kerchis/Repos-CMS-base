@@ -109,6 +109,7 @@ const html = `<!doctype html><meta charset="utf-8">
 <script>window.KrgAdmin={pageId:1,rest:${JSON.stringify(REST)},nonce:'n',admin:'/wp-admin/admin.php?'};</script>
 <script>${leer(`${JS_DIR}/app.js`)}</script>
 <script>${leer(`${JS_DIR}/builder-core.js`)}</script>
+<script>${leer(`${JS_DIR}/builder-fields.js`)}</script>
 <script>${leer(`${JS_DIR}/builder.js`)}</script>`;
 
 const browser = await chromium.launch({

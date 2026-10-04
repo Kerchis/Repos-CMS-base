@@ -70,6 +70,7 @@ const html = `<!doctype html><meta charset="utf-8"><title>panel</title>
 <script>window.KrgAdmin={pageId:1,rest:${JSON.stringify(REST)},nonce:'n',admin:'/wp-admin/admin.php?'};</script>
 <script src="file://${JS}/app.js"></script>
 <script src="file://${JS}/builder-core.js"></script>
+<script src="file://${JS}/builder-fields.js"></script>
 <script src="file://${JS}/builder.js"></script>`;
 
 const dir = mkdtempSync(join(tmpdir(), 'krg-panel-'));

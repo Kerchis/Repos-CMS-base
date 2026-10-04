@@ -78,6 +78,7 @@ function paginaHtml(region) {
 <script>window.KrgAdmin={chrome:${JSON.stringify(region)},rest:${JSON.stringify(REST)},nonce:'n',admin:'/wp-admin/admin.php?'};</script>
 <script src="file://${JS}/app.js"></script>
 <script src="file://${JS}/builder-core.js"></script>
+<script src="file://${JS}/builder-fields.js"></script>
 <script src="file://${JS}/chrome.js"></script>`;
 }
 
