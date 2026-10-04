@@ -103,8 +103,8 @@ console.log('\n--- Lo de siempre, pero en rejilla y rectangular');
   ok(!m.velo, 'sin color configurado no se pinta ninguna capa encima');
   ok(!m.logo, 'ni ningún logo');
   ok(m.titulo === 'H3', 'el título de la entrada sigue siendo un encabezado de verdad');
-  ok(!!m.fecha, 'la fecha se ve');
-  ok(m.resumen, 'y el resumen también');
+  ok(!m.fecha, 'la fecha no sale si no se pide');
+  ok(m.resumen, 'y el resumen sí');
 }
 
 /* ------------------------------------------------------------------ */
@@ -254,10 +254,12 @@ console.log('\n--- Que el color no se salga de la tarjeta');
 /* ------------------------------------------------------------------ */
 console.log('\n--- La fecha, el centrado y dónde va el logo');
 {
-  await abre(page, { showDate: false }, 'sinfecha');
-  ok(!(await page.$('.m-card-cat')), 'la fecha se puede apagar desde el panel');
+  await abre(page, {}, 'sinfecha');
+  ok(!(await page.$('.m-card-cat')), 'de serie, la tarjeta no enseña la fecha');
+  await abre(page, { showDate: false }, 'sinfecha2');
+  ok(!(await page.$('.m-card-cat')), 'y apagada tampoco, claro');
   await abre(page, { showDate: true }, 'confecha');
-  ok(!!(await page.$('.m-card-cat')), 'y volver a encenderla');
+  ok(!!(await page.$('.m-card-cat')), 'quien la quiera, la enciende y vuelve');
 
   for (const [valor, esperado] of [['center', 'center'], ['right', 'right'], ['left', 'start']]) {
     await abre(page, { textAlign: valor, linkText: 'Leer más' }, 'ta-' + valor);
@@ -316,6 +318,47 @@ console.log('\n--- La fecha, el centrado y dónde va el logo');
 }
 
 /* ------------------------------------------------------------------ */
+console.log('\n--- El texto, de arriba abajo');
+{
+  /** Dónde queda el bloque de texto dentro de la tarjeta. */
+  const medir = () => page.evaluate(() => {
+    const card = document.querySelector('.m-bcard').getBoundingClientRect();
+    const tit = document.querySelector('.m-card-title').getBoundingClientRect();
+    const cuerpo = document.querySelector('.m-card-body').getBoundingClientRect();
+    return {
+      arriba: Math.round(tit.top - card.top),
+      abajo: Math.round(card.bottom - tit.bottom),
+      cuerpoCubre: Math.round(cuerpo.height) >= Math.round(card.height) - 1,
+      centradoH: Math.abs((tit.left + tit.right) / 2 - (card.left + card.right) / 2) < 4,
+    };
+  });
+
+  // Con el texto sobre la foto: el sitio de siempre es abajo.
+  await abre(page, { cardStyle: 'overlay', quoteTitle: true, showExcerpt: false }, 'va-auto');
+  const auto = await medir();
+  ok(auto.abajo < auto.arriba, 'sin tocar nada, el texto sigue abajo como estaba');
+
+  await abre(page, { cardStyle: 'overlay', quoteTitle: true, showExcerpt: false, textVAlign: 'center', textAlign: 'center' }, 'va-centro');
+  const centro = await medir();
+  ok(centro.cuerpoCubre, 'al centrarlo, el texto deja de estar pegado abajo y se reparte en toda la tarjeta');
+  ok(Math.abs(centro.arriba - centro.abajo) < 24, `y queda a la misma distancia de arriba (${centro.arriba}) que de abajo (${centro.abajo})`);
+  ok(centro.centradoH, 'centrado también de lado a lado');
+
+  await abre(page, { cardStyle: 'overlay', quoteTitle: true, showExcerpt: false, textVAlign: 'top' }, 'va-arriba');
+  const arriba = await medir();
+  ok(arriba.arriba < arriba.abajo, 'y arriba cuando se pide arriba');
+
+  // Y en la tarjeta normal (texto debajo de la foto) también manda.
+  await abre(page, { cardStyle: 'stacked', textVAlign: 'center', textAlign: 'center', cardHeight: 420 }, 'va-stacked');
+  const apilada = await page.evaluate(() => {
+    const cuerpo = document.querySelector('.m-card-body');
+    return { reparto: getComputedStyle(cuerpo).justifyContent, alineado: getComputedStyle(cuerpo).textAlign };
+  });
+  ok(apilada.reparto === 'center' && apilada.alineado === 'center',
+    'en la tarjeta con el texto debajo, el centrado también vale');
+}
+
+/* ------------------------------------------------------------------ */
 /* Capturas, solo si se piden: KRG_SHOT=1 node tools/prueba-blog.mjs   */
 /* ------------------------------------------------------------------ */
 if (process.env.KRG_SHOT === '1') {
@@ -325,8 +368,9 @@ if (process.env.KRG_SHOT === '1') {
     quoteTitle: true,
     logoId: 77,
     logoWidth: 86,
-    logoPos: 'bottom-center',
+    logoPos: 'top-center',
     textAlign: 'center',
+    textVAlign: 'center',
     veilColor: '#3f5e58',
     blend: 'multiply',
     hoverColor: '#1d4b4f',

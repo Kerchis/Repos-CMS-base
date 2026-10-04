@@ -909,7 +909,9 @@ class ComponentRenders {
 	/** Las entradas que pinta una rejilla, ya consultadas. */
 	private static function blog_cards( array $props, RenderContext $ctx, array $posts ): string {
 		[ $opts, $vars, $ratio, $style ] = self::blog_card_setup( $props, $ctx );
-		$fecha   = ! array_key_exists( 'showDate', $props ) || ! empty( $props['showDate'] );
+		// La fecha solo si se pide. Antes salia por defecto y en una
+		// tarjeta con el titulo sobre la foto sobraba.
+		$fecha   = ! empty( $props['showDate'] );
 		$resumen = ! array_key_exists( 'showExcerpt', $props ) || ! empty( $props['showExcerpt'] );
 		$cta     = trim( (string) ( $props['linkText'] ?? '' ) );
 

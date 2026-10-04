@@ -54,6 +54,18 @@ console.log('\n--- El módulo de categorías en la web');
   ok(r.reencendido.publico.includes('Recetas'), 'al volver a encenderlo, la web lo pinta otra vez');
   ok(JSON.stringify(r.opcionCruda) === '{"showCategories":false}',
     'lo guardado es una opción propia del blog, no un retoque de los ajustes generales');
+
+  // La página de la entrada, con la plantilla de verdad: apagado, ahí
+  // abajo seguían los enlaces a la categoría y a la etiqueta.
+  ok(/href="[^"]*\/category\//.test(r.entradaEncendido) && /rel="tag"/.test(r.entradaEncendido),
+    'encendido: al pie del artículo están su categoría y su etiqueta');
+  ok(!/\/category\//.test(r.entradaApagado), 'apagado: en el artículo no queda ningún enlace a la categoría');
+  ok(!/rel="tag"/.test(r.entradaApagado), 'ni a la etiqueta');
+  ok(!/m-article-meta/.test(r.entradaApagado), 'ni el renglón que las envolvía');
+  ok(/m-article-body/.test(r.entradaApagado) && /m-role-h1/.test(r.entradaApagado),
+    'y el artículo sigue entero: título y cuerpo donde estaban');
+  ok(/m-bgrid/.test(r.entradaApagado), 'con sus entradas relacionadas debajo');
+  ok(!/m-card-cat/.test(r.entradaApagado), 'y esas tarjetas ya no llevan fecha');
 }
 
 /* ================================================================== */

@@ -767,6 +767,16 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
    el enlace, que son cajas sueltas. */
 .m-bcard.is-ta-center .m-card-body { text-align: center; align-items: center; }
 .m-bcard.is-ta-right .m-card-body { text-align: right; align-items: flex-end; }
+
+/* Y de arriba abajo. En las tarjetas normales el texto vive en la
+   segunda fila de la rejilla, así que basta con repartir la columna. */
+.m-bcard.is-va-top .m-card-body { justify-content: flex-start; }
+.m-bcard.is-va-center .m-card-body { justify-content: center; }
+.m-bcard.is-va-bottom .m-card-body { justify-content: flex-end; }
+/* El enlace se empuja solo al fondo; con el texto centrado o arriba eso
+   lo deshacía todo. */
+.m-bcard.is-va-top .m-card-cta,
+.m-bcard.is-va-center .m-card-cta { margin-block-start: 10px; }
 .m-card-cta { margin-block-start: auto; }
 
 /* Tarjetas parejas: recorta a un número de líneas y reserva el hueco.
@@ -851,6 +861,24 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 }
 .m-bcard.is-overlay .m-card-cat,
 .m-bcard.is-overlay .m-card-text { color: inherit; opacity: 0.9; }
+
+/* Con el texto sobre la foto, el cuerpo se pega abajo y mide lo que
+   mide el texto: por eso, por sí solo, no se puede subir ni centrar.
+   Si se pide una posición, pasa a ocupar la tarjeta entera y entonces
+   sí se reparte; el degradado acompaña para que el texto se siga
+   leyendo donde quede. */
+.m-bcard.is-overlay.is-va-top .m-card-body,
+.m-bcard.is-overlay.is-va-center .m-card-body,
+.m-bcard.is-overlay.is-va-bottom .m-card-body {
+  inset: 0;
+  border-radius: var(--radius-cards, 20px);
+}
+.m-bcard.is-overlay.is-va-top .m-card-body {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0));
+}
+.m-bcard.is-overlay.is-va-center .m-card-body {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.3));
+}
 
 /* ------------------------------------------------------------------ */
 /* 3.8 product-rail                                                    */

@@ -99,6 +99,36 @@ $salida['apagado']    = [
 $salida['trasEncender'] = \Meridian\Content\BlogSettings::get();
 $salida['reencendido']  = [ 'publico' => $pinta( false ) ];
 
+// 5. La pagina de una entrada: con el interruptor apagado no puede
+// quedar ningun enlace a la categoria ni a la etiqueta al pie del
+// articulo. Se ejecuta la plantilla de verdad (`single.php`), no una
+// copia: eso es justo lo que se le escapo la primera vez.
+$GLOBALS['krg_entradas'] = [
+	new WP_Post(
+		[
+			'ID'           => 101,
+			'post_title'   => 'Brunch en Cajica',
+			'post_name'    => 'brunch-en-cajica',
+			'post_excerpt' => 'Una manana para disfrutar sin afan.',
+			'post_date'    => '3 de octubre de 2026',
+			'thumbnail_id' => 0,
+		]
+	),
+];
+
+/** Pinta la pagina de la entrada con la plantilla del tema. */
+$articulo = static function () use ( $base ): string {
+	$GLOBALS['krg_loop'] = $GLOBALS['krg_entradas'];
+	ob_start();
+	include $base . '/single.php';
+	return (string) ob_get_clean();
+};
+
+\Meridian\Content\BlogSettings::save( [ 'showCategories' => true ] );
+$salida['entradaEncendido'] = $articulo();
+\Meridian\Content\BlogSettings::save( [ 'showCategories' => false ] );
+$salida['entradaApagado'] = $articulo();
+
 // 4. Lo que queda guardado en la opcion, tal cual.
 \Meridian\Content\BlogSettings::save( [ 'showCategories' => false ] );
 $salida['opcionCruda'] = get_option( MERIDIAN_OPTION_BLOG, null );

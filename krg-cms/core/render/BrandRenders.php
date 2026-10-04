@@ -166,6 +166,7 @@ class BrandRenders {
 		$ancho  = max( 40, min( 400, absint( $props['logoWidth'] ?? 120 ) ?: 120 ) );
 		$donde  = self::opt( (string) ( $props['logoPos'] ?? 'body' ), self::LOGO_POS, 'body' );
 		$alinea = self::opt( (string) ( $props['textAlign'] ?? 'left' ), [ 'left', 'center', 'right' ], 'left' );
+		$vert   = self::opt( (string) ( $props['textVAlign'] ?? 'auto' ), [ 'auto', 'top', 'center', 'bottom' ], 'auto' );
 
 		$vars = '';
 		if ( $alto ) {
@@ -192,6 +193,7 @@ class BrandRenders {
 			'logo'     => $logo ? ComponentRenders::img( $ctx, $logo, '', 'm-card-logo-img', 'medium' ) : '',
 			'logoPos'  => $donde,
 			'align'    => $alinea,
+			'valign'   => $vert,
 		];
 		return [ $opts, $vars ];
 	}
@@ -261,8 +263,11 @@ class BrandRenders {
 			. '</span>';
 
 		$inner = $media . '<span class="m-card-body">' . $body . '</span>';
-		$align = in_array( $opts['align'] ?? 'left', [ 'left', 'center', 'right' ], true ) ? ( $opts['align'] ?? 'left' ) : 'left';
-		$class = 'm-bcard is-' . esc_attr( $style ) . ( 'left' === $align ? '' : ' is-ta-' . $align );
+		$align  = in_array( $opts['align'] ?? 'left', [ 'left', 'center', 'right' ], true ) ? ( $opts['align'] ?? 'left' ) : 'left';
+		$valign = in_array( $opts['valign'] ?? 'auto', [ 'auto', 'top', 'center', 'bottom' ], true ) ? ( $opts['valign'] ?? 'auto' ) : 'auto';
+		$class  = 'm-bcard is-' . esc_attr( $style )
+			. ( 'left' === $align ? '' : ' is-ta-' . $align )
+			. ( 'auto' === $valign ? '' : ' is-va-' . $valign );
 
 		if ( '' !== $url ) {
 			return '<a class="' . $class . '" href="' . esc_url( $url ) . '">' . $inner . '</a>';

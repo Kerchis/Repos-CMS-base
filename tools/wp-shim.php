@@ -406,7 +406,7 @@ if ( ! function_exists( 'wp_reset_postdata' ) ) {
 	function wp_reset_postdata() {}
 }
 if ( ! function_exists( 'get_the_title' ) ) {
-	function get_the_title( $p = null ) { return is_object( $p ) ? (string) $p->post_title : ''; }
+	function get_the_title( $p = null ) { $p = $p ?: ( $GLOBALS['post'] ?? null ); return is_object( $p ) ? (string) $p->post_title : ''; }
 }
 if ( ! function_exists( 'get_permalink' ) ) {
 	function get_permalink( $p = null ) {
@@ -415,13 +415,13 @@ if ( ! function_exists( 'get_permalink' ) ) {
 	}
 }
 if ( ! function_exists( 'get_the_date' ) ) {
-	function get_the_date( $f = '', $p = null ) { return is_object( $p ) ? (string) $p->post_date : ''; }
+	function get_the_date( $f = '', $p = null ) { $p = $p ?: ( $GLOBALS['post'] ?? null ); return is_object( $p ) ? (string) $p->post_date : ''; }
 }
 if ( ! function_exists( 'get_the_excerpt' ) ) {
-	function get_the_excerpt( $p = null ) { return is_object( $p ) ? (string) $p->post_excerpt : ''; }
+	function get_the_excerpt( $p = null ) { $p = $p ?: ( $GLOBALS['post'] ?? null ); return is_object( $p ) ? (string) $p->post_excerpt : ''; }
 }
 if ( ! function_exists( 'get_post_thumbnail_id' ) ) {
-	function get_post_thumbnail_id( $p = null ) { return is_object( $p ) ? (int) $p->thumbnail_id : 0; }
+	function get_post_thumbnail_id( $p = null ) { $p = $p ?: ( $GLOBALS['post'] ?? null ); return is_object( $p ) ? (int) $p->thumbnail_id : 0; }
 }
 if ( ! function_exists( 'wp_trim_words' ) ) {
 	function wp_trim_words( $t, $n = 55, $mas = null ) {
@@ -434,4 +434,54 @@ if ( ! function_exists( 'wp_trim_words' ) ) {
 }
 if ( ! function_exists( 'wp_get_post_categories' ) ) {
 	function wp_get_post_categories( $id, $args = [] ) { return []; }
+}
+
+/* ---------------------------------------------------------------- */
+/* El bucle y la plantilla de una entrada                            */
+/*                                                                    */
+/* Lo justo para poder ejecutar `single.php` tal cual y ver que sale: */
+/* las entradas pendientes van en `$GLOBALS['krg_loop']` y la de      */
+/* ahora en `$GLOBALS['post']`.                                       */
+/* ---------------------------------------------------------------- */
+if ( ! function_exists( 'get_header' ) ) {
+	function get_header( $n = null ) { echo '<!--cabecera-->'; }
+}
+if ( ! function_exists( 'get_footer' ) ) {
+	function get_footer( $n = null ) { echo '<!--pie-->'; }
+}
+if ( ! function_exists( 'have_posts' ) ) {
+	function have_posts() { return ! empty( $GLOBALS['krg_loop'] ); }
+}
+if ( ! function_exists( 'the_post' ) ) {
+	function the_post() { $GLOBALS['post'] = array_shift( $GLOBALS['krg_loop'] ); }
+}
+if ( ! function_exists( 'get_the_ID' ) ) {
+	function get_the_ID() { return isset( $GLOBALS['post'] ) ? (int) $GLOBALS['post']->ID : 0; }
+}
+if ( ! function_exists( 'get_post_meta' ) ) {
+	function get_post_meta( $id, $clave = '', $uno = false ) { return $uno ? '' : []; }
+}
+if ( ! function_exists( 'has_post_thumbnail' ) ) {
+	function has_post_thumbnail( $p = null ) { return false; }
+}
+if ( ! function_exists( 'get_the_post_thumbnail' ) ) {
+	function get_the_post_thumbnail( $p = null, $size = 'post-thumbnail', $attr = [] ) { return ''; }
+}
+if ( ! function_exists( 'the_content' ) ) {
+	function the_content() { echo '<p>El cuerpo de la entrada.</p>'; }
+}
+if ( ! function_exists( 'the_category' ) ) {
+	function the_category( $sep = '' ) {
+		$cats = is_array( $GLOBALS['krg_categorias'] ?? null ) ? $GLOBALS['krg_categorias'] : [];
+		$out  = [];
+		foreach ( $cats as $c ) {
+			$out[] = '<a href="https://krg.test/category/' . $c->slug . '/" rel="category tag">' . $c->name . '</a>';
+		}
+		echo implode( $sep, $out );
+	}
+}
+if ( ! function_exists( 'the_tags' ) ) {
+	function the_tags( $antes = '', $sep = '', $despues = '' ) {
+		echo $antes . '<a href="https://krg.test/tag/miel/" rel="tag">miel</a>' . $despues;
+	}
 }

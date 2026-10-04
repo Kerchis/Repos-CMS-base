@@ -24,11 +24,17 @@ if ( have_posts() ) {
 	echo '<div class="m-rich m-article-body">';
 	the_content();
 	echo '</div>';
-	echo '<nav class="m-article-meta">';
-	the_category( ', ' );
-	echo ' ';
-	the_tags( '', ', ' );
-	echo '</nav>';
+	// Las categorias y las etiquetas al pie del articulo solo se
+	// imprimen si el interruptor de la pantalla de Blog las deja ver.
+	// Apagado, no basta con esconder el modulo de categorias: aqui
+	// tambien habia enlaces a los archivos de cada termino.
+	if ( \Meridian\Content\BlogSettings::show_categories() ) {
+		echo '<nav class="m-article-meta">';
+		the_category( ', ' );
+		echo ' ';
+		the_tags( '', ', ' );
+		echo '</nav>';
+	}
 	$ctx  = new \Meridian\Render\RenderContext();
 	$node = [ 'id' => 'related', 'type' => 'related-posts', 'visible' => true ];
 	echo \Meridian\Render\ComponentRenders::related_posts( $node, [ 'count' => 3 ], '', $ctx ); // phpcs:ignore

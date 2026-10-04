@@ -78,6 +78,16 @@ class BrandCatalog {
 	 */
 	public const BLENDS = [ 'normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard-light', 'darken', 'lighten', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity' ];
 
+	/** Donde se coloca el texto de una tarjeta de arriba abajo. */
+	public static function valign_options(): array {
+		return [
+			[ 'value' => 'auto', 'label' => __( 'Como el estilo mande', 'meridian' ) ],
+			[ 'value' => 'top', 'label' => __( 'Arriba', 'meridian' ) ],
+			[ 'value' => 'center', 'label' => __( 'Centrado', 'meridian' ) ],
+			[ 'value' => 'bottom', 'label' => __( 'Abajo', 'meridian' ) ],
+		];
+	}
+
 	/** Los siete sitios donde puede ir el logo de una tarjeta. */
 	public static function logo_pos_options(): array {
 		return [
@@ -98,7 +108,7 @@ class BrandCatalog {
 			self::f( 'quoteTitle', 'toggle', 'design', __( 'Título como cita', 'meridian' ), [ 'help' => __( 'Lo pone en grande y entre comillas.', 'meridian' ) ] ),
 			self::f( 'logoId', 'image', 'content', __( 'Logo dentro de la tarjeta', 'meridian' ), [ 'help' => __( 'La misma imagen en todas las tarjetas.', 'meridian' ) ] ),
 			self::f( 'logoPos', 'select', 'design', __( 'Posición del logo', 'meridian' ), [ 'options' => self::logo_pos_options() ] ),
-			self::f( 'logoWidth', 'number', 'design', __( 'Ancho del logo (px)', 'meridian' ), [ 'min' => 40, 'max' => 400 ] ),
+			self::f( 'logoWidth', 'number', 'design', __( 'Ancho del logo (px)', 'meridian' ), [ 'min' => 10, 'max' => 400 ] ),
 			self::f(
 				'textAlign',
 				'select',
@@ -112,6 +122,7 @@ class BrandCatalog {
 					],
 				]
 			),
+			self::f( 'textVAlign', 'select', 'design', __( 'Posición vertical del texto', 'meridian' ), [ 'options' => self::valign_options() ] ),
 			self::f(
 				'veilColor',
 				'color',
@@ -538,6 +549,7 @@ class BrandCatalog {
 					'logoPos'   => 'body',
 					'logoWidth' => 120,
 					'textAlign' => 'left',
+					'textVAlign'=> 'auto',
 					'veilColor' => '',
 					'blend'     => 'normal',
 					'hoverColor'=> '',

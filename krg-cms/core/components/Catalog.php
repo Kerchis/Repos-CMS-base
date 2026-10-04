@@ -80,7 +80,10 @@ class Catalog {
 				'logoPos'     => 'body',
 				'logoWidth'   => 120,
 				'textAlign'   => 'left',
-				'showDate'    => true,
+				'textVAlign'  => 'auto',
+				// Sin fecha: en una tarjeta con el titulo sobre la foto
+				// estorbaba mas que ayudaba. El interruptor sigue ahi.
+				'showDate'    => false,
 				'showExcerpt' => true,
 				'linkText'    => '',
 				'veilColor'   => '',
@@ -134,7 +137,7 @@ class Catalog {
 			self::f( 'quoteTitle', 'toggle', 'design', __( 'Título como cita', 'meridian' ), [ 'help' => __( 'Lo pone en grande y entre comillas.', 'meridian' ) ] ),
 			self::f( 'logoId', 'image', 'content', __( 'Logo dentro de la tarjeta', 'meridian' ), [ 'help' => __( 'La misma imagen en todas las tarjetas.', 'meridian' ) ] ),
 			self::f( 'logoPos', 'select', 'design', __( 'Posición del logo', 'meridian' ), [ 'options' => BrandCatalog::logo_pos_options() ] ),
-			self::f( 'logoWidth', 'number', 'design', __( 'Ancho del logo (px)', 'meridian' ), [ 'min' => 40, 'max' => 400 ] ),
+			self::f( 'logoWidth', 'number', 'design', __( 'Ancho del logo (px)', 'meridian' ), [ 'min' => 10, 'max' => 400 ] ),
 			self::f(
 				'textAlign',
 				'select',
@@ -148,9 +151,10 @@ class Catalog {
 					],
 				]
 			),
-			self::f( 'showDate', 'toggle', 'content', __( 'Mostrar la fecha de la entrada', 'meridian' ) ),
-			self::f( 'showExcerpt', 'toggle', 'content', __( 'Mostrar el resumen', 'meridian' ) ),
-			self::f( 'linkText', 'text', 'content', __( 'Texto del enlace (vacío = ninguno)', 'meridian' ) ),
+			self::f( 'textVAlign', 'select', 'design', __( 'Posición vertical del texto', 'meridian' ), [ 'options' => BrandCatalog::valign_options() ] ),
+			self::f( 'showDate', 'toggle', 'design', __( 'Mostrar la fecha de la entrada', 'meridian' ) ),
+			self::f( 'showExcerpt', 'toggle', 'design', __( 'Mostrar el resumen', 'meridian' ) ),
+			self::f( 'linkText', 'text', 'design', __( 'Texto del enlace (vacío = ninguno)', 'meridian' ) ),
 			self::f(
 				'veilColor',
 				'color',
