@@ -697,13 +697,38 @@ a.m-bcard:hover .m-card-cta { text-decoration: underline; }
 
 /* Logo dentro de la tarjeta, debajo del título. */
 .m-card-logo { display: block; margin-block-start: 10px; }
+
+/* O clavado sobre la foto, en cualquiera de las seis posiciones. Va por
+   encima del velo de color y por debajo del texto. */
+.m-card-media > .m-card-logo {
+  position: absolute;
+  z-index: 2;
+  margin: 0;
+  pointer-events: none;
+}
+.m-card-media > .m-card-logo.is-at-top-left,
+.m-card-media > .m-card-logo.is-at-top-center,
+.m-card-media > .m-card-logo.is-at-top-right { top: var(--m-card-logo-gap, 18px); }
+.m-card-media > .m-card-logo.is-at-bottom-left,
+.m-card-media > .m-card-logo.is-at-bottom-center,
+.m-card-media > .m-card-logo.is-at-bottom-right { bottom: var(--m-card-logo-gap, 18px); }
+.m-card-media > .m-card-logo.is-at-top-left,
+.m-card-media > .m-card-logo.is-at-bottom-left { left: var(--m-card-logo-gap, 18px); }
+.m-card-media > .m-card-logo.is-at-top-right,
+.m-card-media > .m-card-logo.is-at-bottom-right { right: var(--m-card-logo-gap, 18px); }
+.m-card-media > .m-card-logo.is-at-top-center,
+.m-card-media > .m-card-logo.is-at-bottom-center {
+  left: 50%;
+  transform: translateX(-50%);
+}
 .m-card-logo-img {
   display: block;
   width: auto;
   max-width: var(--m-card-logo-w, 120px);
   height: auto;
 }
-.m-bcard.is-overlay .m-card-logo-img { filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45)); }
+.m-bcard.is-overlay .m-card-logo-img,
+.m-card-media > .m-card-logo .m-card-logo-img { filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45)); }
 
 /* Rejilla de entradas del blog: las mismas columnas que las
    colecciones. Antes el contenedor era un `.m-grid` sin ninguna regla,
@@ -737,6 +762,11 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
    tarjetas quedan a la misma altura, y el enlace final se va abajo del
    todo en vez de flotar donde acabe la descripción. */
 .m-card-body { display: flex; flex-direction: column; gap: 6px; }
+/* Alineación del texto de la tarjeta. Como el cuerpo es una columna
+   flexible, no basta con `text-align`: hay que mover también el logo y
+   el enlace, que son cajas sueltas. */
+.m-bcard.is-ta-center .m-card-body { text-align: center; align-items: center; }
+.m-bcard.is-ta-right .m-card-body { text-align: right; align-items: flex-end; }
 .m-card-cta { margin-block-start: auto; }
 
 /* Tarjetas parejas: recorta a un número de líneas y reserva el hueco.
@@ -797,7 +827,19 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 .m-bcard.is-soft .m-card-media { background: var(--color-surface); }
 .m-bcard.is-outline .m-card-media { border: var(--m-rule); background: transparent; }
 .m-bcard.is-bare .m-card-media { background: transparent; }
-.m-bcard.is-overlay { position: relative; }
+.m-bcard.is-overlay {
+  position: relative;
+  /* Con el texto sobre la foto el cuerpo va absoluto, así que la
+     segunda fila de la rejilla se quedaba vacía y su separación —16 px—
+     colgaba por debajo de la foto: el velo de color y el degradado se
+     salían de la tarjeta por abajo, con la esquina cuadrada. Una sola
+     fila y sin separación: la tarjeta mide exactamente lo que la foto. */
+  grid-template-rows: auto;
+  gap: 0;
+  /* Y nada de lo que se pinte dentro se sale de las esquinas. */
+  overflow: hidden;
+  border-radius: var(--radius-cards, 20px);
+}
 .m-bcard.is-overlay .m-card-body {
   position: absolute;
   inset-inline: 0;

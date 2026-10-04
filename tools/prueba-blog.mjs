@@ -231,6 +231,91 @@ console.log('\n--- Lo que no debe cambiar');
 }
 
 /* ------------------------------------------------------------------ */
+console.log('\n--- Que el color no se salga de la tarjeta');
+{
+  await abre(page, { cardStyle: 'overlay', veilColor: '#3f5e58', blend: 'multiply', quoteTitle: true }, 'sinsobrante');
+  const m = await page.evaluate(() => {
+    const card = document.querySelector('.m-bcard');
+    const r = (n) => { const b = n.getBoundingClientRect(); return { t: Math.round(b.top), b: Math.round(b.bottom), h: Math.round(b.height) }; };
+    return {
+      card: r(card),
+      foto: r(card.querySelector('.m-card-media')),
+      velo: r(card.querySelector('.m-card-veil')),
+      cuerpo: r(card.querySelector('.m-card-body')),
+      recorte: getComputedStyle(card).overflow,
+    };
+  });
+  ok(m.card.h === m.foto.h, `la tarjeta mide lo mismo que la foto: ${m.card.h} y ${m.foto.h}`);
+  ok(m.velo.b <= m.card.b, 'el color no se sale por abajo');
+  ok(m.cuerpo.b <= m.card.b, 'y el degradado del texto tampoco');
+  ok(m.recorte === 'hidden', 'lo que se pinte dentro se queda dentro de las esquinas');
+}
+
+/* ------------------------------------------------------------------ */
+console.log('\n--- La fecha, el centrado y dónde va el logo');
+{
+  await abre(page, { showDate: false }, 'sinfecha');
+  ok(!(await page.$('.m-card-cat')), 'la fecha se puede apagar desde el panel');
+  await abre(page, { showDate: true }, 'confecha');
+  ok(!!(await page.$('.m-card-cat')), 'y volver a encenderla');
+
+  for (const [valor, esperado] of [['center', 'center'], ['right', 'right'], ['left', 'start']]) {
+    await abre(page, { textAlign: valor, linkText: 'Leer más' }, 'ta-' + valor);
+    const m = await page.evaluate(() => {
+      const cuerpo = document.querySelector('.m-card-body');
+      const caja = cuerpo.getBoundingClientRect();
+      const cta = document.querySelector('.m-card-cta').getBoundingClientRect();
+      return {
+        alineado: getComputedStyle(cuerpo).textAlign,
+        // El enlace es una caja suelta: con `text-align` a secas se
+        // quedaba pegado a la izquierda aunque el texto fuera centrado.
+        centrado: Math.abs((cta.left + cta.right) / 2 - (caja.left + caja.right) / 2) < 3,
+        aLaDerecha: Math.abs(cta.right - (caja.right - parseFloat(getComputedStyle(cuerpo).paddingRight))) < 3,
+      };
+    });
+    ok(m.alineado === esperado, `alineación «${valor}» → ${m.alineado}`);
+    if (valor === 'center') ok(m.centrado, 'centrado mueve también el enlace, no solo el texto');
+    if (valor === 'right') ok(m.aLaDerecha, 'a la derecha, el enlace también se va a la derecha');
+  }
+
+  const sitios = [
+    ['top-left', 'arriba', 'izquierda'],
+    ['top-center', 'arriba', 'centro'],
+    ['top-right', 'arriba', 'derecha'],
+    ['bottom-left', 'abajo', 'izquierda'],
+    ['bottom-center', 'abajo', 'centro'],
+    ['bottom-right', 'abajo', 'derecha'],
+  ];
+  for (const [pos, alto, lado] of sitios) {
+    await abre(page, { logoId: 77, logoWidth: 80, logoPos: pos, cardStyle: 'overlay' }, 'logo-' + pos);
+    const m = await page.evaluate(() => {
+      const foto = document.querySelector('.m-card-media').getBoundingClientRect();
+      const logo = document.querySelector('.m-card-logo').getBoundingClientRect();
+      const medio = (a) => (a.left + a.right) / 2;
+      return {
+        dentro: logo.top >= foto.top - 1 && logo.bottom <= foto.bottom + 1 && logo.left >= foto.left - 1 && logo.right <= foto.right + 1,
+        arriba: logo.top - foto.top < foto.height / 2,
+        izquierda: logo.left - foto.left < 40,
+        derecha: foto.right - logo.right < 40,
+        centrado: Math.abs(medio(logo) - medio(foto)) < 3,
+      };
+    });
+    const bien = m.dentro
+      && (alto === 'arriba' ? m.arriba : !m.arriba)
+      && (lado === 'izquierda' ? m.izquierda : lado === 'derecha' ? m.derecha : m.centrado);
+    ok(bien, `el logo se puede clavar ${alto} a la ${lado === 'centro' ? 'mitad' : lado} (${pos})`);
+  }
+
+  await abre(page, { logoId: 77, logoPos: 'body', quoteTitle: true }, 'logo-body');
+  const debajo = await page.evaluate(() => {
+    const t = document.querySelector('.m-card-title').getBoundingClientRect();
+    const l = document.querySelector('.m-card-logo').getBoundingClientRect();
+    return l.top >= t.bottom - 1 && !document.querySelector('.m-card-media > .m-card-logo');
+  });
+  ok(debajo, 'y «debajo del título» lo deja donde estaba, en el texto');
+}
+
+/* ------------------------------------------------------------------ */
 /* Capturas, solo si se piden: KRG_SHOT=1 node tools/prueba-blog.mjs   */
 /* ------------------------------------------------------------------ */
 if (process.env.KRG_SHOT === '1') {
@@ -240,6 +325,8 @@ if (process.env.KRG_SHOT === '1') {
     quoteTitle: true,
     logoId: 77,
     logoWidth: 86,
+    logoPos: 'bottom-center',
+    textAlign: 'center',
     veilColor: '#3f5e58',
     blend: 'multiply',
     hoverColor: '#1d4b4f',

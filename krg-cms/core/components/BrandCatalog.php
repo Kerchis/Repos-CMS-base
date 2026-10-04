@@ -78,13 +78,40 @@ class BrandCatalog {
 	 */
 	public const BLENDS = [ 'normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard-light', 'darken', 'lighten', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity' ];
 
+	/** Los siete sitios donde puede ir el logo de una tarjeta. */
+	public static function logo_pos_options(): array {
+		return [
+			[ 'value' => 'body', 'label' => __( 'Debajo del título', 'meridian' ) ],
+			[ 'value' => 'top-left', 'label' => __( 'Arriba a la izquierda', 'meridian' ) ],
+			[ 'value' => 'top-center', 'label' => __( 'Arriba en el centro', 'meridian' ) ],
+			[ 'value' => 'top-right', 'label' => __( 'Arriba a la derecha', 'meridian' ) ],
+			[ 'value' => 'bottom-left', 'label' => __( 'Abajo a la izquierda', 'meridian' ) ],
+			[ 'value' => 'bottom-center', 'label' => __( 'Abajo en el centro', 'meridian' ) ],
+			[ 'value' => 'bottom-right', 'label' => __( 'Abajo a la derecha', 'meridian' ) ],
+		];
+	}
+
 	private static function card_skin_fields(): array {
 		$blends = self::BLENDS;
 		return [
 			self::f( 'cardHeight', 'number', 'design', __( 'Alto fijo de la tarjeta (px, 0 = por proporción)', 'meridian' ), [ 'min' => 0, 'max' => 1200 ] ),
 			self::f( 'quoteTitle', 'toggle', 'design', __( 'Título como cita', 'meridian' ), [ 'help' => __( 'Lo pone en grande y entre comillas.', 'meridian' ) ] ),
-			self::f( 'logoId', 'image', 'content', __( 'Logo dentro de la tarjeta', 'meridian' ), [ 'help' => __( 'Se pinta debajo del título, en todas las tarjetas.', 'meridian' ) ] ),
+			self::f( 'logoId', 'image', 'content', __( 'Logo dentro de la tarjeta', 'meridian' ), [ 'help' => __( 'La misma imagen en todas las tarjetas.', 'meridian' ) ] ),
+			self::f( 'logoPos', 'select', 'design', __( 'Posición del logo', 'meridian' ), [ 'options' => self::logo_pos_options() ] ),
 			self::f( 'logoWidth', 'number', 'design', __( 'Ancho del logo (px)', 'meridian' ), [ 'min' => 40, 'max' => 400 ] ),
+			self::f(
+				'textAlign',
+				'select',
+				'design',
+				__( 'Alineación del texto', 'meridian' ),
+				[
+					'options' => [
+						[ 'value' => 'left', 'label' => __( 'Izquierda', 'meridian' ) ],
+						[ 'value' => 'center', 'label' => __( 'Centrado', 'meridian' ) ],
+						[ 'value' => 'right', 'label' => __( 'Derecha', 'meridian' ) ],
+					],
+				]
+			),
 			self::f(
 				'veilColor',
 				'color',
@@ -508,7 +535,9 @@ class BrandCatalog {
 					'cardHeight'=> 0,
 					'quoteTitle'=> false,
 					'logoId'    => 0,
+					'logoPos'   => 'body',
 					'logoWidth' => 120,
+					'textAlign' => 'left',
 					'veilColor' => '',
 					'blend'     => 'normal',
 					'hoverColor'=> '',

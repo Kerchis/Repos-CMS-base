@@ -132,6 +132,15 @@ class BrandRenders {
 		return ComponentRenders::img( $ctx, $id, $alt, $class, $size, $eager );
 	}
 
+	/**
+	 * Donde puede ir el logo de una tarjeta.
+	 *
+	 * `body` es su sitio de siempre: debajo del titulo, en el texto.
+	 * Las otras seis lo clavan en una esquina o en el centro de un
+	 * borde, por encima de la foto.
+	 */
+	public const LOGO_POS = [ 'body', 'top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right' ];
+
 	/** Modos de fusion que admite la veladura de una tarjeta.
 	 *  La lista la manda el catalogo, que es quien la ofrece en el panel. */
 	public const BLENDS = \Meridian\Components\BrandCatalog::BLENDS;
@@ -155,6 +164,8 @@ class BrandRenders {
 		$alto   = max( 0, min( 1200, absint( $props['cardHeight'] ?? 0 ) ) );
 		$logo   = absint( $props['logoId'] ?? 0 );
 		$ancho  = max( 40, min( 400, absint( $props['logoWidth'] ?? 120 ) ?: 120 ) );
+		$donde  = self::opt( (string) ( $props['logoPos'] ?? 'body' ), self::LOGO_POS, 'body' );
+		$alinea = self::opt( (string) ( $props['textAlign'] ?? 'left' ), [ 'left', 'center', 'right' ], 'left' );
 
 		$vars = '';
 		if ( $alto ) {
@@ -179,6 +190,8 @@ class BrandRenders {
 			'veil'     => ( '' !== $veil || '' !== $hover ),
 			'fixedH'   => (bool) $alto,
 			'logo'     => $logo ? ComponentRenders::img( $ctx, $logo, '', 'm-card-logo-img', 'medium' ) : '',
+			'logoPos'  => $donde,
+			'align'    => $alinea,
 		];
 		return [ $opts, $vars ];
 	}
@@ -229,8 +242,10 @@ class BrandRenders {
 		if ( '' !== $cta ) {
 			$body .= '<span class="m-card-cta">' . esc_html( $cta ) . '</span>';
 		}
-		// El logo va debajo del titulo, dentro del cuerpo de la tarjeta.
-		if ( ! empty( $opts['logo'] ) ) {
+		// El logo va debajo del titulo salvo que se le haya dado un sitio
+		// propio sobre la foto; entonces se imprime con la imagen.
+		$logo_pos = in_array( $opts['logoPos'] ?? 'body', self::LOGO_POS, true ) ? ( $opts['logoPos'] ?? 'body' ) : 'body';
+		if ( ! empty( $opts['logo'] ) && 'body' === $logo_pos ) {
 			$body .= '<span class="m-card-logo">' . $opts['logo'] . '</span>';
 		}
 
@@ -239,11 +254,15 @@ class BrandRenders {
 			// La veladura va por encima de la foto y debajo del texto:
 			// el modo de fusion solo tiene sentido contra la imagen.
 			. ( empty( $opts['veil'] ) ? '' : '<span class="m-card-veil" aria-hidden="true"></span>' )
+			. ( ! empty( $opts['logo'] ) && 'body' !== $logo_pos
+				? '<span class="m-card-logo is-at-' . esc_attr( $logo_pos ) . '">' . $opts['logo'] . '</span>'
+				: '' )
 			. ( '' !== $badge ? '<span class="m-card-badge">' . esc_html( $badge ) . '</span>' : '' )
 			. '</span>';
 
 		$inner = $media . '<span class="m-card-body">' . $body . '</span>';
-		$class = 'm-bcard is-' . esc_attr( $style );
+		$align = in_array( $opts['align'] ?? 'left', [ 'left', 'center', 'right' ], true ) ? ( $opts['align'] ?? 'left' ) : 'left';
+		$class = 'm-bcard is-' . esc_attr( $style ) . ( 'left' === $align ? '' : ' is-ta-' . $align );
 
 		if ( '' !== $url ) {
 			return '<a class="' . $class . '" href="' . esc_url( $url ) . '">' . $inner . '</a>';

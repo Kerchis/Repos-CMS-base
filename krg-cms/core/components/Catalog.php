@@ -77,7 +77,9 @@ class Catalog {
 				'cardHeight'  => 0,
 				'quoteTitle'  => false,
 				'logoId'      => 0,
+				'logoPos'     => 'body',
 				'logoWidth'   => 120,
+				'textAlign'   => 'left',
 				'showDate'    => true,
 				'showExcerpt' => true,
 				'linkText'    => '',
@@ -130,9 +132,23 @@ class Catalog {
 				[ 'min' => 0, 'max' => 1200 ]
 			),
 			self::f( 'quoteTitle', 'toggle', 'design', __( 'Título como cita', 'meridian' ), [ 'help' => __( 'Lo pone en grande y entre comillas.', 'meridian' ) ] ),
-			self::f( 'logoId', 'image', 'content', __( 'Logo dentro de la tarjeta', 'meridian' ), [ 'help' => __( 'Se pinta debajo del título, en todas las tarjetas.', 'meridian' ) ] ),
+			self::f( 'logoId', 'image', 'content', __( 'Logo dentro de la tarjeta', 'meridian' ), [ 'help' => __( 'La misma imagen en todas las tarjetas.', 'meridian' ) ] ),
+			self::f( 'logoPos', 'select', 'design', __( 'Posición del logo', 'meridian' ), [ 'options' => BrandCatalog::logo_pos_options() ] ),
 			self::f( 'logoWidth', 'number', 'design', __( 'Ancho del logo (px)', 'meridian' ), [ 'min' => 40, 'max' => 400 ] ),
-			self::f( 'showDate', 'toggle', 'content', __( 'Mostrar la fecha', 'meridian' ) ),
+			self::f(
+				'textAlign',
+				'select',
+				'design',
+				__( 'Alineación del texto', 'meridian' ),
+				[
+					'options' => [
+						[ 'value' => 'left', 'label' => __( 'Izquierda', 'meridian' ) ],
+						[ 'value' => 'center', 'label' => __( 'Centrado', 'meridian' ) ],
+						[ 'value' => 'right', 'label' => __( 'Derecha', 'meridian' ) ],
+					],
+				]
+			),
+			self::f( 'showDate', 'toggle', 'content', __( 'Mostrar la fecha de la entrada', 'meridian' ) ),
 			self::f( 'showExcerpt', 'toggle', 'content', __( 'Mostrar el resumen', 'meridian' ) ),
 			self::f( 'linkText', 'text', 'content', __( 'Texto del enlace (vacío = ninguno)', 'meridian' ) ),
 			self::f(

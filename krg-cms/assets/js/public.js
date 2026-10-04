@@ -78,11 +78,76 @@
     const h = document.querySelector(".m-site-header.is-sticky, .m-site-header");
     return h ? Math.round(h.getBoundingClientRect().height) + 8 : 8;
   };
+  /**
+   * Dónde vive una sección en la página.
+   *
+   * Preguntarle a secas por su posición no vale: una sección con
+   * cortina está en `position: sticky` y, mientras está pegada,
+   * responde con el sitio en el que está pegada —a la altura de la
+   * ventana— y no con el suyo. Por eso, estando abajo, pulsar «Inicio»
+   * daba la cuenta de «ya estás ahí» y la página no se movía.
+   *
+   * Se le quita la pegajosidad a ella y a sus padres el tiempo justo de
+   * medir, y se les devuelve antes de que el navegador pinte nada.
+   */
+  const posicionDe = (el) => {
+    const tocados = [];
+    for (let n = el; n && n !== document.body; n = n.parentElement) {
+      if (getComputedStyle(n).position === "sticky") {
+        tocados.push([n, n.style.position]);
+        n.style.position = "static";
+      }
+    }
+    const y = el.getBoundingClientRect().top + window.scrollY;
+    tocados.forEach(([n, antes]) => {
+      if (antes) n.style.position = antes;
+      else n.style.removeProperty("position");
+    });
+    return y;
+  };
+
+  let vigilante = 0;
   const scrollToId = (id) => {
     const el = document.getElementById(id);
     if (!el) return false;
-    const y = el.getBoundingClientRect().top + window.scrollY - headerOffset();
-    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+    const meta = () => Math.max(0, Math.round(posicionDe(el) - headerOffset()));
+    const suave = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    window.scrollTo({ top: meta(), behavior: suave });
+
+    // Mientras la página se desliza, lo de alrededor puede cambiar de
+    // alto (la cortina, una imagen que termina de cargar) y el destino
+    // se mueve. Cuando deja de rodar se comprueba y, si falta, se
+    // remata; si la persona toca la rueda, se la deja en paz.
+    cancelAnimationFrame(vigilante);
+    let quieto = 0;
+    let ultimo = -1;
+    let remates = 0;
+    let vueltas = 0;
+    let rendido = false;
+    const basta = () => { rendido = true; };
+    ["wheel", "touchstart", "keydown"].forEach((ev) => window.addEventListener(ev, basta, { once: true, passive: true }));
+    const limpiar = () => {
+      ["wheel", "touchstart", "keydown"].forEach((ev) => window.removeEventListener(ev, basta));
+    };
+    const paso = () => {
+      if (rendido || vueltas++ > 240) return limpiar();
+      const y = Math.round(window.scrollY);
+      quieto = y === ultimo ? quieto + 1 : 0;
+      ultimo = y;
+      if (quieto >= 4) {
+        const falta = Math.abs(y - meta());
+        // Abajo del todo no se puede bajar más: eso no es un fallo.
+        const tope = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        if (falta > 2 && y < tope && remates++ < 2) {
+          window.scrollTo({ top: meta(), behavior: suave });
+          quieto = 0;
+        } else {
+          return limpiar();
+        }
+      }
+      vigilante = requestAnimationFrame(paso);
+    };
+    vigilante = requestAnimationFrame(paso);
     return true;
   };
   document.addEventListener("click", (e) => {
