@@ -30,9 +30,13 @@ class Assets {
 		// Lo usan tanto el constructor de paginas como el de cabecera y pie,
 		// asi que va antes que los dos y no depende de ninguno.
 		wp_enqueue_script( 'krg-builder-core', MERIDIAN_URI . '/admin/assets/js/builder-core.js', [ 'krg-admin' ], meridian_ver( '/admin/assets/js/builder-core.js' ), true );
+		// Catalogo de secciones V.2: las mismas secciones montadas por
+		// piezas, con bloques que ya existen en el registro. Va antes que
+		// los campos porque es quien pinta la paleta.
+		wp_enqueue_script( 'krg-builder-v2', MERIDIAN_URI . '/admin/assets/js/builder-v2.js', [ 'krg-builder-core' ], meridian_ver( '/admin/assets/js/builder-v2.js' ), true );
 		// Los campos del inspector, tambien compartidos: paginas y
 		// navegacion montan el mismo, cada una con su documento.
-		wp_enqueue_script( 'krg-builder-fields', MERIDIAN_URI . '/admin/assets/js/builder-fields.js', [ 'krg-builder-core' ], meridian_ver( '/admin/assets/js/builder-fields.js' ), true );
+		wp_enqueue_script( 'krg-builder-fields', MERIDIAN_URI . '/admin/assets/js/builder-fields.js', [ 'krg-builder-core', 'krg-builder-v2' ], meridian_ver( '/admin/assets/js/builder-fields.js' ), true );
 		$skin_css = \Meridian\Admin\Skin::css();
 		if ( $skin_css ) {
 			wp_add_inline_style( 'krg-admin', $skin_css );

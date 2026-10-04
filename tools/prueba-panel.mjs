@@ -70,6 +70,7 @@ const html = `<!doctype html><meta charset="utf-8"><title>panel</title>
 <script>window.KrgAdmin={pageId:1,rest:${JSON.stringify(REST)},nonce:'n',admin:'/wp-admin/admin.php?'};</script>
 <script src="file://${JS}/app.js"></script>
 <script src="file://${JS}/builder-core.js"></script>
+<script src="file://${JS}/builder-v2.js"></script>
 <script src="file://${JS}/builder-fields.js"></script>
 <script src="file://${JS}/builder.js"></script>`;
 
@@ -321,6 +322,43 @@ await page.waitForSelector('.b-insp [data-bg-note] p');
 const textoAviso = await page.locator('.b-insp [data-bg-note]').innerText();
 ok(!/object Object/.test(textoAviso), `el aviso no enseña basura: «${textoAviso.replace(/\s+/g, ' ').trim().slice(0, 90)}»`);
 ok(/#0000ff/i.test(textoAviso), 'y nombra el color real del bloque');
+
+console.log('\nLa paleta: «Secciones V.1» recogidas y «Secciones V.2» por piezas');
+const pal = await page.evaluate(() => ({
+  grupos: [...document.querySelectorAll('.b-left .b-pal-group')].map((g) => ({
+    id: g.dataset.acc,
+    titulo: g.querySelector('.acc-t')?.textContent.trim(),
+    abierto: g.classList.contains('is-open'),
+  })),
+  v1Visible: !document.querySelector('[data-acc="pal.v1"] .acc-b')?.hidden,
+  bloquesV1: document.querySelectorAll('[data-acc="pal.v1"] [data-add]').length,
+  v2: [...document.querySelectorAll('[data-acc="pal.v2"] [data-add-v2]')].map((b) => b.textContent.trim()),
+}));
+ok(pal.grupos.length === 2 && pal.grupos[0].titulo === 'Secciones V.1' && pal.grupos[1].titulo === 'Secciones V.2',
+  `la paleta tiene los dos grupos (${pal.grupos.map((g) => g.titulo).join(' · ')})`);
+ok(!pal.v1Visible, 'las de siempre arrancan recogidas, como pediste');
+ok(pal.bloquesV1 > 40, `y dentro siguen todas: ${pal.bloquesV1} bloques, ninguno quitado ni renombrado`);
+ok(pal.v2.length >= 10, `hay ${pal.v2.length} secciones V.2: ${pal.v2.slice(0, 4).join(', ')}…`);
+
+await page.click('[data-acc="pal.v1"] .acc-h');
+await page.waitForTimeout(200);
+const v1Abierta = await page.evaluate(() => !document.querySelector('[data-acc="pal.v1"] .acc-b').hidden);
+ok(v1Abierta, 'al pulsar «Secciones V.1» se despliegan');
+
+console.log('\nAñadir una sección V.2 deja todas sus piezas en el árbol');
+const antesSec = await page.evaluate(() => document.querySelectorAll('.b-tree [data-sel]').length);
+const nV2 = guardados.length;
+await page.click('[data-add-v2="tarjetas-v2"]');
+ok(await esperarGuardado(nV2 + 1), 'se guarda sola, como cualquier otro cambio');
+const arbol = await page.evaluate(() => [...document.querySelectorAll('.b-tree [data-sel]')].map((x) => x.textContent.trim()));
+ok(arbol.length > antesSec + 15, `el árbol pasa de ${antesSec} a ${arbol.length} bloques`);
+const buscadas = ['Grid de cards V.2', 'Foto 1', 'Título 1', 'Texto 1', 'Botón 1', 'Tarjeta 3'];
+const faltanPiezas = buscadas.filter((t) => !arbol.includes(t));
+ok(faltanPiezas.length === 0, `y cada pieza está con su nombre (faltan: ${faltanPiezas.join(', ') || 'ninguna'})`);
+const ultima = guardados[guardados.length - 1];
+const secV2 = (ultima.sections || []).find((x) => x.name === 'Grid de cards V.2');
+ok(!!secV2, 'la sección viaja al servidor como una sección normal');
+ok(!!secV2 && JSON.stringify(secV2).includes('"type":"button"'), 'con sus botones, fotos y textos dentro');
 
 if (errores.length) {
   console.log('\nErrores de consola:');

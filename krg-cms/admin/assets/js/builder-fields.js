@@ -3341,19 +3341,73 @@
     toast("Componente global creado");
   }
 
+  /**
+   * La paleta, en dos grupos plegables.
+   *
+   * «Secciones V.1» son las de siempre: el mismo módulo, el mismo
+   * inspector, las mismas páginas. No cambian ni de nombre ni de sitio,
+   * sólo quedan recogidas bajo un título que se despliega.
+   *
+   * «Secciones V.2» son esas mismas secciones montadas por piezas: cada
+   * texto, cada foto y cada sello es un bloque hijo que se edita por
+   * separado. Conviven; no sustituyen a nada.
+   */
   function palette() {
     const cats = {};
     state.registry.forEach((c) => {
       cats[c.category] = cats[c.category] || [];
       cats[c.category].push(c);
     });
-    return Object.entries(cats).map(([cat, items]) => `
-      <div class="b-sec">
+    const v1 = Object.entries(cats).map(([cat, items]) => `
+      <div class="b-sec is-sub">
         <h4>${esc(cat)}</h4>
         <div class="b-palette">
           ${items.filter((c) => c.slug !== "column").map((c) => `<button type="button" data-add="${c.slug}">${esc(c.name)}</button>`).join("")}
         </div>
       </div>`).join("");
+    const nuevas = window.KrgV2 ? window.KrgV2.list() : [];
+    const v2 = nuevas.length
+      ? `<div class="b-palette">${nuevas.map((x) => `<button type="button" data-add-v2="${esc(x.slug)}" title="${esc(x.nota || "")}">${esc(x.name)}</button>`).join("")}</div>`
+      : "";
+    return grupoPaleta("v1", "Secciones V.1", v1, "Las de siempre: cada sección es un módulo con su inspector.")
+      + grupoPaleta("v2", "Secciones V.2", v2, "Las mismas secciones, pero por piezas: cada texto, foto o sello es un bloque hijo que se edita aparte.");
+  }
+
+  /** Un grupo plegable de la paleta, con el mismo aspecto que el inspector. */
+  function grupoPaleta(id, label, html, pista) {
+    if (!html) return "";
+    const abierto = CORE.isOpen("pal." + id, id === "v2");
+    return `<section class="acc b-group b-pal-group${abierto ? " is-open" : ""}" data-acc="pal.${id}">
+      <button type="button" class="acc-h" data-acc-t="pal.${id}" aria-expanded="${abierto ? "true" : "false"}">
+        <span class="acc-t">${esc(label)}</span>
+        <span class="acc-x" aria-hidden="true"></span>
+      </button>
+      <div class="acc-b"${abierto ? "" : " hidden"}>
+        ${pista ? `<p class="m-muted">${esc(pista)}</p>` : ""}
+        ${html}
+      </div>
+    </section>`;
+  }
+
+  /**
+   * Añade una sección V.2: un árbol de bloques que ya existen, colgando
+   * de su sección. Entra como una sección más, se deshace con Ctrl+Z y
+   * no toca nada de lo que ya hubiera en el documento.
+   */
+  function addV2(slug) {
+    const sec = window.KrgV2 ? window.KrgV2.build(slug, makeNode) : null;
+    if (!sec) {
+      toast("Esa sección V.2 no está disponible.");
+      return;
+    }
+    snapshot();
+    if (!state.doc.sections) state.doc.sections = [];
+    state.doc.sections.push(sec);
+    state.selected = sec.id;
+    markDirty();
+    render();
+    const ficha = (window.KrgV2.list() || []).find((x) => x.slug === slug);
+    toast(`${ficha ? ficha.name : "Sección"} añadida: cada pieza es un bloque que puedes editar por separado.`);
   }
 
   /* ------------------------------------------------------------------ */
@@ -3706,6 +3760,13 @@
      */
     function bindLeft() {
       root.querySelectorAll("[data-add]").forEach((b) => { b.onclick = () => addComponent(b.dataset.add); });
+      root.querySelectorAll("[data-add-v2]").forEach((b) => { b.onclick = () => addV2(b.dataset.addV2); });
+      // Los grupos de la paleta se pliegan con el mismo motor que el
+      // inspector, pero atados sólo al panel izquierdo: si se atara a
+      // todo, los del inspector se enlazarían dos veces y se abrirían y
+      // cerrarían en el mismo clic.
+      const izq = root.querySelector(".b-left");
+      if (izq) CORE.bindGroups(izq);
       root.querySelectorAll("[data-sel]").forEach((b) => {
         b.onclick = () => { state.selected = b.dataset.sel; render({ keepFrame: true }); pingFrame(); };
       });
@@ -3739,6 +3800,7 @@
     return {
       paintLiveCss: paintLive,
       bindLeft: bindLeft,
+      addV2: addV2,
       bindSplit: bindSplit,
       pintaPaneles: pintaPaneles,
       panelSnap: panelSnap,

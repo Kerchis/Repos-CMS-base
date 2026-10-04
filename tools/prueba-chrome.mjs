@@ -78,6 +78,7 @@ function paginaHtml(region) {
 <script>window.KrgAdmin={chrome:${JSON.stringify(region)},rest:${JSON.stringify(REST)},nonce:'n',admin:'/wp-admin/admin.php?'};</script>
 <script src="file://${JS}/app.js"></script>
 <script src="file://${JS}/builder-core.js"></script>
+<script src="file://${JS}/builder-v2.js"></script>
 <script src="file://${JS}/builder-fields.js"></script>
 <script src="file://${JS}/chrome.js"></script>`;
 }
@@ -303,6 +304,10 @@ await page.setViewportSize({ width: 1600, height: 1100 });
 console.log('\nPRUEBA 10 — el panel de la izquierda es el de páginas');
 await page.goto('file://' + join(dir, 'footer.html'));
 await page.waitForSelector('#chrome-left .b-tree', { timeout: 15000 });
+await page.evaluate(() => {
+  document.querySelectorAll('#chrome-left .b-pal-group:not(.is-open) .acc-h').forEach((b) => b.click());
+});
+await esperar(200);
 const izq = await page.evaluate(() => ({
   bloques: document.querySelectorAll('#chrome-left [data-add]').length,
   categorias: document.querySelectorAll('#chrome-left .b-sec h4').length,
@@ -310,14 +315,14 @@ const izq = await page.evaluate(() => ({
   duplicar: document.querySelectorAll('#chrome-left [data-dup]').length,
   ocultar: document.querySelectorAll('#chrome-left [data-hid]').length,
   borrar: document.querySelectorAll('#chrome-left [data-del]').length,
-  plantilla: !!document.querySelector('#chrome-left [data-ftpl="pie-partido"]'),
+  plantilla: !!document.querySelector('#chrome-left [data-add-v2="pie-v2"]'),
   globales: document.querySelectorAll('#chrome-left [data-glb]').length,
 }));
 ok(izq.bloques > 40, `la paleta trae todos los bloques del registro (${izq.bloques}), no una lista corta`);
 ok(izq.asas >= 4 && izq.duplicar >= 4 && izq.ocultar >= 4 && izq.borrar >= 4,
   `cada nodo del árbol tiene asa de arrastre, duplicar, ocultar y borrar (${izq.asas}/${izq.duplicar}/${izq.ocultar}/${izq.borrar})`);
 ok(izq.globales === 0, 'y no ofrece «convertir en global», que aquí no aplica');
-ok(izq.plantilla, 'está la plantilla del pie partido');
+ok(izq.plantilla, 'está «Pie partido V.2» en el grupo de secciones V.2');
 
 console.log('\nPRUEBA 11 — arrastrar y soltar dentro del pie');
 // Se añade un segundo párrafo y se arrastra por encima del primero.
@@ -356,7 +361,7 @@ console.log('\nPRUEBA 12 — «Pie partido por piezas»: cada trozo, un bloque')
 await page.goto('file://' + join(dir, 'footer.html'));
 await page.waitForSelector('#chrome-left .b-tree', { timeout: 15000 });
 const antesNodos = await page.evaluate(() => document.querySelectorAll('#chrome-left [data-sel]').length);
-await page.click('#chrome-left [data-ftpl="pie-partido"]');
+await page.click('#chrome-left [data-add-v2="pie-v2"]');
 await esperar(400);
 const piezas = await page.evaluate(() => {
   const nombres = [...document.querySelectorAll('#chrome-left [data-sel]')].map((x) => x.textContent.trim());

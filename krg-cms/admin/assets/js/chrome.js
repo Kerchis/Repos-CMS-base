@@ -855,88 +855,6 @@
      columna de enlaces son nodos hijos de la sección, así que se
      seleccionan y se editan uno a uno en el árbol de la izquierda.
      ================================================================== */
-  const PLANTILLAS = [
-    { id: "pie-partido", label: "Pie partido por piezas" },
-  ];
-
-  function nodoCon(type, props, nombre, estilos) {
-    const n = makeNode(type);
-    n.props = Object.assign(window.KrgBuilderCore.dict(n, "props"), props || {});
-    if (nombre) n.name = nombre;
-    if (estilos) Object.assign(window.KrgBuilderCore.styleBucket(n, "desktop"), estilos);
-    return n;
-  }
-  function columna(span, hijos, estilos) {
-    const c = makeNode("column");
-    c.props = Object.assign(window.KrgBuilderCore.dict(c, "props"), {
-      span: span,
-      spanTablet: span >= 6 ? 6 : 12,
-      spanMobile: 12,
-    });
-    c.children = hijos;
-    if (estilos) Object.assign(window.KrgBuilderCore.styleBucket(c, "desktop"), estilos);
-    return c;
-  }
-  function filaCon(columnas, gap) {
-    const r = makeNode("row");
-    r.props = Object.assign(window.KrgBuilderCore.dict(r, "props"), {
-      layout: columnas.map((c) => c.props.span).join("-"),
-      gap: gap === undefined ? 24 : gap,
-      vAlign: "start",
-    });
-    r.children = columnas;
-    return r;
-  }
-
-  function plantillaPiePartido() {
-    const foto = nodoCon("image", { alt: "", fillMode: "fill", objectFit: "cover" }, "Foto del pie", { height: "100%" });
-    const enlaces = (titulo, items) => columna(6, [
-      nodoCon("heading", { text: titulo, tag: "h3" }, titulo),
-      nodoCon("rich-text", {
-        html: "<ul>" + items.map((t) => `<li><a href="#">${t}</a></li>`).join("") + "</ul>",
-      }, "Enlaces de " + titulo),
-    ]);
-    const cuerpo = columna(7, [
-      nodoCon("eyebrow", { text: "LLÁMANOS" }, "Antetítulo"),
-      nodoCon("heading", { text: "+00 000 000 000", tag: "h2" }, "Teléfono"),
-      nodoCon("paragraph", { text: "De lunes a viernes: 10:00 - 17:00" }, "Horario entre semana"),
-      nodoCon("paragraph", { text: "Fin de semana: 10:00 - 15:00" }, "Horario del fin de semana"),
-      nodoCon("social-links", {}, "Redes sociales"),
-      filaCon([
-        enlaces("Servicios", ["Asesoría", "Revisión de cuentas", "Consultoría", "Posicionamiento"]),
-        enlaces("Empresa", ["Quiénes somos", "Equipo", "Contacto"]),
-      ]),
-      nodoCon("divider", {}, "Raya"),
-      filaCon([
-        columna(7, [
-          nodoCon("rich-text", {
-            html: '<p><a href="#">Términos y condiciones</a> · <a href="#">Política de privacidad</a> · <a href="#">Cookies</a></p>',
-          }, "Enlaces legales"),
-        ]),
-        columna(5, [
-          nodoCon("paragraph", { text: "© " + new Date().getFullYear() + ". Nombre de la empresa. Todos los derechos reservados.", align: "right" }, "Copyright"),
-        ]),
-      ]),
-    ], { "padding-top": "64px", "padding-right": "56px", "padding-bottom": "48px", "padding-left": "56px" });
-
-    const sec = makeNode("section");
-    sec.name = "Pie partido";
-    sec.props = Object.assign(window.KrgBuilderCore.dict(sec, "props"), { width: "full", fullWidth: true });
-    sec.children = [filaCon([columna(5, [foto], { "min-height": "460px" }), cuerpo], 0)];
-    return sec;
-  }
-
-  function insertarPlantilla(id) {
-    const hacer = { "pie-partido": plantillaPiePartido }[id];
-    if (!hacer) return;
-    pushHistory("plantilla");
-    const sec = hacer();
-    fSections().push(sec);
-    state.fSel = sec.id;
-    markDirty();
-    paintChrome();
-    toast("Pie partido añadido: cada pieza es un bloque que puedes editar por separado.");
-  }
 
   function paintLeft() {
     const box = root.querySelector("#chrome-left");
@@ -958,16 +876,12 @@
     // renombrar y mover entre columnas.
     box.innerHTML = regiones
       + `<button type="button" class="m-btn ghost" data-froot style="margin:8px 0">Ajustes del pie</button></div>`
-      + `<div class="b-sec"><h4>Plantillas</h4><div class="b-palette">`
-      + PLANTILLAS.map((t) => `<button type="button" data-ftpl="${t.id}">${esc(t.label)}</button>`).join("")
-      + `</div></div>`
       + FIELDS.palette()
       + FIELDS.tree();
     box.querySelectorAll("[data-region]").forEach((b) => {
       b.onclick = () => { state.region = b.dataset.region; state.fSel = null; paintChrome(); ping(); };
     });
     box.querySelector("[data-froot]")?.addEventListener("click", () => { state.fSel = null; paintInspector(); });
-    box.querySelectorAll("[data-ftpl]").forEach((b) => { b.onclick = () => insertarPlantilla(b.dataset.ftpl); });
     FIELDS.bindLeft();
   }
 

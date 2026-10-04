@@ -399,6 +399,58 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .b-insp .acc-b { padding: 0 12px 12px; }
 .b-insp .acc-b > :last-child { margin-bottom: 0; }
 
+/* Los grupos de la paleta — «Secciones V.1» y «Secciones V.2» — usan el
+   mismo acordeón que el inspector, pero viven en el panel de la
+   izquierda, donde los selectores de arriba no llegan. Mismo aspecto,
+   mismo comportamiento, misma memoria. */
+.b-left .b-pal-group { padding: 0; border-bottom: 1px solid #eee; }
+.b-left .b-pal-group > .acc-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--m-muted);
+  text-align: left;
+  cursor: pointer;
+}
+.b-left .b-pal-group > .acc-h:hover { color: var(--m-ink); background: var(--m-surface-soft); }
+.b-left .b-pal-group > .acc-h:focus-visible { outline: 2px solid var(--m-brown); outline-offset: -2px; }
+.b-left .b-pal-group.is-open > .acc-h { color: var(--m-ink); }
+.b-left .b-pal-group .acc-x {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 0.15s ease;
+}
+.b-left .b-pal-group.is-open > .acc-h .acc-x { transform: rotate(-135deg) translate(-2px, -2px); }
+.b-left .b-pal-group > .acc-b { padding: 0 14px 12px; }
+.b-left .b-pal-group > .acc-b > .m-muted {
+  margin: 0 0 10px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+/* Las categorías de V.1 quedan dentro del grupo: sin su propio marco. */
+.b-left .b-pal-group .b-sec.is-sub { padding: 0 0 10px; border-bottom: 0; }
+.b-left .b-pal-group .b-sec.is-sub:last-child { padding-bottom: 0; }
+/* Las secciones V.2 se distinguen de un vistazo. */
+.b-left .b-pal-group[data-acc="pal.v2"] .b-palette button {
+  border-color: var(--m-brown, #6b4f3a);
+  box-shadow: inset 2px 0 0 var(--m-brown, #6b4f3a);
+}
+
 /* Cabecera: qué hay seleccionado. Antes solo aparecía el nombre del
    tipo, y en un árbol con diez secciones no se sabía cuál era. */
 .b-sel {

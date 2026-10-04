@@ -525,9 +525,20 @@ body.krg-canvas .m-col {
 .m-img-placeholder {
   background: var(--color-surface);
   border: 1px dashed var(--color-border);
-  min-height: 180px;
   border-radius: var(--radius-md);
+  /* El hueco de una imagen que aún no se ha elegido.
+     Antes era una caja de 180px de alto y sin ancho propio: dentro de
+     una figura `inline-block` se quedaba en una raya vertical, y en un
+     icono de 64px se estiraba a cuatro dedos. Ahora ocupa el ancho que
+     le toca y toma la forma de su sitio, así que se ve como lo que es:
+     el hueco donde irá la foto. */
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  min-height: 48px;
 }
+.m-figure:has(.m-img-placeholder) { display: block; width: 100%; }
+/* Si la imagen está puesta a rellenar su columna, el hueco también. */
+.m-figure.is-fill .m-img-placeholder { height: 100%; aspect-ratio: auto; }
 .m-divider { border: 0; border-top: 1px solid var(--color-border); margin: 8px 0; }
 .m-divider.is-dashed { border-top-style: dashed; }
 .m-video {
