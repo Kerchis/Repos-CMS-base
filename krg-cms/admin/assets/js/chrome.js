@@ -127,6 +127,7 @@
     paintLiveCss: () => paintLiveChrome(),
     pingFrame: () => ping(),
     render: () => paintChrome(),
+    applyBp: () => applyBp(),
     snapshot: () => pushHistory("cambio"),
     toast: (t) => toast(t),
     unlinkNode: () => {},
@@ -269,7 +270,20 @@
       state.last = pack();
       try { localStorage.removeItem("krg-chrome-draft"); } catch (e) { /* */ }
       pushHistory("Guardado");
-      paintLiveChrome();
+      FIELDS.paintLiveCss();
+      // La vista es la web de verdad y la pinta el servidor: si el pie
+      // cambió de piezas —uno nuevo, uno movido, uno menos— hay que
+      // volver a cargarla o lo añadido no aparece hasta recargar la
+      // pantalla entera. Es lo mismo que hace la pantalla de páginas, y
+      // sólo cuando cambia la estructura, para no parpadear al escribir.
+      const firmaAhora = firmaPie(fSections());
+      if (firmaAhora !== state.frameSig) {
+        state.frameSig = firmaAhora;
+        clearTimeout(state.reloadTimer);
+        state.reloadTimer = setTimeout(() => {
+          if (!state.dirty && !state.saving) reload();
+        }, 250);
+      }
     } catch (e) {
       state.save = "Error al guardar";
       toast((e.message || "No se pudo guardar") + ". El trabajo sigue aquí; no recargues.");
@@ -292,6 +306,11 @@
   // para poder seleccionarla. En la web publica no se imprime.
   function canvasUrl(url) {
     return url + (String(url).includes("?") ? "&" : "?") + "krgcms_canvas=1";
+  }
+
+  /** Firma de la estructura del pie: ids y tipos, en orden. */
+  function firmaPie(nodes) {
+    return (nodes || []).map((n) => (n.id || "") + ":" + (n.type || "") + "[" + firmaPie(n.children) + "]").join(",");
   }
 
   function reload() {
@@ -1063,18 +1082,20 @@
     box.scrollTop = arriba;
     CORE.scrollRestore(box, dentro);
   }
-
   function ensureShell() {
     if (state.shell) return;
+    // El mismo armazón que la pantalla de páginas: barra de arriba con
+    // los mismos botones, paneles que se pliegan con sus tiradores y
+    // raíles para volver a abrirlos.
     root.innerHTML = `
       <div class="b-root">
         <div class="b-top">
           <a href="${cfg.admin}?page=krg" title="Volver a KRG CMS">←</a>
           <a href="${cfg.admin}?page=krg-nav">Navegación</a>
-          <strong>Chrome del sitio</strong>
+          <strong class="b-pagetitle">Cabecera y pie</strong>
           <div class="b-bp" id="regions">
-            <button data-region="header">Header</button>
-            <button data-region="footer">Footer</button>
+            <button type="button" data-region="header">Cabecera</button>
+            <button type="button" data-region="footer">Pie</button>
           </div>
           <div class="b-bp" id="bps">
             <button type="button" data-bp="desktop">Desktop</button>
@@ -1082,21 +1103,27 @@
             <button type="button" data-bp="mobile">Mobile</button>
           </div>
           <div class="b-device">
-            <input type="number" data-view-w min="320" max="2560" value="1280" title="Ancho">
+            <input type="number" data-view-w min="320" max="2560" value="${state.viewW}" title="Ancho">
             <span>×</span>
-            <input type="number" data-view-h min="400" max="2400" value="800" title="Alto">
+            <input type="number" data-view-h min="400" max="2400" value="${state.viewH}" title="Alto">
             <label class="b-fit"><input type="checkbox" data-fit> Ajustar</label>
           </div>
+          <span class="b-bp-label"></span>
           <span class="grow"></span>
           <button class="m-btn ghost" id="undo" title="Ctrl+Z">Deshacer</button>
           <button class="m-btn ghost" id="redo" title="Ctrl+Y">Rehacer</button>
+          <button class="m-btn ghost" data-panel="left" title="Esconder o enseñar la estructura">Estructura</button>
+          <button class="m-btn ghost" data-panel="right" title="Esconder o enseñar los ajustes">Ajustes</button>
           <button class="m-btn ghost" id="history">Historial</button>
-          <span class="b-status">Guardado</span>
-          <button class="m-btn" id="save">Guardar</button>
+          <span class="b-status">${esc(state.save)}</span>
+          <button class="m-btn ghost" id="refresh" title="Vuelve a cargar la vista del lienzo">Actualizar vista</button>
+          <button class="m-btn ghost" id="preview" title="Abrir la web en otra pestaña">Preview</button>
+          <button class="m-btn" id="save" title="Ctrl+S · la cabecera y el pie se publican al guardar">Guardar</button>
         </div>
         <div class="b-layout">
           <aside class="b-left" id="chrome-left"></aside>
-          <div class="b-split" aria-hidden="true"></div>
+          <div class="b-split" data-split="left" title="Arrastra para ensanchar"><button type="button" class="b-split-t" data-panel="left" title="Esconder la estructura">‹</button></div>
+          <button type="button" class="b-show" data-show="left" title="Mostrar la estructura" hidden>Estructura ›</button>
           <div class="b-canvas">
             <div class="b-frame-slot">
               <div class="b-frame-wrap">
@@ -1107,7 +1134,9 @@
               </div>
             </div>
           </div>
+          <div class="b-split" data-split="right" title="Arrastra para ensanchar"><button type="button" class="b-split-t" data-panel="right" title="Esconder los ajustes">›</button></div>
           <aside class="b-right b-insp"></aside>
+          <button type="button" class="b-show" data-show="right" title="Mostrar los ajustes" hidden>‹ Ajustes</button>
         </div>
       </div>`;
     state.shell = true;
@@ -1116,6 +1145,7 @@
       // Los nodos del pie los pinta el compartido; la cabecera y los
       // ajustes del pie, paintLiveChrome. FIELDS.paintLiveCss() hace
       // los dos, en ese orden.
+      state.frameSig = firmaPie(fSections());
       FIELDS.paintLiveCss();
       applyBp();
       restoreChromeView();
@@ -1133,19 +1163,40 @@
         paintChrome();
       };
     });
-    root.querySelector("#save").onclick = save;
+    root.querySelector("#save").onclick = () => save();
     root.querySelector("#undo").onclick = undo;
     root.querySelector("#redo").onclick = redo;
     root.querySelector("#history").onclick = openHistory;
+    // Red de seguridad, igual que en páginas: guarda lo pendiente y
+    // vuelve a cargar el lienzo.
+    root.querySelector("#refresh").onclick = async () => {
+      if (state.dirty) await save();
+      reload();
+    };
+    const prev = root.querySelector("#preview");
+    prev.onclick = async () => {
+      prev.disabled = true;
+      try {
+        if (state.dirty || state.saving) await save();
+        const base = cfg.preview || cfg.home;
+        window.open(base + (String(base).includes("?") ? "&" : "?") + "t=" + Date.now(), "krg-preview");
+      } finally {
+        prev.disabled = false;
+      }
+    };
+    // Tiradores y botones de plegar: los mismos que en páginas.
+    FIELDS.bindSplit();
   }
 
   function paintChrome() {
+    const snap = FIELDS.panelSnap();
     root.querySelectorAll("[data-region]").forEach((b) => b.classList.toggle("is-on", b.dataset.region === state.region));
     root.querySelectorAll("[data-bp]").forEach((b) => b.classList.toggle("is-on", b.dataset.bp === state.bp));
     applyBp();
     paintLeft();
     paintInspector();
     paint();
+    FIELDS.panelRestore(snap);
   }
 
   function bpFromWidth(w) {
@@ -1182,6 +1233,8 @@
     const ih = root.querySelector("[data-view-h]");
     if (iw && document.activeElement !== iw) iw.value = String(w);
     if (ih && document.activeElement !== ih) ih.value = String(h);
+    const label = root.querySelector(".b-bp-label");
+    if (label) label.textContent = `${w} × ${h}`;
     root.querySelectorAll("[data-bp]").forEach((b) => b.classList.toggle("is-on", b.dataset.bp === state.bp));
   }
 
@@ -1262,7 +1315,11 @@
   }
 
   function ping() {
-    root.querySelector("iframe")?.contentWindow?.postMessage({ source: "krg-parent", type: "chrome", region: state.region }, "*");
+    const w = root.querySelector("iframe")?.contentWindow;
+    if (!w) return;
+    w.postMessage({ source: "krg-parent", type: "chrome", region: state.region }, "*");
+    // Y marcar en la vista el bloque elegido, como en páginas.
+    if (state.fSel) w.postMessage({ source: "krg-parent", type: "select", id: state.fSel }, "*");
   }
 
   window.addEventListener("message", (e) => {
@@ -1271,6 +1328,17 @@
     if (d.type === "chrome" && d.region && d.region !== state.region) {
       state.region = d.region;
       paintChrome();
+      return;
+    }
+    // Pulsar un bloque del pie en la vista lo selecciona en el panel,
+    // igual que en la pantalla de páginas.
+    if (d.type === "select" && d.id) {
+      const hit = findF(fSections(), d.id);
+      if (!hit) return;
+      state.region = "footer";
+      state.fSel = d.id;
+      paintChrome();
+      ping();
     }
   });
   window.addEventListener("keydown", (e) => {

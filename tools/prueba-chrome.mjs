@@ -388,7 +388,70 @@ ok(await esperarEnvio(enviados.footer, n + 1), 'y lo que se escribe en esa pieza
 const guardadoPieza = JSON.stringify(enviados.footer[enviados.footer.length - 1]?.sections || []);
 ok(guardadoPieza.includes('+34 600 123 456'), 'dentro de las secciones del pie, como un nodo más');
 
-console.log('\nPRUEBA 13 — ningún error de JavaScript');
+console.log('\nPRUEBA 13 — la barra de arriba y los paneles, como en páginas');
+const barra = await page.evaluate(() => ({
+  botones: [...document.querySelectorAll('.b-top button, .b-top a')].map((b) => b.textContent.trim()),
+  etiqueta: document.querySelector('.b-bp-label')?.textContent.trim(),
+  tiradores: document.querySelectorAll('.b-layout .b-split').length,
+  railes: document.querySelectorAll('.b-layout .b-show').length,
+}));
+const faltanBotones = ['Deshacer', 'Rehacer', 'Estructura', 'Ajustes', 'Historial', 'Actualizar vista', 'Preview', 'Guardar']
+  .filter((t) => !barra.botones.includes(t));
+ok(faltanBotones.length === 0, `están los mismos botones (faltan: ${faltanBotones.join(', ') || 'ninguno'})`);
+ok(/\d+ × \d+/.test(barra.etiqueta || ''), `y la medida del lienzo a la vista: ${barra.etiqueta}`);
+ok(barra.tiradores === 2 && barra.railes === 2, 'los dos paneles tienen tirador y raíl para volver a abrirlos');
+
+await page.click('.b-top [data-panel="left"]');
+await esperar(200);
+const plegado = await page.evaluate(() => ({
+  oculto: document.querySelector('.b-layout').classList.contains('is-no-left'),
+  rail: !document.querySelector('[data-show="left"]').hidden,
+}));
+ok(plegado.oculto && plegado.rail, 'se puede esconder la estructura y queda su raíl');
+await page.click('[data-show="left"]');
+await esperar(200);
+const vuelto = await page.evaluate(() => !document.querySelector('.b-layout').classList.contains('is-no-left'));
+ok(vuelto, 'y vuelve a abrirse desde el raíl');
+await page.click('.b-top [data-panel="right"]');
+await esperar(200);
+const derecha = await page.evaluate(() => document.querySelector('.b-layout').classList.contains('is-no-right'));
+ok(derecha, 'y lo mismo con el panel de ajustes');
+await page.click('[data-show="right"]');
+await esperar(150);
+
+console.log('\nPRUEBA 14 — al guardar, la vista se vuelve a pintar');
+const srcAntes = await page.evaluate(() => document.querySelector('.b-canvas iframe').src);
+n = enviados.footer.length;
+await page.evaluate(() => {
+  const b = [...document.querySelectorAll('#chrome-left [data-add]')].find((x) => x.dataset.add === 'heading');
+  if (b) b.click();
+});
+ok(await esperarEnvio(enviados.footer, n + 1), 'añadir un bloque al pie se guarda');
+await esperar(700);
+const srcDespues = await page.evaluate(() => document.querySelector('.b-canvas iframe').src);
+ok(srcAntes !== srcDespues, 'y la vista se recarga sola para enseñarlo');
+// Escribir texto no recarga: eso se pinta en vivo, sin parpadeo.
+const srcTexto = await page.evaluate(() => document.querySelector('.b-canvas iframe').src);
+n = enviados.footer.length;
+await page.fill('.b-insp [data-prop="text"]', 'Hola pie');
+ok(await esperarEnvio(enviados.footer, n + 1), 'escribir en un bloque se guarda');
+await esperar(700);
+ok(srcTexto === await page.evaluate(() => document.querySelector('.b-canvas iframe').src),
+  'y eso no recarga la vista: se pinta en vivo');
+
+console.log('\nPRUEBA 15 — pulsar en la vista selecciona el bloque');
+await page.evaluate(() => {
+  window.postMessage({ source: 'krg', type: 'select', id: 'ftxt1' }, '*');
+});
+await esperar(300);
+const elegidoDesdeLienzo = await page.evaluate(() => ({
+  nombre: document.querySelector('.b-insp .b-sel-name')?.textContent.trim(),
+  marcado: !!document.querySelector('#chrome-left [data-tree="ftxt1"].sel, #chrome-left .sec.sel'),
+}));
+ok(elegidoDesdeLienzo.nombre === 'Párrafo', `el panel pasa a ese bloque («${elegidoDesdeLienzo.nombre}»)`);
+ok(elegidoDesdeLienzo.marcado, 'y el árbol lo marca');
+
+console.log('\nPRUEBA 16 — ningún error de JavaScript');
 ok(errores.length === 0, errores.length ? errores.slice(0, 3).join(' | ') : 'ninguno');
 
 await browser.close();

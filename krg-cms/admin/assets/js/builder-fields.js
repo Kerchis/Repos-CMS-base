@@ -42,6 +42,7 @@
     // Qué sabe hacer esta pantalla. La de navegación no guarda
     // plantillas ni componentes globales: esos botones no se pintan.
     const caps = Object.assign({ templates: true, globals: true }, host.caps || {});
+    const applyBp = host.applyBp || (() => {});
     // Caja y color: una sola copia, la del núcleo.
     const CAJA_PROPS = window.KrgBuilderCore.CAJA_PROPS;
     const cssCaja = (st) => window.KrgBuilderCore.cssCaja(st);
@@ -3545,6 +3546,158 @@
     sec.name = defOf(node.type)?.name || "Sección";
     state.doc.sections.push(sec);
   }
+
+  /**
+   * Los dos paneles: se arrastran para ensanchar y se esconden.
+   *
+   * El de la izquierda ya se arrastraba; el de la derecha no, y en un
+   * portatil ese panel de 320 px es justo donde no cabe nada. Ahora los
+   * dos van por la misma funcion: mismo tope, misma memoria, misma
+   * forma de esconderse. Cada ancho vive en una variable CSS de la
+   * rejilla, asi que esconder es poner la columna a cero y quitar el
+   * panel de en medio; el lienzo se queda con todo el hueco sin que
+   * nadie recalcule nada a mano.
+   */
+  const PANELES = {
+    left: { aside: ".b-left", mem: "krg-left-w", varW: "--b-left", signo: 1 },
+    right: { aside: ".b-right", mem: "krg-right-w", varW: "--b-right", signo: -1 },
+  };
+
+  function panelOculto(lado) {
+    return localStorage.getItem(`krg-${lado}-oculto`) === "1";
+  }
+
+  function pintaPaneles() {
+    const layout = root.querySelector(".b-layout");
+    if (!layout) return;
+    Object.keys(PANELES).forEach((lado) => {
+      const oculto = panelOculto(lado);
+      layout.classList.toggle(`is-no-${lado}`, oculto);
+      const btn = root.querySelector(`[data-panel="${lado}"]`);
+      if (btn) {
+        btn.classList.toggle("is-off", oculto);
+        btn.setAttribute("aria-pressed", oculto ? "false" : "true");
+      }
+      const rail = root.querySelector(`[data-show="${lado}"]`);
+      if (rail) rail.hidden = !oculto;
+    });
+    // El lienzo se escala al hueco disponible: al cambiar el ancho de
+    // los paneles hay que recalcularlo o se queda cortado.
+    applyBp();
+  }
+
+  function bindSplit() {
+    const layout = root.querySelector(".b-layout");
+    if (!layout) return;
+
+    Object.entries(PANELES).forEach(([lado, cfg]) => {
+      const ancho = (w) => {
+        w = Math.max(220, Math.min(620, w));
+        layout.style.setProperty(cfg.varW, w + "px");
+        localStorage.setItem(cfg.mem, String(w));
+        return w;
+      };
+      ancho(Number(localStorage.getItem(cfg.mem) || 0) || 320);
+
+      const handle = root.querySelector(`[data-split="${lado}"]`);
+      if (handle && !handle.dataset.bound) {
+        handle.dataset.bound = "1";
+        handle.addEventListener("pointerdown", (e) => {
+          // El botón de plegar vive dentro del tirador: pulsarlo no puede
+          // arrancar un arrastre, o el panel se movería al esconderlo.
+          if (e.target.closest(".b-split-t")) return;
+          e.preventDefault();
+          handle.setPointerCapture(e.pointerId);
+          const x0 = e.clientX;
+          const w0 = layout.querySelector(cfg.aside)?.getBoundingClientRect().width || 320;
+          const move = (ev) => ancho(w0 + (ev.clientX - x0) * cfg.signo);
+          const up = () => {
+            handle.removeEventListener("pointermove", move);
+            handle.removeEventListener("pointerup", up);
+            applyBp();
+          };
+          handle.addEventListener("pointermove", move);
+          handle.addEventListener("pointerup", up);
+        });
+        // Doble clic en el tirador: esconder y volver, sin ir al botón.
+        handle.addEventListener("dblclick", () => {
+          localStorage.setItem(`krg-${lado}-oculto`, panelOculto(lado) ? "0" : "1");
+          pintaPaneles();
+        });
+      }
+    });
+
+    root.querySelectorAll("[data-panel], [data-show]").forEach((b) => {
+      if (b.dataset.bound) return;
+      b.dataset.bound = "1";
+      const lado = b.dataset.panel || b.dataset.show;
+      b.onclick = () => {
+        // El botón de la barra alterna; el del raíl sólo abre.
+        const oculto = b.dataset.show ? false : !panelOculto(lado);
+        localStorage.setItem(`krg-${lado}-oculto`, oculto ? "1" : "0");
+        pintaPaneles();
+      };
+    });
+
+    pintaPaneles();
+  }
+
+  // --------------------------------------------------------------------
+  // El inspector se reconstruye entero con innerHTML en cada render(), asi
+  // que perdia la posicion de la barra y el foco: al tocar cualquier cosa el
+  // panel derecho saltaba arriba. Esto guarda y devuelve ambas cosas.
+  // --------------------------------------------------------------------
+  const FOCUS_KEYS = ["data-prop", "data-style", "data-node", "data-page",
+    "data-rep", "data-style-num", "data-range", "data-page-num", "data-typo"];
+
+  /* El guardar y devolver el sitio vive en el nucleo (`builder-core.js`):
+     la pantalla de cabecera y pie hace exactamente lo mismo. */
+  const scrollSnap = CORE.scrollSnap;
+  const scrollRestore = CORE.scrollRestore;
+
+  function panelSnap() {
+    const ae = document.activeElement;
+    let focus = null;
+    if (ae && root.contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) {
+      for (const key of FOCUS_KEYS) {
+        if (!ae.hasAttribute(key)) continue;
+        let sel = `[${key}="${CSS.escape(ae.getAttribute(key))}"]`;
+        // Los repetidores necesitan indice y subcampo para no confundirse.
+        if (ae.hasAttribute("data-i")) sel += `[data-i="${CSS.escape(ae.getAttribute("data-i"))}"]`;
+        if (ae.hasAttribute("data-k")) sel += `[data-k="${CSS.escape(ae.getAttribute("data-k"))}"]`;
+        let start = null, end = null;
+        // selectionStart revienta en los input de tipo number.
+        try { start = ae.selectionStart; end = ae.selectionEnd; } catch (e) { /* sin cursor */ }
+        focus = { sel, start, end };
+        break;
+      }
+    }
+    return {
+      right: root.querySelector(".b-right")?.scrollTop || 0,
+      left: root.querySelector(".b-left")?.scrollTop || 0,
+      dentroDer: scrollSnap(root.querySelector(".b-right")),
+      dentroIzq: scrollSnap(root.querySelector(".b-left")),
+      focus,
+    };
+  }
+
+  function panelRestore(snap) {
+    if (!snap) return;
+    const right = root.querySelector(".b-right");
+    const left = root.querySelector(".b-left");
+    if (right) right.scrollTop = snap.right;
+    if (left) left.scrollTop = snap.left;
+    scrollRestore(right, snap.dentroDer);
+    scrollRestore(left, snap.dentroIzq);
+    if (!snap.focus) return;
+    let el = null;
+    try { el = root.querySelector(snap.focus.sel); } catch (e) { return; }
+    if (!el || el === document.activeElement) return;
+    el.focus({ preventScroll: true });
+    if (snap.focus.start == null || !el.setSelectionRange) return;
+    try { el.setSelectionRange(snap.focus.start, snap.focus.end); } catch (e) { /* sin cursor */ }
+  }
+
     /**
      * Ata el panel de la izquierda: la paleta de bloques y el árbol de
      * estructura con sus botones. Lo usan las dos pantallas, así que
@@ -3586,6 +3739,10 @@
     return {
       paintLiveCss: paintLive,
       bindLeft: bindLeft,
+      bindSplit: bindSplit,
+      pintaPaneles: pintaPaneles,
+      panelSnap: panelSnap,
+      panelRestore: panelRestore,
       tree: tree,
       bindTree: bindTree,
       palette: palette,
