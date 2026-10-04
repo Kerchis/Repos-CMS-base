@@ -42,6 +42,25 @@ foreach (
 
 \Meridian\Components\Registry::boot();
 
+// Entradas de mentira para las rejillas de blog: `KRG_ENTRADAS=3`.
+// Sin esto `WP_Query` no devuelve nada y el modulo no pinta tarjetas.
+$cuantas = (int) getenv( 'KRG_ENTRADAS' );
+if ( $cuantas > 0 ) {
+	$GLOBALS['krg_entradas'] = [];
+	for ( $i = 1; $i <= $cuantas; $i++ ) {
+		$GLOBALS['krg_entradas'][] = new WP_Post(
+			[
+				'ID'           => 100 + $i,
+				'post_title'   => 'Entrada de prueba ' . $i,
+				'post_name'    => 'entrada-' . $i,
+				'post_excerpt' => 'Un resumen corto de la entrada numero ' . $i . ' para ver como queda la tarjeta.',
+				'post_date'    => '3 de octubre de 2026',
+				'thumbnail_id' => 500 + $i,
+			]
+		);
+	}
+}
+
 $ctx            = new \Meridian\Render\RenderContext();
 $ctx->isPreview = '1' === getenv( 'KRG_PREVIEW' ) || '1' === getenv( 'KRG_CANVAS' );
 $ctx->isCanvas  = '1' === getenv( 'KRG_CANVAS' );

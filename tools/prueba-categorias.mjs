@@ -70,8 +70,15 @@ function servidor() {
     ],
     tags: [{ id: 9, name: 'miel', slug: 'miel', count: 2, isDefault: false, taxonomy: 'post_tag' }],
     settings: { showCategories: true },
+    entradas: [
+      { id: 7, title: 'Hello world!', status: 'publish', categories: [1], tags: [] },
+      { id: 8, title: 'Receta de otoño', status: 'draft', categories: [3], tags: [9] },
+    ],
     peticiones: [],
     rechazaAjustes: false,
+    // Como WordPress con un autor que no puede publicar: el estado baja
+    // a «pendiente de revisión».
+    sinPermisoPublicar: false,
     siguienteId: 20,
   };
   st.lista = (tax) => (tax === 'post_tag' ? st.tags : st.categories);
@@ -95,7 +102,28 @@ async function abrePantalla(browser, st) {
     const json = (data, status = 200) =>
       route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) });
 
-    if (url === '/blog' && req.method() === 'GET') return json([{ id: 7, title: 'Hello world!', status: 'publish' }]);
+    if (url === '/blog' && req.method() === 'GET') return json(JSON.parse(JSON.stringify(st.entradas)));
+    const dupPost = url.match(/^\/blog\/(\d+)\/duplicar$/);
+    if (dupPost && req.method() === 'POST') {
+      const orig = st.entradas.find((e) => e.id === Number(dupPost[1]));
+      const copia = { ...orig, id: st.siguienteId++, title: `${orig.title} (copia)`, status: 'draft' };
+      st.entradas.push(copia);
+      return json(copia);
+    }
+    const unaEntrada = url.match(/^\/blog\/(\d+)$/);
+    if (unaEntrada && req.method() === 'PUT') {
+      const e = st.entradas.find((x) => x.id === Number(unaEntrada[1]));
+      // Guardado parcial: solo se escribe lo que viene.
+      for (const k of Object.keys(cuerpo)) e[k] = cuerpo[k];
+      if (e.status === 'publish' && st.sinPermisoPublicar) e.status = 'pending';
+      return json(JSON.parse(JSON.stringify(e)));
+    }
+    const porDefecto = url.match(/^\/blog\/terms\/(\d+)\/predeterminada$/);
+    if (porDefecto && req.method() === 'PUT') {
+      const id = Number(porDefecto[1]);
+      st.categories.forEach((t) => { t.isDefault = t.id === id; });
+      return json({ id });
+    }
     if (url === '/blog/taxonomies') {
       return json({ categories: st.categories, tags: st.tags, authors: [], settings: st.settings });
     }
@@ -184,13 +212,13 @@ const filas = () => page.$$eval('#tax-table tbody tr', (trs) =>
       pista: alto('.m-switch-track'),
       pestanas: [...document.querySelectorAll('#tax-tabs [data-tax]')].map((b) => b.textContent.trim()),
       tablaAlta: alto('#tax-table'),
-      entradasIntactas: document.querySelectorAll('.m-table table')[0].querySelectorAll('tbody tr').length,
+      entradasIntactas: document.querySelectorAll('#blog-table tbody tr').length,
       nota: document.querySelector('#tax-note').textContent.trim(),
     };
   });
   ok(visto.titulos.includes('Blog'), 'la pantalla de Blog sigue siendo la de siempre');
   ok(visto.titulos.includes('Categorías y etiquetas'), 'y debajo aparece el apartado de categorías y etiquetas');
-  ok(visto.entradasIntactas === 1, 'la lista de entradas de arriba no se toca');
+  ok(visto.entradasIntactas === 2, 'la lista de entradas de arriba sigue en su sitio');
   ok(visto.switchAlto > 0 && visto.pista > 0, 'el interruptor se ve');
   ok(visto.pestanas.join('|') === 'Categorías|Etiquetas', 'hay pestaña de categorías y de etiquetas');
   ok(visto.tablaAlta > 0, 'la tabla de términos se ve');
@@ -202,6 +230,56 @@ const filas = () => page.$$eval('#tax-table tbody tr', (trs) =>
     'con su nombre, su slug y cuántas entradas tiene');
   ok(f[0][0].includes('por defecto'), 'la categoría por defecto se marca');
   ok(await page.$eval('[data-rm="1"]', (b) => b.disabled), 'y no deja borrarla');
+}
+
+/* --- La lista de entradas ------------------------------------------ */
+{
+  const cabeceras = await page.$$eval('#blog-table thead th', (th) => th.map((n) => n.textContent.trim()));
+  ok(cabeceras.join('|') === 'Título|Categorías|Etiquetas|Estado|',
+    'la lista de entradas enseña categorías, etiquetas y estado: ' + cabeceras.join('|'));
+
+  const resumenes = await page.$$eval('#blog-table .m-pick-sum', (n) => n.map((x) => x.textContent.trim()));
+  ok(resumenes[0] === 'Sin categoría' && resumenes[1] === '—',
+    'cada entrada enseña sus categorías y sus etiquetas (o un guion)');
+  ok(resumenes[2] === 'Recetas' && resumenes[3] === 'miel', 'y la segunda, las suyas');
+
+  // Poner una categoría desde la lista, sin abrir la entrada.
+  await page.click('#blog-table .m-pick[data-pick="categories"][data-id="7"] > summary');
+  await page.click('#blog-table .m-pick[data-pick="categories"][data-id="7"] [data-term="3"]');
+  await page.waitForTimeout(250);
+  const envio = st.peticiones.filter((p) => p.metodo === 'PUT' && p.url === '/blog/7').pop();
+  ok(!!envio && JSON.stringify(envio.cuerpo) === '{"categories":[1,3]}',
+    'marcar una categoría manda solo las categorías: ' + JSON.stringify(envio && envio.cuerpo));
+  ok(!('title' in (envio.cuerpo || {})) && !('content' in (envio.cuerpo || {})),
+    'y no toca el título ni el cuerpo de la entrada');
+  ok(st.entradas[0].categories.join(',') === '1,3', 'el servidor se queda con las dos');
+  const sum = await page.$eval('#blog-table .m-pick[data-pick="categories"][data-id="7"] .m-pick-sum', (n) => n.textContent.trim());
+  ok(sum === 'Sin categoría, Recetas', 'y la fila lo enseña al momento: ' + sum);
+
+  // Cambiar el estado desde la lista.
+  await page.selectOption('#blog-table [data-estado="7"]', 'draft');
+  await page.waitForTimeout(250);
+  const est = st.peticiones.filter((p) => p.metodo === 'PUT' && p.url === '/blog/7').pop();
+  ok(JSON.stringify(est.cuerpo) === '{"status":"draft"}', 'cambiar el estado manda solo el estado');
+  ok(st.entradas[0].status === 'draft', 'y la entrada pasa a borrador');
+
+  // Si el servidor no deja publicar, el desplegable no miente.
+  st.sinPermisoPublicar = true;
+  await page.selectOption('#blog-table [data-estado="7"]', 'publish');
+  await page.waitForTimeout(250);
+  const quedo = await page.$eval('#blog-table [data-estado="7"]', (s) => s.value);
+  ok(quedo === 'pending', 'si no se puede publicar, el desplegable se queda en «pendiente»');
+  st.sinPermisoPublicar = false;
+
+  // Duplicar una entrada.
+  const antes = await page.$$eval('#blog-table tbody tr', (t) => t.length);
+  await page.click('#blog-table [data-dup-post="8"]');
+  await page.waitForTimeout(300);
+  const copia = st.entradas.find((e) => e.title === 'Receta de otoño (copia)');
+  ok(!!copia && copia.status === 'draft', 'duplicar crea una copia en borrador');
+  ok(copia && copia.categories.join(',') === '3', 'con las mismas categorías');
+  const ahora = await page.$$eval('#blog-table tbody tr', (t) => t.length);
+  ok(ahora === antes + 1, 'y la copia aparece en la lista sin recargar');
 }
 
 /* --- Crear --------------------------------------------------------- */
@@ -240,6 +318,24 @@ const filas = () => page.$$eval('#tax-table tbody tr', (trs) =>
   const f = await filas();
   ok(f.length === antes - 1 && !f.some((r) => r[0] === 'Recetas (copia)'), 'la fila desaparece de la tabla');
   ok(f.some((r) => r[0] === 'Recetas'), 'y la original se queda donde estaba');
+}
+
+/* --- Nombrar otra categoría predeterminada -------------------------- */
+{
+  ok(await page.$eval('[data-rm="1"]', (b) => b.disabled), 'la predeterminada no se puede borrar');
+  ok(!(await page.$('[data-def="1"]')), 'la que ya es predeterminada no ofrece el botón');
+  await page.click('[data-def="3"]');
+  await page.waitForTimeout(300);
+  const envio = st.peticiones.filter((p) => p.url.includes('/predeterminada')).pop();
+  ok(!!envio && envio.url === '/blog/terms/3/predeterminada' && envio.metodo === 'PUT',
+    'nombrar predeterminada llama a su endpoint');
+  ok(st.categories.find((t) => t.id === 3).isDefault === true, 'el servidor la marca como predeterminada');
+  ok(!(await page.$eval('[data-rm="1"]', (b) => b.disabled)),
+    'y entonces «Sin categoría» ya se puede borrar, que era el problema');
+  ok(await page.$eval('[data-rm="3"]', (b) => b.disabled), 'la nueva predeterminada pasa a estar protegida');
+  // Se deja como estaba para lo que viene detrás.
+  await page.click('[data-def="1"]');
+  await page.waitForTimeout(300);
 }
 
 /* --- Etiquetas ----------------------------------------------------- */

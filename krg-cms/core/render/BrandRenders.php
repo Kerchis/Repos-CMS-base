@@ -132,8 +132,79 @@ class BrandRenders {
 		return ComponentRenders::img( $ctx, $id, $alt, $class, $size, $eager );
 	}
 
-	/** Tarjeta reutilizable usada por product-rail, collection-grid y filter-collection. */
-	private static function card( RenderContext $ctx, array $it, string $style, string $ratio ): string {
+	/** Modos de fusion que admite la veladura de una tarjeta.
+	 *  La lista la manda el catalogo, que es quien la ofrece en el panel. */
+	public const BLENDS = \Meridian\Components\BrandCatalog::BLENDS;
+
+	/**
+	 * Los adornos de las tarjetas de un modulo, leidos del panel.
+	 *
+	 * Una sola lectura para todos los que pintan tarjetas (rejillas de
+	 * blog, colecciones…): color sobre la foto con su modo de fusion,
+	 * los del raton encima, logo, titulo como cita y alto fijo.
+	 *
+	 * Devuelve `[ opciones de card(), variables CSS del contenedor ]`.
+	 * Con los campos en blanco no emite ninguna variable y la tarjeta
+	 * se ve exactamente como siempre.
+	 */
+	public static function card_skin( array $props, RenderContext $ctx, string $title_tag = 'span' ): array {
+		$veil   = \Meridian\Style\BoxStyles::color( $props['veilColor'] ?? '' );
+		$hover  = \Meridian\Style\BoxStyles::color( $props['hoverColor'] ?? '' );
+		$blend  = self::opt( (string) ( $props['blend'] ?? 'normal' ), self::BLENDS, 'normal' );
+		$hblend = self::opt( (string) ( $props['hoverBlend'] ?? '' ), self::BLENDS, $blend );
+		$alto   = max( 0, min( 1200, absint( $props['cardHeight'] ?? 0 ) ) );
+		$logo   = absint( $props['logoId'] ?? 0 );
+		$ancho  = max( 40, min( 400, absint( $props['logoWidth'] ?? 120 ) ?: 120 ) );
+
+		$vars = '';
+		if ( $alto ) {
+			$vars .= '--m-card-h:' . $alto . 'px;';
+		}
+		if ( '' !== $veil ) {
+			$vars .= '--m-card-veil:' . $veil . ';--m-card-blend:' . $blend . ';';
+		}
+		if ( '' !== $hover ) {
+			$vars .= '--m-card-veil-h:' . $hover . ';--m-card-blend-h:' . $hblend . ';';
+		} elseif ( '' !== $veil && $hblend !== $blend ) {
+			// Mismo color, otra fusion al pasar por encima.
+			$vars .= '--m-card-blend-h:' . $hblend . ';';
+		}
+		if ( $logo ) {
+			$vars .= '--m-card-logo-w:' . $ancho . 'px;';
+		}
+
+		$opts = [
+			'titleTag' => $title_tag,
+			'quote'    => ! empty( $props['quoteTitle'] ),
+			'veil'     => ( '' !== $veil || '' !== $hover ),
+			'fixedH'   => (bool) $alto,
+			'logo'     => $logo ? ComponentRenders::img( $ctx, $logo, '', 'm-card-logo-img', 'medium' ) : '',
+		];
+		return [ $opts, $vars ];
+	}
+
+	/**
+	 * Tarjeta reutilizable.
+	 *
+	 * La usan product-rail, collection-grid, filter-collection y las
+	 * rejillas de blog. Las tarjetas del blog pasaban por un marcado
+	 * propio sin proporcion de imagen —de ahi que salieran larguisimas
+	 * en pantalla—; ahora comparten esta, que ya sabe de proporciones,
+	 * recortes y estilos.
+	 *
+	 * `$opts` son los adornos opcionales, todos apagados por defecto
+	 * para que las tarjetas de siempre no cambien:
+	 *   - `titleTag`  etiqueta del titulo (`span` por defecto; las
+	 *                 entradas del blog usan `h3`, que es un titular de
+	 *                 verdad para los buscadores y los lectores).
+	 *   - `quote`     pinta el titulo como una cita, con sus comillas.
+	 *   - `logo`      HTML de una imagen que va debajo del titulo.
+	 *   - `veil`      anade la capa de color que se funde con la foto
+	 *                 (el color y el modo de fusion vienen del modulo,
+	 *                 en variables, y cambian al pasar el raton).
+	 *   - `fixedH`    la tarjeta usa alto fijo en vez de proporcion.
+	 */
+	public static function card( RenderContext $ctx, array $it, string $style, string $ratio, array $opts = [] ): string {
 		$title  = trim( (string) ( $it['title'] ?? '' ) );
 		$cat    = trim( (string) ( $it['category'] ?? '' ) );
 		$text   = trim( (string) ( $it['text'] ?? '' ) );
@@ -148,7 +219,9 @@ class BrandRenders {
 			$body .= '<span class="m-card-cat">' . esc_html( $cat ) . '</span>';
 		}
 		if ( '' !== $title ) {
-			$body .= '<span class="m-card-title">' . esc_html( $title ) . '</span>';
+			$tag  = in_array( $opts['titleTag'] ?? 'span', [ 'span', 'h2', 'h3', 'h4' ], true ) ? ( $opts['titleTag'] ?? 'span' ) : 'span';
+			$cls  = 'm-card-title' . ( empty( $opts['quote'] ) ? '' : ' is-quote' );
+			$body .= '<' . $tag . ' class="' . $cls . '">' . esc_html( $title ) . '</' . $tag . '>';
 		}
 		if ( '' !== $text ) {
 			$body .= '<span class="m-card-text">' . esc_html( $text ) . '</span>';
@@ -156,9 +229,16 @@ class BrandRenders {
 		if ( '' !== $cta ) {
 			$body .= '<span class="m-card-cta">' . esc_html( $cta ) . '</span>';
 		}
+		// El logo va debajo del titulo, dentro del cuerpo de la tarjeta.
+		if ( ! empty( $opts['logo'] ) ) {
+			$body .= '<span class="m-card-logo">' . $opts['logo'] . '</span>';
+		}
 
-		$media = '<span class="m-card-media is-ratio-' . esc_attr( $ratio ) . '">'
+		$media = '<span class="m-card-media is-ratio-' . esc_attr( $ratio ) . ( empty( $opts['fixedH'] ) ? '' : ' is-h-fija' ) . '">'
 			. self::media( $ctx, $img_id, $alt, 'm-card-img' )
+			// La veladura va por encima de la foto y debajo del texto:
+			// el modo de fusion solo tiene sentido contra la imagen.
+			. ( empty( $opts['veil'] ) ? '' : '<span class="m-card-veil" aria-hidden="true"></span>' )
 			. ( '' !== $badge ? '<span class="m-card-badge">' . esc_html( $badge ) . '</span>' : '' )
 			. '</span>';
 
@@ -671,12 +751,13 @@ class BrandRenders {
 		$items = array_values( array_filter( $items, 'is_array' ) );
 		$theme = self::theme( $props['theme'] ?? 'cream' );
 		$style = self::opt( $props['cardStyle'] ?? 'overlay', [ 'overlay', 'stacked', 'outline' ], 'overlay' );
-		$ratio = self::opt( $props['ratio'] ?? 'portrait', [ 'portrait', 'square', 'landscape' ], 'portrait' );
+		$ratio = self::opt( $props['ratio'] ?? 'portrait', [ 'portrait', 'square', 'landscape', 'wide' ], 'portrait' );
 		$lineas = self::card_lines( $props );
+		[ $opts, $skin ] = self::card_skin( $props, $ctx );
 
 		$cards = '';
 		foreach ( $items as $it ) {
-			$cards .= '<li class="m-cg-item">' . self::card( $ctx, $it, $style, $ratio ) . '</li>';
+			$cards .= '<li class="m-cg-item">' . self::card( $ctx, $it, $style, $ratio, $opts ) . '</li>';
 		}
 		if ( '' === $cards ) {
 			if ( ! $ctx->isCanvas ) {
@@ -694,7 +775,7 @@ class BrandRenders {
 			$inner,
 			[
 				'class' => 'm-cg is-theme-' . $theme . $lineas[0],
-				'style' => $lineas[1] . self::col_vars( $props, 3, 2, 1 ) . self::section_style( $props ),
+				'style' => $lineas[1] . $skin . self::col_vars( $props, 3, 2, 1 ) . self::section_style( $props ),
 			]
 		);
 	}

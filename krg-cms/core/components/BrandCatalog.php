@@ -70,6 +70,37 @@ class BrandCatalog {
 	 * un color, manda el color. Se emiten como `--m-th-bg` / `--m-th-fg`
 	 * sobre el mismo elemento que lleva la clase del tema.
 	 */
+	/**
+	 * Los adornos de tarjeta que lee `BrandRenders::card_skin()`.
+	 *
+	 * Mismos campos en todos los modulos que pintan tarjetas, para que
+	 * se configuren igual y los lea un solo sitio.
+	 */
+	public const BLENDS = [ 'normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard-light', 'darken', 'lighten', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity' ];
+
+	private static function card_skin_fields(): array {
+		$blends = self::BLENDS;
+		return [
+			self::f( 'cardHeight', 'number', 'design', __( 'Alto fijo de la tarjeta (px, 0 = por proporción)', 'meridian' ), [ 'min' => 0, 'max' => 1200 ] ),
+			self::f( 'quoteTitle', 'toggle', 'design', __( 'Título como cita', 'meridian' ), [ 'help' => __( 'Lo pone en grande y entre comillas.', 'meridian' ) ] ),
+			self::f( 'logoId', 'image', 'content', __( 'Logo dentro de la tarjeta', 'meridian' ), [ 'help' => __( 'Se pinta debajo del título, en todas las tarjetas.', 'meridian' ) ] ),
+			self::f( 'logoWidth', 'number', 'design', __( 'Ancho del logo (px)', 'meridian' ), [ 'min' => 40, 'max' => 400 ] ),
+			self::f(
+				'veilColor',
+				'color',
+				'colors',
+				__( 'Color sobre la foto', 'meridian' ),
+				[
+					'allowEmpty' => true,
+					'help'       => __( 'Se funde con la foto según el modo de fusión. En blanco, la foto se ve tal cual.', 'meridian' ),
+				]
+			),
+			self::f( 'blend', 'select', 'colors', __( 'Modo de fusión', 'meridian' ), [ 'options' => $blends ] ),
+			self::f( 'hoverColor', 'color', 'colors', __( 'Color al pasar el ratón', 'meridian' ), [ 'allowEmpty' => true ] ),
+			self::f( 'hoverBlend', 'select', 'colors', __( 'Modo de fusión al pasar el ratón', 'meridian' ), [ 'options' => $blends ] ),
+		];
+	}
+
 	private static function color_fields( array $extra = [] ): array {
 		return array_merge(
 			[
@@ -474,6 +505,14 @@ class BrandCatalog {
 					'mobile'    => 1,
 					'cardStyle' => 'overlay',
 					'ratio'     => 'portrait',
+					'cardHeight'=> 0,
+					'quoteTitle'=> false,
+					'logoId'    => 0,
+					'logoWidth' => 120,
+					'veilColor' => '',
+					'blend'     => 'normal',
+					'hoverColor'=> '',
+					'hoverBlend'=> 'normal',
 					'titleLines'=> 0,
 					'textLines' => 0,
 					'theme'     => 'cream',
@@ -488,7 +527,21 @@ class BrandCatalog {
 					self::cols( 3, 2, 1, 4 ),
 					[
 						self::f( 'cardStyle', 'select', 'design', __( 'Estilo de tarjeta', 'meridian' ), [ 'options' => [ 'overlay', 'stacked', 'outline' ] ] ),
-						self::f( 'ratio', 'select', 'design', __( 'Proporción de imagen', 'meridian' ), [ 'options' => [ 'portrait', 'square', 'landscape' ] ] ),
+						self::f(
+							'ratio',
+							'select',
+							'design',
+							__( 'Proporción de imagen', 'meridian' ),
+							[
+								'options' => [
+									[ 'value' => 'portrait', 'label' => __( 'Vertical (4:5)', 'meridian' ) ],
+									[ 'value' => 'square', 'label' => __( 'Cuadrada', 'meridian' ) ],
+									[ 'value' => 'landscape', 'label' => __( 'Rectangular (3:2)', 'meridian' ) ],
+									[ 'value' => 'wide', 'label' => __( 'Panorámica (16:9)', 'meridian' ) ],
+								],
+							]
+						),
+						...self::card_skin_fields(),
 						self::f( 'titleLines', 'number', 'design', __( 'Líneas del título (0 = las que haga falta)', 'meridian' ), [ 'min' => 0, 'max' => 4 ] ),
 						self::f(
 							'textLines',

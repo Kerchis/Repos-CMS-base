@@ -1648,14 +1648,7 @@
     const verCats = tax.settings ? tax.settings.showCategories !== false : true;
     shell("blog", `
       <div class="m-top"><h1>Blog</h1><button class="m-btn" id="np">Nueva entrada</button></div>
-      <div class="m-table"><table>
-        <thead><tr><th>Título</th><th>Estado</th><th></th></tr></thead>
-        <tbody>${list.map((p)=>`<tr>
-          <td><a href="${cfg.admin}?page=krg-blog&view=edit&id=${p.id}">${esc(p.title)}</a></td>
-          <td><span class="m-pill ${p.status==="publish"?"pub":""}">${esc(p.status)}</span></td>
-          <td><button class="m-btn ghost" data-del="${p.id}">Eliminar</button></td>
-        </tr>`).join("")}</tbody>
-      </table></div>
+      <div class="m-table" id="blog-table"></div>
 
       <div class="m-top m-top-sub">
         <h2>Categorías y etiquetas</h2>
@@ -1680,11 +1673,121 @@
       const p = await api.post("/blog", { title: "Nueva entrada", status: "draft", content: "<p></p>" });
       location.href = `${cfg.admin}?page=krg-blog&view=edit&id=${p.id}`;
     };
-    el.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
-      if (!confirm("¿Eliminar esta entrada?")) return;
-      await api.del(`/blog/${b.dataset.del}`);
-      blog();
-    });
+
+    /* ---------------------------------------------------------------- */
+    /* La lista de entradas.                                             */
+    /*                                                                    */
+    /* Cada fila lleva su categoría, su etiqueta y su estado, para no     */
+    /* tener que abrir la entrada solo para cambiar una cosa, más         */
+    /* duplicar y eliminar. Lo que se toca viaja solo (la API ya solo     */
+    /* escribe lo que recibe), así que cambiar el estado no puede         */
+    /* tocarle el cuerpo a la entrada.                                    */
+    /* ---------------------------------------------------------------- */
+    let entradas = list;
+    const ESTADOS = [
+      ["draft", "Borrador"],
+      ["pending", "Pendiente de revisión"],
+      ["publish", "Publicada (pública)"],
+      ["private", "Privada"],
+    ];
+
+    /** Los nombres de los términos que tiene una entrada. */
+    function nombresDe(ids, cuales) {
+      const n = (ids || []).map((id) => (cuales.find((t) => t.id === id) || {}).name).filter(Boolean);
+      return n.length ? n.join(", ") : "—";
+    }
+
+    function selectorTerminos(p, clave, cuales) {
+      const puestos = p[clave] || [];
+      return `<details class="m-pick" data-pick="${clave}" data-id="${p.id}">
+        <summary><span class="m-pick-sum">${esc(nombresDe(puestos, cuales))}</span></summary>
+        <div class="m-pick-list">${cuales.length ? cuales.map((t) => `
+          <label><input type="checkbox" data-term="${t.id}" ${puestos.includes(t.id) ? "checked" : ""}> ${esc(t.name)}</label>`).join("")
+          : `<p class="m-muted">Todavía no hay ninguna. Créala aquí abajo.</p>`}</div>
+      </details>`;
+    }
+
+    function pintaEntradas() {
+      const cats = terminos.categories || [];
+      const tags = terminos.tags || [];
+      el.querySelector("#blog-table").innerHTML = `<table>
+        <thead><tr><th>Título</th><th>Categorías</th><th>Etiquetas</th><th>Estado</th><th></th></tr></thead>
+        <tbody>${entradas.map((p) => `<tr>
+          <td><a href="${cfg.admin}?page=krg-blog&view=edit&id=${p.id}">${esc(p.title)}</a></td>
+          <td>${selectorTerminos(p, "categories", cats)}</td>
+          <td>${selectorTerminos(p, "tags", tags)}</td>
+          <td><select class="m-mini" data-estado="${p.id}">
+            ${ESTADOS.map(([v, t]) => `<option value="${v}" ${p.status === v ? "selected" : ""}>${t}</option>`).join("")}
+            ${ESTADOS.some(([v]) => v === p.status) ? "" : `<option value="${esc(p.status)}" selected>${esc(p.status)}</option>`}
+          </select></td>
+          <td class="m-tax-acts">
+            <button class="m-btn ghost" data-dup-post="${p.id}">Duplicar</button>
+            <button class="m-btn ghost" data-del="${p.id}">Eliminar</button>
+          </td>
+        </tr>`).join("")}</tbody>
+      </table>`;
+
+      el.querySelectorAll("#blog-table [data-del]").forEach((b) => b.onclick = async () => {
+        if (!confirm("¿Eliminar esta entrada?")) return;
+        await api.del(`/blog/${b.dataset.del}`);
+        entradas = entradas.filter((p) => String(p.id) !== b.dataset.del);
+        pintaEntradas();
+        toast("Entrada eliminada");
+      });
+
+      el.querySelectorAll("#blog-table [data-dup-post]").forEach((b) => b.onclick = async () => {
+        b.disabled = true;
+        try {
+          const copia = await api.post(`/blog/${b.dataset.dupPost}/duplicar`, {});
+          entradas = await api.get("/blog");
+          pintaEntradas();
+          toast(`Copia creada: «${copia.title}» (borrador)`);
+        } catch (err) {
+          b.disabled = false;
+          toast(err.message || "No se pudo duplicar");
+        }
+      });
+
+      el.querySelectorAll("#blog-table [data-estado]").forEach((sel) => sel.onchange = async () => {
+        const id = Number(sel.dataset.estado);
+        const antes = (entradas.find((p) => p.id === id) || {}).status;
+        try {
+          const r = await api.put(`/blog/${id}`, { status: sel.value });
+          const p = entradas.find((x) => x.id === id);
+          if (p) p.status = r.status;
+          // La API puede dejarlo en «pendiente» si no se puede publicar.
+          if (r.status !== sel.value) {
+            sel.value = r.status;
+            toast("No puedes publicar: queda pendiente de revisión");
+          } else {
+            toast("Estado guardado");
+          }
+        } catch (err) {
+          sel.value = antes;
+          toast(err.message || "No se pudo guardar");
+        }
+      });
+
+      el.querySelectorAll("#blog-table .m-pick").forEach((caja) => {
+        const clave = caja.dataset.pick;
+        const id = Number(caja.dataset.id);
+        caja.querySelectorAll("[data-term]").forEach((cb) => cb.onchange = async () => {
+          const ids = [...caja.querySelectorAll("[data-term]")].filter((x) => x.checked).map((x) => Number(x.dataset.term));
+          const antes = (entradas.find((p) => p.id === id) || {})[clave] || [];
+          try {
+            const r = await api.put(`/blog/${id}`, { [clave]: ids });
+            const p = entradas.find((x) => x.id === id);
+            if (p) p[clave] = r[clave] || ids;
+            caja.querySelector(".m-pick-sum").textContent =
+              nombresDe(p ? p[clave] : ids, clave === "categories" ? (terminos.categories || []) : (terminos.tags || []));
+            toast(clave === "categories" ? "Categorías guardadas" : "Etiquetas guardadas");
+          } catch (err) {
+            cb.checked = antes.includes(Number(cb.dataset.term));
+            toast(err.message || "No se pudo guardar");
+          }
+        });
+      });
+    }
 
     /* ---------------------------------------------------------------- */
     /* Categorías y etiquetas: crear, duplicar y eliminar.               */
@@ -1718,11 +1821,24 @@
           <td class="m-muted">${esc(t.slug)}</td>
           <td>${Number(t.count || 0)}</td>
           <td class="m-tax-acts">
+            ${esCat() && !t.isDefault ? `<button class="m-btn ghost" data-def="${t.id}" title="Pasa a ser la categoría por defecto; entonces la que lo era se podrá eliminar">Predeterminada</button>` : ""}
             <button class="m-btn ghost" data-dup="${t.id}">Duplicar</button>
-            <button class="m-btn ghost" data-rm="${t.id}" ${t.isDefault ? "disabled title='La categoría por defecto no se puede borrar'" : ""}>Eliminar</button>
+            <button class="m-btn ghost" data-rm="${t.id}" ${t.isDefault ? "disabled title='Es la predeterminada: nombra otra antes de borrarla'" : ""}>Eliminar</button>
           </td>
         </tr>`).join("") : `<tr><td colspan="4" class="m-muted">${esCat() ? "Todavía no hay categorías." : "Todavía no hay etiquetas."}</td></tr>`}</tbody>
       </table>`;
+
+      tabla.querySelectorAll("[data-def]").forEach((b) => b.onclick = async () => {
+        b.disabled = true;
+        try {
+          await api.put(`/blog/terms/${b.dataset.def}/predeterminada`, {});
+          await recargaTerminos();
+          toast("Ya es la categoría por defecto. Ahora puedes borrar la anterior.");
+        } catch (err) {
+          b.disabled = false;
+          toast(err.message || "No se pudo cambiar");
+        }
+      });
 
       tabla.querySelectorAll("[data-dup]").forEach((b) => b.onclick = async () => {
         b.disabled = true;
@@ -1759,6 +1875,8 @@
     async function recargaTerminos() {
       terminos = await api.get("/blog/taxonomies");
       pintaTerminos();
+      // Las filas de arriba eligen entre estos mismos términos.
+      pintaEntradas();
     }
 
     el.querySelectorAll("#tax-tabs [data-tax]").forEach((b) => b.onclick = () => {
@@ -1799,6 +1917,7 @@
 
     pintaNota();
     pintaTerminos();
+    pintaEntradas();
   }
 
   async function blogEdit(id) {

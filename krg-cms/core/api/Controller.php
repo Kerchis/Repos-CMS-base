@@ -509,15 +509,39 @@ class Controller {
 		$out = [];
 		foreach ( $q as $p ) {
 			$out[] = [
-				'id'      => $p->ID,
-				'title'   => $p->post_title,
-				'slug'    => $p->post_name,
-				'status'  => $p->post_status,
-				'date'    => $p->post_date,
-				'excerpt' => $p->post_excerpt,
+				'id'         => $p->ID,
+				'title'      => $p->post_title,
+				'slug'       => $p->post_name,
+				'status'     => $p->post_status,
+				'date'       => $p->post_date,
+				'excerpt'    => $p->post_excerpt,
+				// Para poder elegir categoria, etiqueta y estado desde
+				// la propia lista, sin abrir la entrada.
+				'categories' => wp_get_post_categories( $p->ID ),
+				'tags'       => wp_get_post_tags( $p->ID, [ 'fields' => 'ids' ] ),
 			];
 		}
 		return rest_ensure_response( $out );
+	}
+
+	/**
+	 * El estado de una entrada, con los permisos puestos.
+	 *
+	 * «Publicado» y «privado» son publicar: quien no pueda publicar deja
+	 * la entrada pendiente de revision en vez de colarla en la web.
+	 */
+	private static function post_status( $pedido, int $id = 0 ): string {
+		$estado = sanitize_key( (string) $pedido );
+		if ( ! in_array( $estado, [ 'draft', 'pending', 'publish', 'private', 'future' ], true ) ) {
+			$estado = 'draft';
+		}
+		if ( in_array( $estado, [ 'publish', 'private', 'future' ], true ) ) {
+			$puede = $id ? current_user_can( 'publish_post', $id ) : current_user_can( 'publish_posts' );
+			if ( ! $puede ) {
+				$estado = 'pending';
+			}
+		}
+		return $estado;
 	}
 
 	public static function blog_get( WP_REST_Request $req ) {
@@ -550,10 +574,7 @@ class Controller {
 
 	public static function blog_create( WP_REST_Request $req ) {
 		$body   = $req->get_json_params() ?: [];
-		$status = sanitize_key( $body['status'] ?? 'draft' );
-		if ( 'publish' === $status && ! current_user_can( 'publish_posts' ) ) {
-			$status = 'pending';
-		}
+		$status = self::post_status( $body['status'] ?? 'draft' );
 		$id = wp_insert_post(
 			[
 				'post_type'    => 'post',
@@ -578,18 +599,25 @@ class Controller {
 			return self::err( 'meridian_forbidden', __( 'No tienes permiso para editar esta entrada.', 'meridian' ), 403 );
 		}
 		$body   = $req->get_json_params() ?: [];
-		$status = sanitize_key( $body['status'] ?? 'draft' );
-		if ( 'publish' === $status && ! current_user_can( 'publish_post', $id ) ) {
-			$status = 'pending';
+		$args   = [ 'ID' => $id ];
+		// Solo se escribe lo que venga en la peticion. La lista de
+		// entradas manda unicamente el estado o las categorias, y antes
+		// eso le borraba el titulo y el cuerpo a la entrada.
+		if ( array_key_exists( 'title', $body ) ) {
+			$args['post_title'] = sanitize_text_field( $body['title'] );
 		}
-		$args = [
-			'ID'           => $id,
-			'post_title'   => sanitize_text_field( $body['title'] ?? '' ),
-			'post_content' => \Meridian\Security\Sanitizer::post_content( (string) ( $body['content'] ?? '' ) ),
-			'post_excerpt' => sanitize_textarea_field( $body['excerpt'] ?? '' ),
-			'post_status'  => $status,
-			'post_name'    => sanitize_title( $body['slug'] ?? '' ),
-		];
+		if ( array_key_exists( 'content', $body ) ) {
+			$args['post_content'] = \Meridian\Security\Sanitizer::post_content( (string) $body['content'] );
+		}
+		if ( array_key_exists( 'excerpt', $body ) ) {
+			$args['post_excerpt'] = sanitize_textarea_field( $body['excerpt'] );
+		}
+		if ( array_key_exists( 'status', $body ) ) {
+			$args['post_status'] = self::post_status( $body['status'], $id );
+		}
+		if ( ! empty( $body['slug'] ) ) {
+			$args['post_name'] = sanitize_title( $body['slug'] );
+		}
 		if ( ! empty( $body['date'] ) ) {
 			$args['post_date'] = sanitize_text_field( $body['date'] );
 		}
@@ -783,6 +811,75 @@ class Controller {
 				'taxonomy' => $tax,
 			]
 		);
+	}
+
+	/**
+	 * Duplica una entrada.
+	 *
+	 * La copia nace como borrador —nadie quiere publicar un duplicado
+	 * sin querer— y se lleva todo lo que tenia: cuerpo, extracto,
+	 * subtitulo, SEO, imagen destacada, categorias y etiquetas.
+	 */
+	public static function blog_duplicate( WP_REST_Request $req ) {
+		$id = (int) $req['id'];
+		$p  = get_post( $id );
+		if ( ! $p || 'post' !== $p->post_type ) {
+			return self::err( 'meridian_not_found', __( 'Entrada no encontrada.', 'meridian' ), 404 );
+		}
+		if ( ! current_user_can( 'edit_post', $id ) || ! current_user_can( 'edit_posts' ) ) {
+			return self::err( 'meridian_forbidden', __( 'No tienes permiso para duplicar esta entrada.', 'meridian' ), 403 );
+		}
+		$nuevo = wp_insert_post(
+			[
+				'post_type'    => 'post',
+				'post_status'  => 'draft',
+				/* translators: %s: titulo de la entrada original. */
+				'post_title'   => sprintf( __( '%s (copia)', 'meridian' ), $p->post_title ),
+				'post_content' => $p->post_content,
+				'post_excerpt' => $p->post_excerpt,
+			],
+			true
+		);
+		if ( is_wp_error( $nuevo ) ) {
+			return $nuevo;
+		}
+		$nuevo = (int) $nuevo;
+
+		wp_set_post_categories( $nuevo, wp_get_post_categories( $id ) );
+		wp_set_object_terms( $nuevo, wp_get_post_tags( $id, [ 'fields' => 'ids' ] ), 'post_tag' );
+		$thumb = (int) get_post_thumbnail_id( $p );
+		if ( $thumb ) {
+			set_post_thumbnail( $nuevo, $thumb );
+		}
+		$sub = get_post_meta( $id, '_meridian_subtitle', true );
+		if ( $sub ) {
+			update_post_meta( $nuevo, '_meridian_subtitle', $sub );
+		}
+		$seo = get_post_meta( $id, '_meridian_seo', true );
+		if ( is_array( $seo ) && $seo ) {
+			update_post_meta( $nuevo, '_meridian_seo', $seo );
+		}
+
+		$req2 = new WP_REST_Request( 'GET' );
+		$req2->set_url_params( [ 'id' => $nuevo ] );
+		return self::blog_get( $req2 );
+	}
+
+	/**
+	 * Cambia cual es la categoria por defecto del sitio.
+	 *
+	 * Es la unica manera de poder borrar la que lo era (WordPress no
+	 * deja quedarse sin ninguna): primero se nombra otra, y entonces la
+	 * vieja ya se puede eliminar.
+	 */
+	public static function blog_term_default( WP_REST_Request $req ) {
+		$id   = (int) $req['id'];
+		$term = get_term( $id, 'category' );
+		if ( ! $term || is_wp_error( $term ) ) {
+			return self::err( 'meridian_term_no_existe', __( 'Esa categoría ya no existe.', 'meridian' ), 404 );
+		}
+		update_option( 'default_category', $id );
+		return rest_ensure_response( [ 'id' => $id ] );
 	}
 
 	public static function blog_settings_get(): WP_REST_Response {

@@ -57,6 +57,109 @@ class Catalog {
 		];
 	}
 
+	/**
+	 * Los ajustes de las tarjetas de una rejilla de entradas.
+	 *
+	 * Los comparten «Grid de blog», «Posts recientes» y «Posts
+	 * relacionados», que pintan la misma tarjeta.
+	 */
+	/** Valores de partida de una rejilla de entradas. */
+	private static function blog_card_defaults( array $extra = [] ): array {
+		return array_merge(
+			[
+				'desktop'     => 3,
+				'tablet'      => 2,
+				'mobile'      => 1,
+				// Rectangular: antes la foto salía con su alto natural y
+				// las tarjetas quedaban larguísimas.
+				'ratio'       => 'landscape',
+				'cardStyle'   => 'stacked',
+				'cardHeight'  => 0,
+				'quoteTitle'  => false,
+				'logoId'      => 0,
+				'logoWidth'   => 120,
+				'showDate'    => true,
+				'showExcerpt' => true,
+				'linkText'    => '',
+				'veilColor'   => '',
+				'blend'       => 'normal',
+				'hoverColor'  => '',
+				'hoverBlend'  => 'normal',
+			],
+			$extra
+		);
+	}
+
+	private static function blog_card_fields(): array {
+		$blends = BrandCatalog::BLENDS;
+		return [
+			self::f(
+				'cardStyle',
+				'select',
+				'design',
+				__( 'Estilo de tarjeta', 'meridian' ),
+				[
+					'options' => [
+						[ 'value' => 'stacked', 'label' => __( 'Texto debajo de la foto', 'meridian' ) ],
+						[ 'value' => 'overlay', 'label' => __( 'Texto sobre la foto', 'meridian' ) ],
+						[ 'value' => 'outline', 'label' => __( 'Con borde', 'meridian' ) ],
+						[ 'value' => 'bare', 'label' => __( 'Sin fondo', 'meridian' ) ],
+					],
+				]
+			),
+			self::f(
+				'ratio',
+				'select',
+				'design',
+				__( 'Proporción de la tarjeta', 'meridian' ),
+				[
+					'options' => [
+						[ 'value' => 'landscape', 'label' => __( 'Rectangular (3:2)', 'meridian' ) ],
+						[ 'value' => 'wide', 'label' => __( 'Panorámica (16:9)', 'meridian' ) ],
+						[ 'value' => 'square', 'label' => __( 'Cuadrada', 'meridian' ) ],
+						[ 'value' => 'portrait', 'label' => __( 'Vertical (4:5)', 'meridian' ) ],
+					],
+					'help'    => __( 'Manda sobre el alto: la foto se recorta para que todas las tarjetas midan lo mismo.', 'meridian' ),
+				]
+			),
+			self::f(
+				'cardHeight',
+				'number',
+				'design',
+				__( 'Alto fijo de la tarjeta (px, 0 = por proporción)', 'meridian' ),
+				[ 'min' => 0, 'max' => 1200 ]
+			),
+			self::f( 'quoteTitle', 'toggle', 'design', __( 'Título como cita', 'meridian' ), [ 'help' => __( 'Lo pone en grande y entre comillas.', 'meridian' ) ] ),
+			self::f( 'logoId', 'image', 'content', __( 'Logo dentro de la tarjeta', 'meridian' ), [ 'help' => __( 'Se pinta debajo del título, en todas las tarjetas.', 'meridian' ) ] ),
+			self::f( 'logoWidth', 'number', 'design', __( 'Ancho del logo (px)', 'meridian' ), [ 'min' => 40, 'max' => 400 ] ),
+			self::f( 'showDate', 'toggle', 'content', __( 'Mostrar la fecha', 'meridian' ) ),
+			self::f( 'showExcerpt', 'toggle', 'content', __( 'Mostrar el resumen', 'meridian' ) ),
+			self::f( 'linkText', 'text', 'content', __( 'Texto del enlace (vacío = ninguno)', 'meridian' ) ),
+			self::f(
+				'veilColor',
+				'color',
+				'colors',
+				__( 'Color sobre la foto', 'meridian' ),
+				[
+					'allowEmpty' => true,
+					'help'       => __( 'Se funde con la foto según el modo de fusión. En blanco, la foto se ve tal cual.', 'meridian' ),
+				]
+			),
+			self::f(
+				'blend',
+				'select',
+				'colors',
+				__( 'Modo de fusión', 'meridian' ),
+				[
+					'options' => $blends,
+					'help'    => __( 'Con «multiply» el color tiñe las sombras; con «luminosity» la foto se queda en blanco y negro sobre tu color.', 'meridian' ),
+				]
+			),
+			self::f( 'hoverColor', 'color', 'colors', __( 'Color al pasar el ratón', 'meridian' ), [ 'allowEmpty' => true ] ),
+			self::f( 'hoverBlend', 'select', 'colors', __( 'Modo de fusión al pasar el ratón', 'meridian' ), [ 'options' => $blends ] ),
+		];
+	}
+
 	private static function layout(): array {
 		return [
 			[
@@ -805,10 +908,11 @@ class Catalog {
 				'name'     => __( 'Grid de blog', 'meridian' ),
 				'category' => 'blog',
 				'icon'     => 'blog',
-				'defaults' => [ 'count' => 6, 'desktop' => 3, 'tablet' => 2, 'mobile' => 1 ],
+				'defaults' => self::blog_card_defaults( [ 'count' => 6 ] ),
 				'fields'   => [
 					self::f( 'count', 'number', 'content', __( 'Cantidad', 'meridian' ), [ 'min' => 1, 'max' => 24 ] ),
 					...self::col_fields( 4, 3, 2 ),
+					...self::blog_card_fields(),
 				],
 			],
 			[
@@ -816,9 +920,11 @@ class Catalog {
 				'name'     => __( 'Posts recientes', 'meridian' ),
 				'category' => 'blog',
 				'icon'     => 'blog',
-				'defaults' => [ 'count' => 3 ],
+				'defaults' => self::blog_card_defaults( [ 'count' => 3 ] ),
 				'fields'   => [
 					self::f( 'count', 'number', 'content', __( 'Cantidad', 'meridian' ), [ 'min' => 1, 'max' => 10 ] ),
+					...self::col_fields( 4, 3, 2 ),
+					...self::blog_card_fields(),
 				],
 			],
 			[
@@ -826,9 +932,11 @@ class Catalog {
 				'name'     => __( 'Posts relacionados', 'meridian' ),
 				'category' => 'blog',
 				'icon'     => 'blog',
-				'defaults' => [ 'count' => 3 ],
+				'defaults' => self::blog_card_defaults( [ 'count' => 3 ] ),
 				'fields'   => [
 					self::f( 'count', 'number', 'content', __( 'Cantidad', 'meridian' ), [ 'min' => 1, 'max' => 6 ] ),
+					...self::col_fields( 4, 3, 2 ),
+					...self::blog_card_fields(),
 				],
 			],
 			[

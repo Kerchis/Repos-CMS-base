@@ -360,3 +360,78 @@ if ( ! function_exists( 'wp_nonce_field' ) ) {
 		return $html;
 	}
 }
+
+/* ---------------------------------------------------------------- */
+/* Entradas del blog                                                 */
+/*                                                                    */
+/* Lo justo para que las rejillas de entradas se puedan pintar fuera  */
+/* de WordPress: las entradas las pone el banco en                    */
+/* `$GLOBALS['krg_entradas']` como objetos con id, titulo, fecha,     */
+/* extracto y miniatura.                                              */
+/* ---------------------------------------------------------------- */
+if ( ! class_exists( 'WP_Post' ) ) {
+	class WP_Post {
+		public $ID            = 0;
+		public $post_title    = '';
+		public $post_excerpt  = '';
+		public $post_date     = '';
+		public $post_name     = '';
+		public $post_status   = 'publish';
+		public $post_type     = 'post';
+		public $thumbnail_id  = 0;
+
+		public function __construct( array $datos = [] ) {
+			foreach ( $datos as $k => $v ) {
+				$this->$k = $v;
+			}
+		}
+	}
+}
+if ( ! class_exists( 'WP_Query' ) ) {
+	class WP_Query {
+		public $posts = [];
+
+		public function __construct( $args = [] ) {
+			$todas       = is_array( $GLOBALS['krg_entradas'] ?? null ) ? $GLOBALS['krg_entradas'] : [];
+			$cuantas     = (int) ( $args['posts_per_page'] ?? 10 );
+			$this->posts = $cuantas > 0 ? array_slice( $todas, 0, $cuantas ) : $todas;
+		}
+
+		public function have_posts() {
+			return (bool) $this->posts;
+		}
+	}
+}
+if ( ! function_exists( 'wp_reset_postdata' ) ) {
+	function wp_reset_postdata() {}
+}
+if ( ! function_exists( 'get_the_title' ) ) {
+	function get_the_title( $p = null ) { return is_object( $p ) ? (string) $p->post_title : ''; }
+}
+if ( ! function_exists( 'get_permalink' ) ) {
+	function get_permalink( $p = null ) {
+		$slug = is_object( $p ) ? ( $p->post_name ?: 'entrada-' . $p->ID ) : '';
+		return 'https://krg.test/' . $slug . '/';
+	}
+}
+if ( ! function_exists( 'get_the_date' ) ) {
+	function get_the_date( $f = '', $p = null ) { return is_object( $p ) ? (string) $p->post_date : ''; }
+}
+if ( ! function_exists( 'get_the_excerpt' ) ) {
+	function get_the_excerpt( $p = null ) { return is_object( $p ) ? (string) $p->post_excerpt : ''; }
+}
+if ( ! function_exists( 'get_post_thumbnail_id' ) ) {
+	function get_post_thumbnail_id( $p = null ) { return is_object( $p ) ? (int) $p->thumbnail_id : 0; }
+}
+if ( ! function_exists( 'wp_trim_words' ) ) {
+	function wp_trim_words( $t, $n = 55, $mas = null ) {
+		$palabras = preg_split( '/\s+/', trim( (string) $t ) );
+		if ( count( $palabras ) <= $n ) {
+			return (string) $t;
+		}
+		return implode( ' ', array_slice( $palabras, 0, $n ) ) . ( null === $mas ? '…' : $mas );
+	}
+}
+if ( ! function_exists( 'wp_get_post_categories' ) ) {
+	function wp_get_post_categories( $id, $args = [] ) { return []; }
+}

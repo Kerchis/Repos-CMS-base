@@ -137,6 +137,52 @@
 .m-tax-acts { text-align: right; white-space: nowrap; }
 .m-tax-acts .m-btn + .m-btn { margin-left: 8px; }
 
+/* Selector de categorías/etiquetas dentro de una fila de la tabla:
+   un desplegable propio, porque un `select multiple` en una celda se
+   come media pantalla. */
+.m-pick { position: relative; font-size: 13px; }
+.m-pick > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 6px 10px;
+  border: 1px solid var(--m-line);
+  border-radius: 8px;
+  background: #fff;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m-pick > summary::-webkit-details-marker { display: none; }
+.m-pick > summary::after { content: " ▾"; color: var(--m-muted); }
+.m-pick[open] > summary { border-color: var(--m-line-strong); }
+.m-pick-list {
+  position: absolute;
+  z-index: 5;
+  margin-top: 4px;
+  min-width: 220px;
+  max-height: 240px;
+  overflow: auto;
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid var(--m-line);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+.m-pick-list label { display: flex; gap: 8px; align-items: center; font-weight: 400; cursor: pointer; }
+
+/* Desplegable pequeño dentro de una tabla (el estado de la entrada). */
+select.m-mini {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid var(--m-line);
+  border-radius: 8px;
+  background: #fff;
+}
+
 /* Pestañas sencillas (categorías / etiquetas). */
 .m-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
 .m-tabs button {

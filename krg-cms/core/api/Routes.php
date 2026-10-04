@@ -245,6 +245,12 @@ class Routes {
 		register_rest_route( $ns, '/blog/terms/(?P<id>\d+)', [
 			[ 'methods' => 'DELETE', 'permission_callback' => $cats, 'callback' => [ Controller::class, 'blog_term_delete' ] ],
 		] );
+		register_rest_route( $ns, '/blog/(?P<id>\d+)/duplicar', [
+			[ 'methods' => 'POST', 'permission_callback' => $posts, 'callback' => [ Controller::class, 'blog_duplicate' ] ],
+		] );
+		register_rest_route( $ns, '/blog/terms/(?P<id>\d+)/predeterminada', [
+			[ 'methods' => 'PUT', 'permission_callback' => $cats, 'callback' => [ Controller::class, 'blog_term_default' ] ],
+		] );
 		register_rest_route( $ns, '/blog/terms/(?P<id>\d+)/duplicar', [
 			[ 'methods' => 'POST', 'permission_callback' => $cats, 'callback' => [ Controller::class, 'blog_term_duplicate' ] ],
 		] );

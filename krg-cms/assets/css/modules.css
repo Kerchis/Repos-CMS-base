@@ -652,6 +652,9 @@ a.m-bcard:hover .m-card-cta { text-decoration: underline; }
 .m-card-media {
   display: block;
   position: relative;
+  /* La fusión de la veladura solo debe mezclarse con la foto: sin
+     aislar, `mix-blend-mode` buscaría el fondo de la sección. */
+  isolation: isolate;
   overflow: hidden;
   border-radius: var(--radius-cards, 20px);
   background: var(--color-surface);
@@ -659,6 +662,61 @@ a.m-bcard:hover .m-card-cta { text-decoration: underline; }
 .m-card-media.is-ratio-portrait  { aspect-ratio: 4 / 5; }
 .m-card-media.is-ratio-square    { aspect-ratio: 1; }
 .m-card-media.is-ratio-landscape { aspect-ratio: 3 / 2; }
+.m-card-media.is-ratio-wide      { aspect-ratio: 16 / 9; }
+/* Alto fijo: manda sobre la proporción (lo pide el panel en píxeles). */
+.m-card-media.is-h-fija { aspect-ratio: auto; height: var(--m-card-h, 320px); }
+
+/* Veladura de color sobre la foto.
+   Va dentro de `.m-card-media`, que está aislado, así que la fusión
+   solo mezcla con la foto y no se escapa al fondo de la sección. Sin
+   color configurado la variable no se emite y esto no pinta nada. */
+.m-card-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--m-card-veil, transparent);
+  mix-blend-mode: var(--m-card-blend, normal);
+  transition: background 320ms var(--m-ease), opacity 320ms var(--m-ease);
+}
+.m-bcard:hover .m-card-veil,
+.m-bcard:focus-visible .m-card-veil {
+  background: var(--m-card-veil-h, var(--m-card-veil, transparent));
+  mix-blend-mode: var(--m-card-blend-h, var(--m-card-blend, normal));
+}
+
+/* Título como cita: grande y entrecomillado, sin tocar el marcado (el
+   título sigue siendo un encabezado de verdad para buscadores). */
+.m-card-title.is-quote {
+  font-size: clamp(22px, 2.6vw, 38px);
+  line-height: 1.08;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.m-card-title.is-quote::before { content: "\201C"; }
+.m-card-title.is-quote::after  { content: "\201D"; }
+
+/* Logo dentro de la tarjeta, debajo del título. */
+.m-card-logo { display: block; margin-block-start: 10px; }
+.m-card-logo-img {
+  display: block;
+  width: auto;
+  max-width: var(--m-card-logo-w, 120px);
+  height: auto;
+}
+.m-bcard.is-overlay .m-card-logo-img { filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45)); }
+
+/* Rejilla de entradas del blog: las mismas columnas que las
+   colecciones. Antes el contenedor era un `.m-grid` sin ninguna regla,
+   así que las tarjetas se apilaban una debajo de otra. */
+.m-bgrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--m-cols, 3), minmax(0, 1fr));
+  gap: clamp(18px, 2.4vw, 36px);
+}
+.m-bgrid-item { min-width: 0; }
 .m-card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 700ms var(--m-ease); }
 a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 .m-card-badge {
@@ -711,6 +769,11 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
 }
 .m-card-title {
   font-family: var(--font-heading);
+  /* El titulo toma el color de la tarjeta. Hace falta decirlo porque
+     en las entradas del blog es un `h3` de verdad —por los buscadores
+     y los lectores de pantalla— y los titulares traen su propio color,
+     que sobre una foto oscura no se leia. */
+  color: inherit;
   font-size: var(--text-h4-size, 20px);
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -1303,6 +1366,7 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
   .m-rail-track { grid-auto-columns: calc((100% - (var(--m-cols-t, 2) - 1) * var(--spacing-lg, 28px)) / var(--m-cols-t, 2)); }
   .m-rail.is-layout-grid .m-rail-track { grid-template-columns: repeat(var(--m-cols-t, 2), minmax(0, 1fr)); }
   .m-cg-grid { grid-template-columns: repeat(var(--m-cols-t, 2), minmax(0, 1fr)); }
+  .m-bgrid { grid-template-columns: repeat(var(--m-cols-t, 2), minmax(0, 1fr)); }
   .m-fc-grid { grid-template-columns: repeat(var(--m-cols-t, 2), minmax(0, 1fr)); }
   .m-nl.is-grid .m-nl-list { grid-template-columns: repeat(var(--m-cols-t, 1), minmax(0, 1fr)); }
   .m-sf-grid,
@@ -1321,6 +1385,7 @@ a.m-bcard:hover .m-card-img { transform: scale(1.05); }
   }
   .m-rail.is-layout-grid .m-rail-track { grid-template-columns: repeat(var(--m-cols-m, 1), minmax(0, 1fr)); }
   .m-cg-grid { grid-template-columns: repeat(var(--m-cols-m, 1), minmax(0, 1fr)); }
+  .m-bgrid { grid-template-columns: repeat(var(--m-cols-m, 1), minmax(0, 1fr)); }
   .m-fc-grid { grid-template-columns: repeat(var(--m-cols-m, 1), minmax(0, 1fr)); }
   .m-nl.is-grid .m-nl-list { grid-template-columns: 1fr; }
   .m-nl.is-stack .m-nl-body,

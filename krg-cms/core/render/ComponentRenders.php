@@ -875,6 +875,61 @@ class ComponentRenders {
 		return self::wrap( $node, $ctx, 'div', $inner, [ 'class' => 'm-cta' ] );
 	}
 
+	/**
+	 * Una opcion de una lista cerrada, con valor de respaldo.
+	 */
+	private static function pick( $valor, array $validas, string $def ): string {
+		$v = is_string( $valor ) ? $valor : '';
+		return in_array( $v, $validas, true ) ? $v : $def;
+	}
+
+	/**
+	 * Como se ven las tarjetas de una rejilla de entradas.
+	 *
+	 * La parte de color, fusion, logo, cita y alto es la misma que la
+	 * de las colecciones: la lee `BrandRenders::card_skin()`. Aqui solo
+	 * se anaden las columnas, la proporcion y el estilo.
+	 *
+	 * Devuelve [opciones de tarjeta, variables CSS, proporcion, estilo].
+	 */
+	private static function blog_card_setup( array $props, RenderContext $ctx ): array {
+		$ratio = self::pick( $props['ratio'] ?? 'landscape', [ 'portrait', 'square', 'landscape', 'wide' ], 'landscape' );
+		$style = self::pick( $props['cardStyle'] ?? 'stacked', [ 'stacked', 'overlay', 'outline', 'bare', 'soft' ], 'stacked' );
+
+		[ $opts, $vars ] = \Meridian\Render\BrandRenders::card_skin( $props, $ctx, 'h3' );
+
+		$vars = '--m-cols:' . max( 1, min( 6, absint( $props['desktop'] ?? 3 ) ?: 3 ) ) . ';'
+			. '--m-cols-t:' . max( 1, min( 4, absint( $props['tablet'] ?? 2 ) ?: 2 ) ) . ';'
+			. '--m-cols-m:' . max( 1, min( 3, absint( $props['mobile'] ?? 1 ) ?: 1 ) ) . ';'
+			. $vars;
+
+		return [ $opts, $vars, $ratio, $style ];
+	}
+
+	/** Las entradas que pinta una rejilla, ya consultadas. */
+	private static function blog_cards( array $props, RenderContext $ctx, array $posts ): string {
+		[ $opts, $vars, $ratio, $style ] = self::blog_card_setup( $props, $ctx );
+		$fecha   = ! array_key_exists( 'showDate', $props ) || ! empty( $props['showDate'] );
+		$resumen = ! array_key_exists( 'showExcerpt', $props ) || ! empty( $props['showExcerpt'] );
+		$cta     = trim( (string) ( $props['linkText'] ?? '' ) );
+
+		$cards = '';
+		foreach ( $posts as $p ) {
+			$it = [
+				'title'    => get_the_title( $p ),
+				'category' => $fecha ? get_the_date( '', $p ) : '',
+				'text'     => $resumen ? wp_trim_words( get_the_excerpt( $p ), 22 ) : '',
+				'imageId'  => (int) get_post_thumbnail_id( $p ),
+				'alt'      => '',
+				'url'      => get_permalink( $p ),
+				'linkText' => $cta,
+				'badge'    => '',
+			];
+			$cards .= '<li class="m-bgrid-item">' . \Meridian\Render\BrandRenders::card( $ctx, $it, $style, $ratio, $opts ) . '</li>';
+		}
+		return $cards;
+	}
+
 	public static function blog_grid( array $node, array $props, string $children, RenderContext $ctx ): string {
 		$q = new \WP_Query(
 			[
@@ -883,10 +938,7 @@ class ComponentRenders {
 				'post_status'    => 'publish',
 			]
 		);
-		$cards = '';
-		foreach ( $q->posts as $p ) {
-			$cards .= self::post_card( $p );
-		}
+		$cards = self::blog_cards( $props, $ctx, $q->posts );
 		wp_reset_postdata();
 		// Sin entradas no hay rejilla: una rejilla vacia seguia ocupando
 		// el alto de la seccion con su relleno y se veia como una franja
@@ -897,7 +949,14 @@ class ComponentRenders {
 				? self::wrap( $node, $ctx, 'div', '<p class="m-muted">' . esc_html__( 'Todavía no hay entradas publicadas.', 'meridian' ) . '</p>', [ 'class' => 'is-empty' ] )
 				: '';
 		}
-		return self::wrap( $node, $ctx, 'div', '<div class="m-grid">' . $cards . '</div>' );
+		[ , $vars ] = self::blog_card_setup( $props, $ctx );
+		return self::wrap(
+			$node,
+			$ctx,
+			'div',
+			'<ul class="m-bgrid">' . $cards . '</ul>',
+			[ 'style' => $vars ]
+		);
 	}
 
 	public static function recent_posts( array $node, array $props, string $children, RenderContext $ctx ): string {
@@ -918,12 +977,9 @@ class ComponentRenders {
 		if ( ! $q->have_posts() ) {
 			return self::blog_grid( $node, $props, $children, $ctx );
 		}
-		$inner = '<div class="m-grid">';
-		foreach ( $q->posts as $p ) {
-			$inner .= self::post_card( $p );
-		}
-		$inner .= '</div>';
-		return self::wrap( $node, $ctx, 'div', $inner );
+		[ , $vars ] = self::blog_card_setup( $props, $ctx );
+		$inner = '<ul class="m-bgrid">' . self::blog_cards( $props, $ctx, $q->posts ) . '</ul>';
+		return self::wrap( $node, $ctx, 'div', $inner, [ 'style' => $vars ] );
 	}
 
 	public static function categories( array $node, array $props, string $children, RenderContext $ctx ): string {
@@ -958,16 +1014,6 @@ class ComponentRenders {
 		the_content();
 		$content = ob_get_clean();
 		return self::wrap( $node, $ctx, 'div', $content, [ 'class' => 'm-rich m-article-body' ] );
-	}
-
-	private static function post_card( \WP_Post $p ): string {
-		$thumb = get_the_post_thumbnail( $p, 'krg-card', [ 'class' => 'm-card-img', 'loading' => 'lazy' ] );
-		$html  = '<article class="m-card"><a class="m-card-link" href="' . esc_url( get_permalink( $p ) ) . '">';
-		$html .= $thumb;
-		$html .= '<div class="m-card-body"><p class="m-eyebrow">' . esc_html( get_the_date( '', $p ) ) . '</p>';
-		$html .= '<h3 class="m-role-h3">' . esc_html( get_the_title( $p ) ) . '</h3>';
-		$html .= '<p>' . esc_html( wp_trim_words( get_the_excerpt( $p ), 22 ) ) . '</p></div></a></article>';
-		return $html;
 	}
 
 	public static function contact_form( array $node, array $props, string $children, RenderContext $ctx ): string {
