@@ -232,9 +232,11 @@ comprueba(hoja.length === 0, `ninguna regla de caja lleva !important: ${hoja.joi
 /* Los dos emisores dicen lo mismo                                      */
 /* ------------------------------------------------------------------ */
 console.log('\nEl PHP y el editor escriben exactamente lo mismo');
-const builder = readFileSync(path.join(ROOT, 'krg-cms/admin/assets/js/builder.js'), 'utf8');
+// `cssCaja()` vive en el núcleo desde que páginas y navegación comparten
+// inspector: es la misma copia para las dos pantallas.
+const builder = readFileSync(path.join(ROOT, 'krg-cms/admin/assets/js/builder-core.js'), 'utf8');
 const trozo = builder.match(/const CAJA_PROPS = \[[\s\S]*?\];[\s\S]*?function cssCaja\(styles\) \{[\s\S]*?\n  \}/);
-comprueba(!!trozo, 'se encuentra cssCaja() en el editor');
+comprueba(!!trozo, 'se encuentra cssCaja() en el núcleo del editor');
 const muestras = [
   ESCRITORIO,
   { 'background-color': 'var(--color-primary)', 'padding-top': '0px' },

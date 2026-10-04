@@ -36,30 +36,6 @@
     tablet: { w: 768, h: 1024 },
     mobile: { w: 390, h: 844 },
   };
-  const FOOTER_ADD = [
-    { t: "section", l: "Sección" },
-    { t: "row", l: "Fila" },
-    { t: "column", l: "Columna" },
-    { t: "heading", l: "Encabezado" },
-    { t: "paragraph", l: "Párrafo" },
-    { t: "rich-text", l: "Texto" },
-    { t: "image", l: "Imagen" },
-    { t: "button", l: "Botón" },
-    { t: "divider", l: "Separador" },
-    { t: "menu", l: "Menú" },
-    { t: "social-links", l: "Redes" },
-    { t: "footer-split", l: "Pie partido" },
-    { t: "search-form", l: "Buscador" },
-  ];
-  const FOOTER_LAYOUTS = [
-    { id: "12", spans: [12], label: "1" },
-    { id: "6-6", spans: [6, 6], label: "1/2" },
-    { id: "4-4-4", spans: [4, 4, 4], label: "1/3" },
-    { id: "3-3-3-3", spans: [3, 3, 3, 3], label: "1/4" },
-    { id: "4-8", spans: [4, 8], label: "1/3 · 2/3" },
-    { id: "8-4", spans: [8, 4], label: "2/3 · 1/3" },
-    { id: "4-5-3", spans: [4, 5, 3], label: "Logo · Menú · Extra" },
-  ];
   const FOOTER_ANIMS = [
     { v: "none", l: "Ninguna" },
     { v: "fade", l: "Desvanecer" },
@@ -114,6 +90,49 @@
     document.body.appendChild(n);
     setTimeout(() => n.remove(), 2200);
   };
+
+  /* ==================================================================
+     El inspector compartido
+     ------------------------------------------------------------------
+     Esta pantalla y la de páginas montan el MISMO inspector
+     (builder-fields.js). Lo único que cambia es el documento: allí la
+     página, aquí el pie. Para no tener dos modelos, al estado de esta
+     pantalla se le ponen dos asas con los nombres que el inspector
+     espera: `doc` (con las secciones del pie) y `selected` (el nodo
+     elegido, que aquí se llama `fSel`).
+     ================================================================== */
+  const docPie = {
+    get sections() { return fSections(); },
+    set sections(v) { state.footer = state.footer || {}; state.footer.sections = v; },
+  };
+  Object.defineProperty(state, "doc", { get: () => docPie, configurable: true });
+  Object.defineProperty(state, "selected", {
+    get: () => state.fSel,
+    set: (v) => { state.fSel = v; },
+    configurable: true,
+  });
+
+  const FIELDS = window.KrgFields({
+    state: state,
+    root: root,
+    cfg: cfg,
+    api: api,
+    id: 0,
+    esc: (x) => esc(x),
+    cssColor: (v) => window.KrgBuilderCore.cssColor(v),
+    defOf: (slug) => defOf(slug),
+    findNode: (list, nid, parent) => findF(list, nid, parent),
+    makeNode: (t) => makeNode(t),
+    markDirty: () => markDirty(),
+    paintLiveCss: () => paintLiveChrome(),
+    pingFrame: () => ping(),
+    render: () => paintChrome(),
+    snapshot: () => pushHistory("cambio"),
+    toast: (t) => toast(t),
+    unlinkNode: () => {},
+    // Aquí no hay plantillas de página ni componentes globales.
+    caps: { templates: false, globals: false },
+  });
 
   function pack() {
     return JSON.stringify({ header: state.header, footer: state.footer });
@@ -452,8 +471,8 @@
     return `${field("Texto CTA", `<input data-h="ctaText" value="${esc(h.ctaText || "")}">`)}
       ${field("URL CTA", `<input data-h="ctaUrl" value="${esc(h.ctaUrl || "")}">`)}
       ${field("Menú", `<select data-h="menuSlug">${(state.menus || []).map((m) => `<option value="${esc(m.slug)}" ${h.menuSlug === m.slug ? "selected" : ""}>${esc(m.name || m.slug)}</option>`).join("")}</select>`)}
-      ${field("Logo escritorio", `${h.logoSrc ? `<img src="${esc(h.logoSrc)}" alt="" style="max-height:36px;width:auto;display:block;margin-bottom:6px">` : ""}<button type="button" class="m-btn ghost" data-media="logoId">Elegir logo</button>`)}
-      ${field("Logo móvil / tablet", `${h.logoMobileSrc ? `<img src="${esc(h.logoMobileSrc)}" alt="" style="max-height:36px;width:auto;display:block;margin-bottom:6px">` : ""}<button type="button" class="m-btn ghost" data-media="logoMobile">Elegir logo</button>`)}
+      ${field("Logo escritorio", `${h.logoSrc ? `<img src="${esc(h.logoSrc)}" alt="" style="max-height:36px;width:auto;display:block;margin-bottom:6px">` : ""}<button type="button" class="m-btn ghost" data-hmedia="logoId">Elegir logo</button>`)}
+      ${field("Logo móvil / tablet", `${h.logoMobileSrc ? `<img src="${esc(h.logoMobileSrc)}" alt="" style="max-height:36px;width:auto;display:block;margin-bottom:6px">` : ""}<button type="button" class="m-btn ghost" data-hmedia="logoMobile">Elegir logo</button>`)}
       ${field("Clic en el logo", `<select data-h="logoLink">
         <option value="home" ${(h.logoLink || "home") === "home" ? "selected" : ""}>Inicio del sitio</option>
         <option value="section" ${h.logoLink === "section" ? "selected" : ""}>Sección de la página (#id)</option>
@@ -665,118 +684,6 @@
       ${field("Clase CSS", `<input data-f="htmlClass" value="${esc(f.htmlClass || "")}" placeholder="mi-footer">`)}`;
   }
 
-  /* --- Bloques dentro del pie --------------------------------------- */
-
-  const F_LAYOUT_TYPES = ["section", "row", "column"];
-
-  function fnBodyBasics(ctx) {
-    const node = ctx.node;
-    if (!F_LAYOUT_TYPES.includes(node.type)) return "";
-    let row = node.type === "row" ? node : (node.children || []).find((c) => c.type === "row");
-    if (node.type === "column") row = null;
-    const current = row ? (row.props?.layout || "") : (node.props?.layout || "");
-    return `${field("Nombre interno", `<input data-fnode="name" value="${esc(node.name || "")}">`)}
-      ${node.type === "column" ? `
-        ${field("Ancho desktop (1–12)", `<input type="number" min="1" max="12" data-fprop="span" value="${node.props.span ?? 12}">`)}
-        ${field("Ancho tablet (1–12)", `<input type="number" min="1" max="12" data-fprop="spanTablet" value="${node.props.spanTablet ?? 12}">`)}
-        ${field("Ancho móvil (1–12)", `<input type="number" min="1" max="12" data-fprop="spanMobile" value="${node.props.spanMobile ?? 12}">`)}
-        <p class="m-muted">Selecciona esta columna y añade módulos (logo, texto, menú) desde la paleta.</p>
-      ` : ""}
-      ${node.type === "row" || node.type === "section" ? `
-        <p class="m-muted">Disposición de columnas</p>
-        <div class="b-seg">${FOOTER_LAYOUTS.map((l) => `<button type="button" class="${current === l.id ? "is-on" : ""}" data-flayout="${l.id}">${l.label}</button>`).join("")}</div>
-        ${node.type === "row" ? field("Separación (px)", `<input type="number" min="0" max="80" data-fprop="gap" value="${node.props.gap ?? 24}">`) : ""}
-      ` : ""}`;
-  }
-
-  function fnBodyContent(ctx) {
-    const node = ctx.node;
-    if (F_LAYOUT_TYPES.includes(node.type)) return "";
-    const list = (ctx.def.fields || []).filter((f) => (f.group || "content") === "content");
-    if (!list.length) return "<p class='m-muted'>Sin campos de contenido.</p>";
-    return list.map((f) => nodeField(node, f)).join("");
-  }
-
-  function fnBodyDesign(ctx) {
-    const node = ctx.node;
-    const st = (node.styles && node.styles[state.bp]) || {};
-    const list = (ctx.def.fields || []).filter((f) => ["design", "colors", "spacing", "typography"].includes(f.group));
-    return `${window.KrgUi.colorField("Fondo del bloque", st.background || "", 'data-fstyle="background"')}
-      ${window.KrgUi.colorField("Color de texto", st.color || "", 'data-fstyle="color"')}
-      ${field("Relleno", `<input data-fstyle="padding" value="${esc(st.padding || "")}" placeholder="24px">`)}
-      ${node.type === "image" ? `
-        <p class="m-muted">Radio</p>
-        <div class="b-seg">${[["none", "Ninguno"], ["sm", "S"], ["md", "M"], ["lg", "L"], ["full", "Círculo"]].map(([v, l]) => `<button type="button" class="${(node.props.radius || "none") === v ? "is-on" : ""}" data-fprop-set="radius" data-v="${v}">${l}</button>`).join("")}</div>
-        <label>Escala (%)
-          <input type="range" min="10" max="200" data-fprop="scale" value="${Number(node.props.scale ?? 100)}">
-          <span>${Number(node.props.scale ?? 100)}</span>
-        </label>
-        ${field("Ancho", `<input data-fstyle="width" value="${esc(st.width || "")}" placeholder="180px">`)}
-        ${field("Alto", `<input data-fstyle="height" value="${esc(st.height || "")}" placeholder="auto">`)}
-        ${field("Máximo ancho", `<input data-fstyle="max-width" value="${esc(st["max-width"] || "")}" placeholder="180px">`)}
-      ` : ""}
-      ${list.map((f) => nodeField(node, f)).join("")}`;
-  }
-
-  function fnBodyAlign(ctx) {
-    const node = ctx.node;
-    const p = node.props || {};
-    const isCol = node.type === "column";
-    const isRow = node.type === "row";
-    const hKey = isCol ? "contentHAlign" : "alignH";
-    const vKey = isRow ? "vAlign" : isCol ? "contentVAlign" : "alignV";
-    const h = p[hKey] || "start";
-    const v = p[vKey] || "start";
-    const dist = p.distribute || "none";
-    const btn = (key, val, cur, icon, title) => `<button type="button" class="b-align-btn${cur === val ? " is-on" : ""}" data-fprop-set="${key}" data-v="${val}" title="${title}">${ALIGN_ICONS[icon]}</button>`;
-    return `<p class="m-muted">Alinear objetos</p>
-      <div class="b-align">
-        ${btn(hKey, "start", h, "hStart", "Izquierda")}
-        ${btn(hKey, "center", h, "hCenter", "Centro horizontal")}
-        ${btn(hKey, "end", h, "hEnd", "Derecha")}
-        ${btn(vKey, "start", v, "vStart", "Arriba")}
-        ${btn(vKey, "center", v, "vCenter", "Centro vertical")}
-        ${btn(vKey, "end", v, "vEnd", "Abajo")}
-      </div>
-      <p class="m-muted">Distribuir objetos</p>
-      <div class="b-align">
-        ${btn("distribute", "x", dist, "distX", "Distribuir horizontal")}
-        ${btn("distribute", "y", dist, "distY", "Distribuir vertical")}
-      </div>`;
-  }
-
-  function fnBodyNavMode(ctx) {
-    const node = ctx.node;
-    if (node.type !== "menu") return "";
-    const p = node.props || {};
-    const row = (key, label, fallback) => {
-      const cur = p[key] || fallback;
-      return `<p class="m-muted">${label}</p>
-        <div class="b-seg">
-          <button type="button" class="${cur === "bar" ? "is-on" : ""}" data-fprop-set="${key}" data-v="bar">Barra (escritorio)</button>
-          <button type="button" class="${cur === "drawer" ? "is-on" : ""}" data-fprop-set="${key}" data-v="drawer">Hamburguesa (móvil)</button>
-        </div>`;
-    };
-    return `${row("navModeDesktop", "Escritorio", "bar")}
-      ${row("navModeTablet", "Tablet", "bar")}
-      ${row("navModeMobile", "Móvil", "drawer")}`;
-  }
-
-  function fnBodyAnim(ctx) {
-    const node = ctx.node;
-    const cur = node.animation || "none";
-    return `<div class="b-seg">${FOOTER_ANIMS.map((a) => `<button type="button" class="${cur === a.v ? "is-on" : ""}" data-fanim="${a.v}">${a.l}</button>`).join("")}</div>
-      <label>Duración (ms) <input type="number" data-fnode="animDuration" min="0" max="3000" value="${esc(node.animDuration ?? 600)}"></label>
-      <label>Retardo (ms) <input type="number" data-fnode="animDelay" min="0" max="3000" value="${esc(node.animDelay ?? 0)}"></label>`;
-  }
-
-  function fnBodyAdvanced(ctx) {
-    const node = ctx.node;
-    return `${field("Identificador CSS", `<input data-fnode="htmlId" value="${esc(node.htmlId || "")}">`)}
-      ${field("Clase CSS", `<input data-fnode="htmlClass" value="${esc(node.htmlClass || "")}">`)}
-      <label>Visible <input type="checkbox" data-fnode-bool="visible" ${node.visible !== false ? "checked" : ""}></label>`;
-  }
-
   /* --- Registro y esquemas ------------------------------------------ */
 
   let registrado = false;
@@ -804,14 +711,6 @@
     R("f.size", "Medidas", fBodySize);
     R("f.advanced", "Avanzado", fBodyAdvanced);
 
-    R("fn.basics", "Disposición", fnBodyBasics);
-    R("fn.content", "Contenido", fnBodyContent);
-    R("fn.design", "Diseño", fnBodyDesign);
-    R("fn.align", "Alinear", fnBodyAlign);
-    R("fn.navMode", "Tipo de menú", fnBodyNavMode);
-    R("fn.anim", "Animación", fnBodyAnim);
-    R("fn.advanced", "Avanzado", fnBodyAdvanced);
-
     CORE.setSchema("chrome-header", {
       content: ["h.content"],
       design: ["h.align", "h.navMode", "h.colors", "h.logo", "h.size", "h.glass", "h.anim"],
@@ -822,16 +721,9 @@
       design: ["f.align", "f.reveal", "f.colors", "f.copyright", "f.size"],
       advanced: ["f.advanced"],
     });
-    CORE.setSchema("chrome-node", {
-      content: ["fn.basics", "fn.content", "fn.align"],
-      design: ["fn.design", "fn.align", "fn.navMode", "fn.anim"],
-      advanced: ["fn.advanced", "fn.anim"],
-    });
+    // Los nodos del pie NO se registran aquí: usan el inspector
+    // compartido (builder-fields.js), el mismo que las páginas.
   }
-
-  const F_KIND_LABEL = {
-    section: "Sección", row: "Fila", column: "Columna",
-  };
 
   function inspector() {
     registrarControles();
@@ -840,17 +732,25 @@
       const hit = state.fSel ? findF(fSections(), state.fSel) : null;
       if (hit) {
         const node = hit.node;
-        const def = defOf(node.type) || {};
+        const def = defOf(node.type) || { name: node.type, fields: [] };
+        // Mismo esquema que en páginas: sección, fila, columna, texto,
+        // imagen, galería, vídeo o módulo. De ahí salen el fondo, el
+        // relleno, el margen, el tamaño, el borde, la sombra, la
+        // posición y todo lo demás que antes aquí no existía.
+        const kind = FIELDS.kindOf(node);
         return CORE.render({
-          kind: "chrome-node",
+          kind: kind,
           type: node.type,
-          kindLabel: F_KIND_LABEL[node.type] || "Módulo",
-          title: node.name || def.name || node.type,
-          subtitle: node.type,
+          kindLabel: FIELDS.KIND_LABEL[kind] || "Módulo",
+          title: node.name && node.name !== node.type ? node.name : (def.name || node.type),
+          subtitle: def.name && node.name && node.name !== def.name && node.name !== node.type ? def.name : "",
           tab: tab,
           actions: '<button type="button" class="m-btn ghost" data-froot>← Ajustes del pie</button>',
+          schema: def.inspector || null,
           node: node,
           def: def,
+          bp: state.bp,
+          st: (node.styles && node.styles[state.bp]) || {},
         });
       }
       return CORE.render({
@@ -915,96 +815,6 @@
     }
     return null;
   }
-  function firstColumn() {
-    const secs = fSections();
-    if (!secs.length) {
-      const sec = makeNode("section");
-      secs.push(sec);
-      return sec.children[0].children[0];
-    }
-    const sec = secs[secs.length - 1];
-    const row = (sec.children || []).find((c) => c.type === "row") || sec;
-    const col = (row.children || []).find((c) => c.type === "column") || row;
-    if (!col.children) col.children = [];
-    return col;
-  }
-  function addFooterNode(type) {
-    const n = makeNode(type);
-    const hit = state.fSel ? findF(fSections(), state.fSel) : null;
-    if (type === "section") {
-      n.props.fullWidth = false;
-      fSections().push(n);
-    } else if (type === "row") {
-      let sec = null;
-      if (hit) {
-        if (hit.node.type === "section") sec = hit.node;
-        else {
-          let p = hit.parent;
-          while (p && p.type !== "section") {
-            const up = findF(fSections(), p.id);
-            p = up && up.parent;
-          }
-          sec = p && p.type === "section" ? p : null;
-        }
-      }
-      if (!sec) {
-        if (!fSections().length) fSections().push(makeNode("section"));
-        sec = fSections()[fSections().length - 1];
-      }
-      sec.children = sec.children || [];
-      sec.children.push(n);
-    } else if (type === "column") {
-      let row = null;
-      if (hit) {
-        if (hit.node.type === "row") row = hit.node;
-        else if (hit.parent && hit.parent.type === "row") row = hit.parent;
-      }
-      if (!row) {
-        if (!fSections().length) fSections().push(makeNode("section"));
-        const sec = fSections()[fSections().length - 1];
-        row = (sec.children || []).find((c) => c.type === "row");
-        if (!row) {
-          row = makeNode("row");
-          sec.children = sec.children || [];
-          sec.children.push(row);
-        }
-      }
-      row.children = row.children || [];
-      row.children.push(n);
-    } else {
-      let col = null;
-      if (hit) {
-        if (hit.node.type === "column") col = hit.node;
-        else if (hit.parent && hit.parent.type === "column") col = hit.parent;
-      }
-      if (!col) col = firstColumn();
-      col.children = col.children || [];
-      col.children.push(n);
-    }
-    state.fSel = n.id;
-    markDirty();
-    paintChrome();
-  }
-  function applyRowLayout(row, spans) {
-    row.props = window.KrgBuilderCore.dict(row, "props");
-    row.props.layout = spans.join("-");
-    row.children = row.children || [];
-    while (row.children.length < spans.length) row.children.push(makeNode("column"));
-    if (row.children.length > spans.length) row.children = row.children.slice(0, spans.length);
-    row.children.forEach((c, i) => {
-      c.props = window.KrgBuilderCore.dict(c, "props");
-      c.props.span = spans[i];
-      c.props.spanTablet = spans[i] >= 6 ? 6 : 12;
-      c.props.spanMobile = 12;
-    });
-  }
-  function moveInList(list, i, dir) {
-    const j = i + dir;
-    if (j < 0 || j >= list.length) return;
-    const t = list[i];
-    list[i] = list[j];
-    list[j] = t;
-  }
   const F_TREE_ICONS = {
     section: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 2h12v3H2V2zm0 4.5h12V14H2V6.5zm1.2 1.2v5.1h9.6V7.7H3.2z"/></svg>',
     row: '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 3h12v4H2V3zm0 6h12v4H2V9zm1.2 1.2v1.6h9.6v-1.6H3.2zm0-6V5.8h9.6V4.2H3.2z"/></svg>',
@@ -1018,189 +828,138 @@
     heading: "text", paragraph: "text", "rich-text": "text", menu: "text",
     image: "image", logo: "image",
   };
-  function fTreeIcon(type) {
-    return F_TREE_ICONS[F_ICON_BY_TYPE[type] || "module"] || F_TREE_ICONS.module;
+  /* ==================================================================
+     Plantillas del pie
+     ------------------------------------------------------------------
+     «Pie partido por piezas» monta el mismo pie del ejemplo pero con
+     bloques de verdad: cada texto, la foto, los iconos de redes y cada
+     columna de enlaces son nodos hijos de la sección, así que se
+     seleccionan y se editan uno a uno en el árbol de la izquierda.
+     ================================================================== */
+  const PLANTILLAS = [
+    { id: "pie-partido", label: "Pie partido por piezas" },
+  ];
+
+  function nodoCon(type, props, nombre, estilos) {
+    const n = makeNode(type);
+    n.props = Object.assign(window.KrgBuilderCore.dict(n, "props"), props || {});
+    if (nombre) n.name = nombre;
+    if (estilos) Object.assign(window.KrgBuilderCore.styleBucket(n, "desktop"), estilos);
+    return n;
   }
-  function treeHtml(nodes) {
-    return (nodes || []).map((n) => {
-      const kids = (n.children || []).length > 0;
-      const open = kids && !state.treeClosed.has(n.id);
-      const cls = ["sec"];
-      if (state.fSel === n.id) cls.push("sel");
-      if (kids) cls.push("has-kids");
-      if (open) cls.push("is-open");
-      if (n.visible === false) cls.push("is-off");
-      return `<div class="${cls.join(" ")}">
-        <div class="hd">
-          ${kids
-            ? `<button type="button" class="b-tw" data-ftw="${esc(n.id)}" aria-expanded="${open ? "true" : "false"}" title="${open ? "Contraer" : "Expandir"}">${open ? "−" : "+"}</button>`
-            : `<span class="b-tw is-leaf" aria-hidden="true"></span>`}
-          <span class="b-tico" aria-hidden="true">${fTreeIcon(n.type)}</span>
-          <button type="button" class="b-tname" data-fsel="${esc(n.id)}" title="Seleccionar">${esc(n.name || n.type)}</button>
-          <span class="b-acts">
-            <button type="button" class="b-ico" data-fup="${esc(n.id)}" title="Subir">↑</button>
-            <button type="button" class="b-ico" data-fdn="${esc(n.id)}" title="Bajar">↓</button>
-            <button type="button" class="b-ico" data-frm="${esc(n.id)}" title="Quitar">✕</button>
-          </span>
-        </div>
-        ${kids ? `<div class="b-kids">${treeHtml(n.children)}</div>` : ""}
-      </div>`;
-    }).join("");
+  function columna(span, hijos, estilos) {
+    const c = makeNode("column");
+    c.props = Object.assign(window.KrgBuilderCore.dict(c, "props"), {
+      span: span,
+      spanTablet: span >= 6 ? 6 : 12,
+      spanMobile: 12,
+    });
+    c.children = hijos;
+    if (estilos) Object.assign(window.KrgBuilderCore.styleBucket(c, "desktop"), estilos);
+    return c;
   }
-  function fTreeToggle(nid) {
-    if (state.treeClosed.has(nid)) state.treeClosed.delete(nid);
-    else state.treeClosed.add(nid);
+  function filaCon(columnas, gap) {
+    const r = makeNode("row");
+    r.props = Object.assign(window.KrgBuilderCore.dict(r, "props"), {
+      layout: columnas.map((c) => c.props.span).join("-"),
+      gap: gap === undefined ? 24 : gap,
+      vAlign: "start",
+    });
+    r.children = columnas;
+    return r;
+  }
+
+  function plantillaPiePartido() {
+    const foto = nodoCon("image", { alt: "", fillMode: "fill", objectFit: "cover" }, "Foto del pie", { height: "100%" });
+    const enlaces = (titulo, items) => columna(6, [
+      nodoCon("heading", { text: titulo, tag: "h3" }, titulo),
+      nodoCon("rich-text", {
+        html: "<ul>" + items.map((t) => `<li><a href="#">${t}</a></li>`).join("") + "</ul>",
+      }, "Enlaces de " + titulo),
+    ]);
+    const cuerpo = columna(7, [
+      nodoCon("eyebrow", { text: "LLÁMANOS" }, "Antetítulo"),
+      nodoCon("heading", { text: "+00 000 000 000", tag: "h2" }, "Teléfono"),
+      nodoCon("paragraph", { text: "De lunes a viernes: 10:00 - 17:00" }, "Horario entre semana"),
+      nodoCon("paragraph", { text: "Fin de semana: 10:00 - 15:00" }, "Horario del fin de semana"),
+      nodoCon("social-links", {}, "Redes sociales"),
+      filaCon([
+        enlaces("Servicios", ["Asesoría", "Revisión de cuentas", "Consultoría", "Posicionamiento"]),
+        enlaces("Empresa", ["Quiénes somos", "Equipo", "Contacto"]),
+      ]),
+      nodoCon("divider", {}, "Raya"),
+      filaCon([
+        columna(7, [
+          nodoCon("rich-text", {
+            html: '<p><a href="#">Términos y condiciones</a> · <a href="#">Política de privacidad</a> · <a href="#">Cookies</a></p>',
+          }, "Enlaces legales"),
+        ]),
+        columna(5, [
+          nodoCon("paragraph", { text: "© " + new Date().getFullYear() + ". Nombre de la empresa. Todos los derechos reservados.", align: "right" }, "Copyright"),
+        ]),
+      ]),
+    ], { "padding-top": "64px", "padding-right": "56px", "padding-bottom": "48px", "padding-left": "56px" });
+
+    const sec = makeNode("section");
+    sec.name = "Pie partido";
+    sec.props = Object.assign(window.KrgBuilderCore.dict(sec, "props"), { width: "full", fullWidth: true });
+    sec.children = [filaCon([columna(5, [foto], { "min-height": "460px" }), cuerpo], 0)];
+    return sec;
+  }
+
+  function insertarPlantilla(id) {
+    const hacer = { "pie-partido": plantillaPiePartido }[id];
+    if (!hacer) return;
+    pushHistory("plantilla");
+    const sec = hacer();
+    fSections().push(sec);
+    state.fSel = sec.id;
+    markDirty();
     paintChrome();
+    toast("Pie partido añadido: cada pieza es un bloque que puedes editar por separado.");
   }
+
   function paintLeft() {
     const box = root.querySelector("#chrome-left");
     if (!box) return;
-    if (state.region !== "footer") {
-      box.innerHTML = `<div class="b-sec"><h4>Región</h4>
-        <div class="b-palette">
-          <button data-region="header">Header</button>
-          <button data-region="footer">Footer</button>
-        </div>
-        <p class="b-empty">El canvas es la home real. Click en cabecera o pie. Los campos se guardan solos.</p>
+    const regiones = `<div class="b-sec"><h4>Región</h4>
+      <div class="b-palette">
+        <button data-region="header"${state.region === "header" ? ' class="is-on"' : ""}>Cabecera</button>
+        <button data-region="footer"${state.region === "footer" ? ' class="is-on"' : ""}>Pie</button>
       </div>`;
+    if (state.region !== "footer") {
+      box.innerHTML = regiones + `<p class="b-empty">El lienzo es la web real. Pulsa en la cabecera o en el pie. Los campos se guardan solos.</p></div>`;
       box.querySelectorAll("[data-region]").forEach((b) => {
-        b.classList.toggle("is-on", b.dataset.region === state.region);
         b.onclick = () => { state.region = b.dataset.region; state.fSel = null; paintChrome(); ping(); };
       });
       return;
     }
-    box.innerHTML = `<div class="b-sec"><h4>Footer</h4>
-      <div class="b-palette">
-        <button data-region="header">Header</button>
-        <button data-region="footer" class="is-on">Footer</button>
-      </div>
-      <button type="button" class="m-btn ghost" data-froot style="margin:8px 0">Ajustes del pie</button>
-      <h4>Añadir</h4>
-      <div class="b-palette">
-        ${FOOTER_ADD.map((x) => `<button type="button" data-fadd="${x.t}">${esc(x.l)}</button>`).join("")}
-      </div>
-      <h4>Estructura</h4>
-      <div class="b-tree">${treeHtml(fSections()) || "<p class='b-empty'>Añade una sección.</p>"}</div>
-    </div>`;
+    // El pie usa la MISMA paleta y el MISMO árbol que una página: todos
+    // los bloques del registro, arrastrar y soltar, duplicar, ocultar,
+    // renombrar y mover entre columnas.
+    box.innerHTML = regiones
+      + `<button type="button" class="m-btn ghost" data-froot style="margin:8px 0">Ajustes del pie</button></div>`
+      + `<div class="b-sec"><h4>Plantillas</h4><div class="b-palette">`
+      + PLANTILLAS.map((t) => `<button type="button" data-ftpl="${t.id}">${esc(t.label)}</button>`).join("")
+      + `</div></div>`
+      + FIELDS.palette()
+      + FIELDS.tree();
     box.querySelectorAll("[data-region]").forEach((b) => {
       b.onclick = () => { state.region = b.dataset.region; state.fSel = null; paintChrome(); ping(); };
     });
     box.querySelector("[data-froot]")?.addEventListener("click", () => { state.fSel = null; paintInspector(); });
-    box.querySelectorAll("[data-fadd]").forEach((b) => b.onclick = () => addFooterNode(b.dataset.fadd));
-    box.querySelectorAll("[data-fsel]").forEach((b) => b.onclick = () => { state.fSel = b.dataset.fsel; paintChrome(); });
-    box.querySelectorAll("[data-ftw]").forEach((b) => b.onclick = (e) => { e.stopPropagation(); fTreeToggle(b.dataset.ftw); });
-    box.querySelectorAll("[data-fup],[data-fdn],[data-frm]").forEach((b) => {
-      b.onclick = (e) => {
-        e.stopPropagation();
-        const id = b.dataset.fup || b.dataset.fdn || b.dataset.frm;
-        const hit = findF(fSections(), id);
-        if (!hit) return;
-        if (b.dataset.frm) {
-          hit.list.splice(hit.index, 1);
-          if (state.fSel === id) state.fSel = null;
-        } else {
-          moveInList(hit.list, hit.index, b.dataset.fup ? -1 : 1);
-        }
-        markDirty();
-        paintChrome();
-      };
-    });
-  }
-  function nodeField(node, f) {
-    const v = node.props?.[f.key];
-    const attr = `data-fprop="${esc(f.key)}"`;
-    if (f.type === "toggle") {
-      return `<label>${esc(f.label)} <input type="checkbox" ${attr} ${v ? "checked" : ""}></label>`;
-    }
-    if (f.type === "textarea") {
-      return field(f.label, `<textarea ${attr}>${esc(v || "")}</textarea>`);
-    }
-    if (f.type === "select" || f.type === "htmlTag") {
-      const opts = (f.options || []).map((o) => {
-        const val = typeof o === "string" ? o : (o.value || o);
-        const lab = typeof o === "string" ? o : (o.label || o.value);
-        return `<option value="${esc(val)}" ${String(v) === String(val) ? "selected" : ""}>${esc(lab)}</option>`;
-      }).join("");
-      return field(f.label, `<select ${attr}>${opts}</select>`);
-    }
-    if (f.type === "color") {
-      return window.KrgUi.colorField(f.label, typeof v === "string" ? v : "", attr);
-    }
-    if (f.type === "number") {
-      return field(f.label, `<input type="number" ${attr} value="${esc(v ?? "")}">`);
-    }
-    if (f.key === "imageId" || f.type === "image") {
-      return field(f.label, `<input type="number" ${attr} value="${esc(v || 0)}"><button type="button" class="m-btn ghost" data-fprop-media="${esc(f.key)}">Biblioteca</button>`);
-    }
-    if (f.type === "repeater") {
-      return repeaterField(node, f, Array.isArray(v) ? v : []);
-    }
-    return field(f.label || f.key, `<input ${attr} value="${esc(v ?? "")}">`);
-  }
-
-  /**
-   * Repetidor dentro del pie: mismas acciones que en el constructor de
-   * páginas (añadir, mover, duplicar, eliminar) para que un bloque como
-   * «Pie partido» se pueda editar entero sin salir de esta pantalla.
-   */
-  function repeaterField(node, f, items) {
-    const sub = (sf, it, i) => {
-      const at = `data-frep="${esc(f.key)}" data-i="${i}" data-k="${esc(sf.key)}"`;
-      if (sf.key === "imageUrl") return "";
-      if (sf.optionsFrom) {
-        const src = Array.isArray(node.props?.[sf.optionsFrom]) ? node.props[sf.optionsFrom] : [];
-        const lk = sf.labelKey || "label";
-        const cur = String(it[sf.key] ?? "");
-        const opts = src.map((o) => String(o?.[lk] ?? "").trim()).filter(Boolean);
-        if (cur && !opts.includes(cur)) opts.push(cur);
-        return field(sf.label, `<select ${at}><option value="">— Sin asignar —</option>${
-          opts.map((o) => `<option value="${esc(o)}" ${cur === o ? "selected" : ""}>${esc(o)}</option>`).join("")
-        }</select>`);
-      }
-      if (sf.type === "toggle") {
-        return `<label class="rep-toggle">${esc(sf.label)} <input type="checkbox" data-frep-bool="${esc(f.key)}" data-i="${i}" data-k="${esc(sf.key)}" ${it[sf.key] ? "checked" : ""}></label>`;
-      }
-      if (sf.type === "textarea") {
-        return field(sf.label, `<textarea ${at}>${esc(it[sf.key] ?? "")}</textarea>`);
-      }
-      if (sf.type === "number" || sf.type === "image") {
-        const extra = sf.type === "image"
-          ? `<button type="button" class="m-btn ghost" data-frep-media="${esc(f.key)}" data-i="${i}" data-k="${esc(sf.key)}">Biblioteca</button>`
-          : "";
-        return field(sf.label, `<input type="number" ${at} value="${esc(it[sf.key] ?? 0)}">${extra}`);
-      }
-      if (sf.type === "select") {
-        const opts = (sf.options || []).map((o) => {
-          const val = typeof o === "string" ? o : (o.value ?? "");
-          const lab = typeof o === "string" ? o : (o.label ?? o.value ?? "");
-          return `<option value="${esc(val)}" ${String(it[sf.key] ?? "") === String(val) ? "selected" : ""}>${esc(lab)}</option>`;
-        }).join("");
-        return field(sf.label, `<select ${at}>${opts}</select>`);
-      }
-      return field(sf.label, `<input ${at} value="${esc(it[sf.key] ?? "")}">`);
-    };
-    return `<div class="b-rep"><strong>${esc(f.label)}</strong>
-      ${items.map((it, i) => `<div class="rep-item">
-        <div class="rep-head">
-          <span class="rep-n">${i + 1}</span>
-          <span class="rep-acts">
-            <button type="button" class="b-ico" data-frep-move="${esc(f.key)}" data-i="${i}" data-dir="-1" title="Subir">↑</button>
-            <button type="button" class="b-ico" data-frep-move="${esc(f.key)}" data-i="${i}" data-dir="1" title="Bajar">↓</button>
-            <button type="button" class="b-ico" data-frep-dup="${esc(f.key)}" data-i="${i}" title="Duplicar">⧉</button>
-            <button type="button" class="b-ico" data-frep-del="${esc(f.key)}" data-i="${i}" title="Eliminar">✕</button>
-          </span>
-        </div>
-        ${(f.itemFields || []).map((sf) => sub(sf, it, i)).join("")}
-      </div>`).join("")}
-      <button type="button" class="m-btn ghost" data-frep-add="${esc(f.key)}">Añadir</button>
-    </div>`;
+    box.querySelectorAll("[data-ftpl]").forEach((b) => { b.onclick = () => insertarPlantilla(b.dataset.ftpl); });
+    FIELDS.bindLeft();
   }
 
   function bindInspector() {
     const box = root.querySelector(".b-insp");
     if (!box) return;
-    // Los acordeones los lleva el mismo nucleo que en las paginas.
-    CORE.bindGroups(box);
+    // Todo lo que es de un nodo del pie —props, estilos de caja,
+    // repetidores, imágenes, acordeones y pestañas— lo ata el
+    // inspector compartido, el mismo de la pantalla de páginas. Aquí
+    // abajo sólo quedan los ajustes propios de la cabecera y del pie.
+    FIELDS.bindInspector();
     const bind = (sel, fn) => box.querySelectorAll(sel).forEach(fn);
     bind("[data-h]", (inp) => {
       const go = () => {
@@ -1259,206 +1018,15 @@
     });
     bind("[data-f-num]", (inp) => inp.addEventListener("input", () => { state.footer[inp.dataset.fNum] = Number(inp.value); markDirty(); }));
     bind("[data-f-bool]", (inp) => inp.addEventListener("change", () => { state.footer[inp.dataset.fBool] = inp.checked; markDirty(); }));
-    bind("[data-media]", (b) => {
-      b.onclick = () => media("header", b.dataset.media);
+    bind("[data-hmedia]", (b) => {
+      b.onclick = () => media("header", b.dataset.hmedia);
     });
     bind("[data-fmedia]", (b) => {
       b.onclick = () => media("footer", b.dataset.fmedia);
     });
-    bind("[data-insp-tab]", (b) => {
-      b.onclick = () => { state.inspTab = b.dataset.inspTab; paintInspector(); };
-    });
     bind("[data-froot]", (b) => {
       b.onclick = () => { state.fSel = null; paintChrome(); };
     });
-    bind("[data-fprop]", (inp) => {
-      const go = () => {
-        const hit = state.fSel ? findF(fSections(), state.fSel) : null;
-        if (!hit) return;
-        hit.node.props = window.KrgBuilderCore.dict(hit.node, "props");
-        // Mismo criterio que el constructor: un numero en blanco es
-        // «sin valor», no un cero.
-        const num = inp.value === "" ? "" : Number(inp.value);
-        hit.node.props[inp.dataset.fprop] = inp.type === "checkbox" ? inp.checked : (inp.type === "number" ? num : inp.value);
-        markDirty();
-      };
-      inp.addEventListener("input", go);
-      inp.addEventListener("change", go);
-    });
-    bind("[data-fstyle]", (inp) => {
-      const go = () => {
-        const hit = state.fSel ? findF(fSections(), state.fSel) : null;
-        if (!hit) return;
-        const stb = window.KrgBuilderCore.styleBucket(hit.node, state.bp);
-        if (inp.value) stb[inp.dataset.fstyle] = inp.value;
-        else delete stb[inp.dataset.fstyle];
-        markDirty();
-      };
-      inp.addEventListener("input", go);
-      inp.addEventListener("change", go);
-    });
-    bind("[data-fnode]", (inp) => {
-      inp.addEventListener("input", () => {
-        const hit = state.fSel ? findF(fSections(), state.fSel) : null;
-        if (!hit) return;
-        hit.node[inp.dataset.fnode] = inp.value;
-        markDirty();
-      });
-    });
-    bind("[data-fnode-bool]", (inp) => {
-      inp.addEventListener("change", () => {
-        const hit = state.fSel ? findF(fSections(), state.fSel) : null;
-        if (!hit) return;
-        hit.node[inp.dataset.fnodeBool] = inp.checked;
-        markDirty();
-      });
-    });
-    bind("[data-flayout]", (b) => {
-      b.onclick = () => {
-        const hit = state.fSel ? findF(fSections(), state.fSel) : null;
-        if (!hit) return;
-        const lay = FOOTER_LAYOUTS.find((l) => l.id === b.dataset.flayout);
-        if (!lay) return;
-        let row = hit.node.type === "row" ? hit.node : (hit.node.children || []).find((c) => c.type === "row");
-        if (!row && hit.parent && hit.parent.type === "row") row = hit.parent;
-        if (!row) return;
-        applyRowLayout(row, lay.spans);
-        markDirty();
-        paintChrome();
-      };
-    });
-    bind("[data-fprop-set]", (b) => {
-      b.onclick = () => {
-        const hit = state.fSel ? findF(fSections(), state.fSel) : null;
-        if (!hit) return;
-        hit.node.props = window.KrgBuilderCore.dict(hit.node, "props");
-        hit.node.props[b.dataset.fpropSet] = b.dataset.v;
-        markDirty();
-        paintInspector();
-      };
-    });
-    bind("[data-fanim]", (b) => {
-      b.onclick = () => {
-        const hit = state.fSel ? findF(fSections(), state.fSel) : null;
-        if (!hit) return;
-        hit.node.animation = b.dataset.fanim;
-        markDirty();
-        paintInspector();
-      };
-    });
-    const repArr = (key) => {
-      const hit = state.fSel ? findF(fSections(), state.fSel) : null;
-      if (!hit) return null;
-      hit.node.props = window.KrgBuilderCore.dict(hit.node, "props");
-      if (!Array.isArray(hit.node.props[key])) hit.node.props[key] = [];
-      return hit.node.props[key];
-    };
-    bind("[data-frep]", (inp) => {
-      const go = () => {
-        const arr = repArr(inp.dataset.frep);
-        if (!arr || !arr[Number(inp.dataset.i)]) return;
-        arr[Number(inp.dataset.i)][inp.dataset.k] = inp.type === "number" ? Number(inp.value) : inp.value;
-        markDirty();
-      };
-      inp.addEventListener("input", go);
-      inp.addEventListener("change", go);
-    });
-    bind("[data-frep-bool]", (inp) => inp.addEventListener("change", () => {
-      const arr = repArr(inp.dataset.frepBool);
-      if (!arr || !arr[Number(inp.dataset.i)]) return;
-      arr[Number(inp.dataset.i)][inp.dataset.k] = inp.checked;
-      markDirty();
-    }));
-    bind("[data-frep-add]", (b) => {
-      b.onclick = () => {
-        const hit = state.fSel ? findF(fSections(), state.fSel) : null;
-        if (!hit) return;
-        const def = defOf(hit.node.type);
-        const f = (def.fields || []).find((x) => x.key === b.dataset.frepAdd);
-        const blank = {};
-        (f?.itemFields || []).forEach((sf) => {
-          if (sf.type === "toggle") blank[sf.key] = false;
-          else if (sf.type === "number" || sf.type === "image") blank[sf.key] = 0;
-          else if (sf.type === "select" && !sf.optionsFrom) {
-            const first = (sf.options || [])[0];
-            blank[sf.key] = typeof first === "object" ? (first?.value ?? "") : (first ?? "");
-          } else blank[sf.key] = "";
-        });
-        const arr = repArr(b.dataset.frepAdd);
-        if (!arr) return;
-        arr.push(blank);
-        markDirty();
-        paintInspector();
-      };
-    });
-    bind("[data-frep-del]", (b) => {
-      b.onclick = () => {
-        const arr = repArr(b.dataset.frepDel);
-        if (!arr) return;
-        arr.splice(Number(b.dataset.i), 1);
-        markDirty();
-        paintInspector();
-      };
-    });
-    bind("[data-frep-move]", (b) => {
-      b.onclick = () => {
-        const arr = repArr(b.dataset.frepMove);
-        if (!arr) return;
-        const i = Number(b.dataset.i);
-        const j = i + Number(b.dataset.dir);
-        if (j < 0 || j >= arr.length) return;
-        const tmp = arr[i];
-        arr[i] = arr[j];
-        arr[j] = tmp;
-        markDirty();
-        paintInspector();
-      };
-    });
-    bind("[data-frep-dup]", (b) => {
-      b.onclick = () => {
-        const arr = repArr(b.dataset.frepDup);
-        const i = Number(b.dataset.i);
-        if (!arr || !arr[i]) return;
-        arr.splice(i + 1, 0, JSON.parse(JSON.stringify(arr[i])));
-        markDirty();
-        paintInspector();
-      };
-    });
-    bind("[data-frep-media]", (b) => {
-      b.onclick = () => {
-        if (!window.wp?.media) return;
-        const frame = wp.media({ title: "Imagen", multiple: false });
-        frame.on("select", () => {
-          const att = frame.state().get("selection").first().toJSON();
-          const arr = repArr(b.dataset.frepMedia);
-          const i = Number(b.dataset.i);
-          if (!arr) return;
-          arr[i] = arr[i] || {};
-          arr[i][b.dataset.k] = att.id;
-          arr[i].imageUrl = att.url || att.sizes?.large?.url || "";
-          markDirty();
-          paintInspector();
-        });
-        frame.open();
-      };
-    });
-    bind("[data-fprop-media]", (b) => {
-      b.onclick = () => {
-        if (!window.wp?.media) return;
-        const frame = wp.media({ title: "Imagen", multiple: false });
-        frame.on("select", () => {
-          const att = frame.state().get("selection").first().toJSON();
-          const hit = state.fSel ? findF(fSections(), state.fSel) : null;
-          if (!hit) return;
-          hit.node.props = window.KrgBuilderCore.dict(hit.node, "props");
-          hit.node.props[b.dataset.fpropMedia] = att.id;
-          markDirty();
-          paintInspector();
-        });
-        frame.open();
-      };
-    });
-    window.KrgUi?.wire(box);
   }
 
   function media(which, key) {
@@ -1545,7 +1113,10 @@
     state.shell = true;
     const iframe = root.querySelector("iframe");
     if (iframe) iframe.addEventListener("load", () => {
-      paintLiveChrome();
+      // Los nodos del pie los pinta el compartido; la cabecera y los
+      // ajustes del pie, paintLiveChrome. FIELDS.paintLiveCss() hace
+      // los dos, en ese orden.
+      FIELDS.paintLiveCss();
       applyBp();
       restoreChromeView();
     });

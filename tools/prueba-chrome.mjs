@@ -213,7 +213,7 @@ ok(enviados.footer[enviados.footer.length - 1].copyright === '© 2026 KRG',
 
 console.log('\nPRUEBA 7 — un bloque dentro del pie se configura igual que en una página');
 await page.evaluate(() => {
-  const el = document.querySelector('[data-fsel="ftxt1"]') || [...document.querySelectorAll('[data-fsel]')].pop();
+  const el = document.querySelector('[data-sel="ftxt1"]') || [...document.querySelectorAll('[data-sel]')].pop();
   if (el) el.click();
 });
 await esperar(200);
@@ -228,17 +228,42 @@ await page.click('.b-insp [data-insp-tab="design"]');
 await esperar();
 await abrirTodos();
 const idsN = (await grupos()).map((x) => x.id);
-ok(idsN.includes('fn.design') && idsN.includes('fn.align') && idsN.includes('fn.anim'),
-  `diseño, alineación y animación del bloque (${idsN.join(', ')})`);
+// El pie monta el MISMO inspector que las páginas: estos grupos son
+// los que antes no existían aquí.
+const esperados = ['align', 'background', 'spacing', 'size', 'border', 'shadow', 'animation'];
+const faltan = esperados.filter((g) => !idsN.includes(g));
+ok(faltan.length === 0, `diseño completo, como en páginas (faltan: ${faltan.join(', ') || 'ninguno'})`);
+await page.click('.b-insp [data-insp-tab="advanced"]');
+await esperar();
+await abrirTodos();
+const idsAvanzado = (await grupos()).map((x) => x.id);
+const faltanA = ['cssId', 'visibility', 'position', 'transform', 'transitions', 'attributes', 'customCss'].filter((g) => !idsAvanzado.includes(g));
+ok(faltanA.length === 0, `y avanzado completo (faltan: ${faltanA.join(', ') || 'ninguno'})`);
+await page.click('.b-insp [data-insp-tab="design"]');
+await esperar();
+await abrirTodos();
 n = enviados.footer.length;
-await page.fill('.b-insp [data-fstyle="padding"]', '32px');
-ok(await esperarEnvio(enviados.footer, n + 1), 'el relleno del bloque se envía');
+await page.fill('.b-insp [data-side="padding-top"]', '32');
+ok(await esperarEnvio(enviados.footer, n + 1), 'el relleno de arriba del bloque se envía');
 const guardadoN = JSON.stringify(enviados.footer[enviados.footer.length - 1]?.sections || []);
-ok(guardadoN.includes('32px'), 'y viaja dentro de las secciones del pie');
+ok(guardadoN.includes('"padding-top":"32px"'), `y viaja como estilo del nodo: ${guardadoN.includes('"padding-top":"32px"') ? 'padding-top:32px' : guardadoN.slice(0, 120)}`);
+
+// Y cada tamaño con el suyo, que es lo otro que aquí no había.
+await page.click('#bps [data-bp="tablet"]');
+await esperar(200);
+await abrirTodos();
+n = enviados.footer.length;
+await page.fill('.b-insp [data-side="padding-top"]', '8');
+ok(await esperarEnvio(enviados.footer, n + 1), 'en tablet se escribe otro relleno');
+const porTamano = JSON.stringify(enviados.footer[enviados.footer.length - 1]?.sections || []);
+ok(porTamano.includes('"desktop":{"padding-top":"32px"}') && porTamano.includes('"tablet":{"padding-top":"8px"}'),
+  'escritorio y tablet se guardan por separado');
+await page.click('#bps [data-bp="desktop"]');
+await esperar(150);
 
 console.log('\nPRUEBA 8 — los grupos recuerdan cómo quedaron, también aquí');
 await page.evaluate(() => {
-  const g = document.querySelector('.b-insp [data-acc="fn.anim"]');
+  const g = document.querySelector('.b-insp [data-acc="animation"]');
   if (g && g.classList.contains('is-open')) g.querySelector('.acc-h').click();
 });
 await esperar();
@@ -246,7 +271,7 @@ await page.reload();
 await page.waitForSelector('#krg-builder .b-insp .b-group', { timeout: 15000 });
 const recordado = await page.evaluate(() => {
   try {
-    return JSON.parse(localStorage.getItem('krg.insp.groups') || '{}')['fn.anim'];
+    return JSON.parse(localStorage.getItem('krg.insp.groups') || '{}')['animation'];
   } catch (e) { return null; }
 });
 ok(recordado === false, 'el grupo que se cerró sigue cerrado después de recargar');
@@ -275,7 +300,95 @@ ok(Math.abs(despuesY - antesY) <= 2, `y tras tocar un ajuste sigue donde estaba:
 
 await page.setViewportSize({ width: 1600, height: 1100 });
 
-console.log('\nPRUEBA 10 — ningún error de JavaScript');
+console.log('\nPRUEBA 10 — el panel de la izquierda es el de páginas');
+await page.goto('file://' + join(dir, 'footer.html'));
+await page.waitForSelector('#chrome-left .b-tree', { timeout: 15000 });
+const izq = await page.evaluate(() => ({
+  bloques: document.querySelectorAll('#chrome-left [data-add]').length,
+  categorias: document.querySelectorAll('#chrome-left .b-sec h4').length,
+  asas: document.querySelectorAll('#chrome-left [data-drag]').length,
+  duplicar: document.querySelectorAll('#chrome-left [data-dup]').length,
+  ocultar: document.querySelectorAll('#chrome-left [data-hid]').length,
+  borrar: document.querySelectorAll('#chrome-left [data-del]').length,
+  plantilla: !!document.querySelector('#chrome-left [data-ftpl="pie-partido"]'),
+  globales: document.querySelectorAll('#chrome-left [data-glb]').length,
+}));
+ok(izq.bloques > 40, `la paleta trae todos los bloques del registro (${izq.bloques}), no una lista corta`);
+ok(izq.asas >= 4 && izq.duplicar >= 4 && izq.ocultar >= 4 && izq.borrar >= 4,
+  `cada nodo del árbol tiene asa de arrastre, duplicar, ocultar y borrar (${izq.asas}/${izq.duplicar}/${izq.ocultar}/${izq.borrar})`);
+ok(izq.globales === 0, 'y no ofrece «convertir en global», que aquí no aplica');
+ok(izq.plantilla, 'está la plantilla del pie partido');
+
+console.log('\nPRUEBA 11 — arrastrar y soltar dentro del pie');
+// Se añade un segundo párrafo y se arrastra por encima del primero.
+await page.evaluate(() => {
+  const b = [...document.querySelectorAll('#chrome-left [data-add]')].find((x) => x.dataset.add === 'paragraph');
+  if (b) b.click();
+});
+await esperar(250);
+const antesOrden = await page.evaluate(() =>
+  [...document.querySelectorAll('#chrome-left [data-sel]')].map((x) => x.dataset.sel).join(','));
+n = enviados.footer.length;
+const movido = await page.evaluate(() => {
+  const ids = [...document.querySelectorAll('#chrome-left [data-sel]')].map((x) => x.dataset.sel);
+  const nuevo = ids[ids.length - 1];
+  const grip = document.querySelector(`#chrome-left [data-drag="${nuevo}"]`);
+  const destino = document.querySelector('#chrome-left .hd[data-nid="ftxt1"]');
+  if (!grip || !destino) return null;
+  const dt = new DataTransfer();
+  grip.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+  const r = destino.getBoundingClientRect();
+  const arriba = { bubbles: true, dataTransfer: dt, clientX: r.left + 10, clientY: r.top + 2 };
+  destino.dispatchEvent(new DragEvent('dragover', arriba));
+  destino.dispatchEvent(new DragEvent('drop', arriba));
+  return nuevo;
+});
+await esperar(300);
+const despuesOrden = await page.evaluate(() =>
+  [...document.querySelectorAll('#chrome-left [data-sel]')].map((x) => x.dataset.sel).join(','));
+ok(!!movido, 'hay asa de arrastre y un sitio donde soltar');
+ok(antesOrden !== despuesOrden, `el bloque cambia de sitio al soltarlo (${antesOrden.slice(0, 40)}… → ${despuesOrden.slice(0, 40)}…)`);
+ok(await esperarEnvio(enviados.footer, n + 1), 'el movimiento se envía al servidor');
+const trasArrastre = JSON.stringify(enviados.footer[enviados.footer.length - 1]?.sections || []);
+ok(trasArrastre.includes(String(movido)), 'y el cambio se guarda en el pie');
+
+console.log('\nPRUEBA 12 — «Pie partido por piezas»: cada trozo, un bloque');
+await page.goto('file://' + join(dir, 'footer.html'));
+await page.waitForSelector('#chrome-left .b-tree', { timeout: 15000 });
+const antesNodos = await page.evaluate(() => document.querySelectorAll('#chrome-left [data-sel]').length);
+await page.click('#chrome-left [data-ftpl="pie-partido"]');
+await esperar(400);
+const piezas = await page.evaluate(() => {
+  const nombres = [...document.querySelectorAll('#chrome-left [data-sel]')].map((x) => x.textContent.trim());
+  return {
+    total: nombres.length,
+    nombres: nombres,
+    tiene: (t) => nombres.includes(t),
+  };
+});
+ok(piezas.total > antesNodos + 15, `la plantilla añade sus piezas al árbol (${antesNodos} → ${piezas.total} bloques)`);
+const buscados = ['Foto del pie', 'Antetítulo', 'Teléfono', 'Horario entre semana', 'Redes sociales', 'Servicios', 'Empresa', 'Enlaces legales', 'Copyright'];
+const sinPieza = buscados.filter((t) => !piezas.nombres.includes(t));
+ok(sinPieza.length === 0, `y cada trozo es un bloque con nombre propio (faltan: ${sinPieza.join(', ') || 'ninguno'})`);
+// Y se editan de uno en uno, no como campos de un módulo gigante.
+await page.evaluate(() => {
+  const b = [...document.querySelectorAll('#chrome-left [data-sel]')].find((x) => x.textContent.trim() === 'Teléfono');
+  if (b) b.click();
+});
+await esperar(250);
+const elegido = await page.evaluate(() => ({
+  titulo: document.querySelector('.b-insp .b-sel-name')?.textContent.trim(),
+  campo: document.querySelector('.b-insp [data-prop="text"]')?.value,
+}));
+ok(elegido.titulo === 'Teléfono', `al pulsar una pieza se edita sólo ella («${elegido.titulo}»)`);
+ok((elegido.campo || '').includes('000'), `con su propio texto («${elegido.campo || ''}»)`);
+n = enviados.footer.length;
+await page.fill('.b-insp [data-prop="text"]', '+34 600 123 456');
+ok(await esperarEnvio(enviados.footer, n + 1), 'y lo que se escribe en esa pieza se guarda');
+const guardadoPieza = JSON.stringify(enviados.footer[enviados.footer.length - 1]?.sections || []);
+ok(guardadoPieza.includes('+34 600 123 456'), 'dentro de las secciones del pie, como un nodo más');
+
+console.log('\nPRUEBA 13 — ningún error de JavaScript');
 ok(errores.length === 0, errores.length ? errores.slice(0, 3).join(' | ') : 'ninguno');
 
 await browser.close();

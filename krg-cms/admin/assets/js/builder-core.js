@@ -344,8 +344,45 @@
     });
   }
 
+  /**
+   * Un color del inspector, escrito como CSS.
+   *
+   * Vive aquí porque lo necesitan las dos pantallas y el inspector
+   * compartido: una sola forma de traducir {modo, token, valor}.
+   */
+  function cssColor(v) {
+    if (!v) return "";
+    if (typeof v === "string") return /^(#[0-9a-f]{3,8}|var\(--[\w-]+\))$/i.test(v.trim()) ? v.trim() : "";
+    if (v.mode === "none") return "";
+    if (v.mode === "token" && v.token) return `var(--${String(v.token).replace(".", "-")})`;
+    return cssColor(String(v.value || ""));
+  }
+
+  /**
+   * Fondo, relleno y margen: las mismas nueve claves que el servidor.
+   *
+   * Es el gemelo en JavaScript de `BoxStyles::declarations()` en PHP.
+   * Está aquí para que las dos pantallas —páginas y navegación— pinten
+   * la vista viva con las mismas reglas.
+   */
+  const CAJA_PROPS = [
+    "background-color",
+    "padding-top", "padding-right", "padding-bottom", "padding-left",
+    "margin-top", "margin-right", "margin-bottom", "margin-left",
+  ];
+
+  function cssCaja(styles) {
+    const st = styles || {};
+    return CAJA_PROPS
+      .filter((p) => st[p] !== undefined && st[p] !== null && String(st[p]).trim() !== "")
+      .map((p) => `${p}:${String(st[p]).trim()}`);
+  }
+
   window.KrgBuilderCore = {
     dict: dict,
+    cssColor: cssColor,
+    cssCaja: cssCaja,
+    CAJA_PROPS: CAJA_PROPS,
     scrollSnap: scrollSnap,
     scrollRestore: scrollRestore,
     styleBucket: styleBucket,
