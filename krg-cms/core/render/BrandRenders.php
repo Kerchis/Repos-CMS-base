@@ -1816,7 +1816,7 @@ class BrandRenders {
 	/** Icono de red social como SVG en linea (sin peticiones externas). */
 	private static function social_icon( string $name ): string {
 		$paths = [
-			'facebook'  => 'M13.5 9H16V6h-2.5C11.6 6 10 7.6 10 9.5V11H8v3h2v7h3v-7h2.2l.4-3H13V9.8c0-.5.2-.8.5-.8z',
+			'facebook'  => 'M12 2a10 10 0 1 0-1.17 19.93v-7.03H8.3V12h2.53V9.8c0-2.5 1.5-3.89 3.77-3.89 1.1 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.45 2.9h-2.33v7.03A10 10 0 0 0 12 2z',
 			'instagram' => 'M12 7.2A4.8 4.8 0 1 0 16.8 12 4.81 4.81 0 0 0 12 7.2zm0 7.9A3.1 3.1 0 1 1 15.1 12 3.1 3.1 0 0 1 12 15.1zm6.1-8.1a1.12 1.12 0 1 1-1.12-1.12A1.12 1.12 0 0 1 18.1 7zM21 7.05a5.57 5.57 0 0 0-1.52-3.93A5.6 5.6 0 0 0 15.55 1.6C14 1.5 10 1.5 8.45 1.6a5.6 5.6 0 0 0-3.93 1.52A5.57 5.57 0 0 0 3 7.05c-.1 1.55-.1 6.35 0 7.9a5.57 5.57 0 0 0 1.52 3.93 5.61 5.61 0 0 0 3.93 1.52c1.55.1 6.35.1 7.9 0a5.57 5.57 0 0 0 3.93-1.52A5.6 5.6 0 0 0 21 14.95c.1-1.55.1-6.34 0-7.9z',
 			'x'         => 'M17.5 3h3l-6.6 7.6L21.8 21h-6l-4.7-6.1L5.7 21H2.6l7-8-6.7-10h6.1l4.3 5.6zM16.4 19.2h1.7L7.7 4.7H5.9z',
 			'youtube'   => 'M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z',
@@ -1830,9 +1830,21 @@ class BrandRenders {
 			'phone'     => 'M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.2 11.4 11.4 0 0 0 3.6.6 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .6 3.6 1 1 0 0 1-.3 1z',
 			'link'      => 'M10.6 13.4a1 1 0 0 1 0-1.4l1.4-1.4a1 1 0 0 1 1.4 1.4l-1.4 1.4a1 1 0 0 1-1.4 0zM8.5 17.9a4 4 0 0 1-2.8-6.8l2.8-2.8a1 1 0 0 1 1.4 1.4l-2.8 2.8a2 2 0 0 0 2.8 2.8l2.8-2.8a1 1 0 0 1 1.4 1.4l-2.8 2.8a4 4 0 0 1-2.8 1.2zm9.8-5.1a1 1 0 0 1-.7-1.7l1.7-1.7a2 2 0 1 0-2.8-2.8l-2.8 2.8a1 1 0 0 1-1.4-1.4l2.8-2.8a4 4 0 0 1 5.6 5.6l-1.7 1.7a1 1 0 0 1-.7.3z',
 		];
+		// Nombres que la gente escribe igual: «twitter» es la X de toda
+		// la vida, y «meta» o «fb» siguen siendo Facebook.
+		$alias = [ 'twitter' => 'x', 'fb' => 'facebook', 'meta' => 'facebook', 'ig' => 'instagram', 'yt' => 'youtube', 'mail' => 'email', 'correo' => 'email', 'tel' => 'phone', 'telefono' => 'phone' ];
+		$name = $alias[ $name ] ?? $name;
+		// Algunos no son una silueta rellena sino un dibujo de linea: la
+		// camara de Instagram rellena queda como un cuadrado negro.
+		$linea = [
+			'instagram' => '<rect x="3" y="3" width="18" height="18" rx="5.2" fill="none" stroke="currentColor" stroke-width="1.8"/>'
+				. '<circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="1.8"/>'
+				. '<circle cx="17.2" cy="6.8" r="1.2" fill="currentColor"/>',
+		];
 		$key  = isset( $paths[ $name ] ) ? $name : 'link';
+		$dibu = $linea[ $key ] ?? '<path fill="currentColor" d="' . $paths[ $key ] . '"/>';
 		return '<svg class="m-soc-ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">'
-			. '<path fill="currentColor" d="' . $paths[ $key ] . '"/></svg>';
+			. $dibu . '</svg>';
 	}
 
 	public static function footer_split( array $node, array $props, string $children, RenderContext $ctx ): string {
@@ -2023,8 +2035,9 @@ class BrandRenders {
 			'<div class="m-fs-grid">' . $grid . '</div>',
 			array_merge(
 				[
-					'class' => 'm-fs is-media-' . $side . ' is-ratio-' . $ratio . ' is-h-' . $height
-						. ( '' === $media ? ' is-no-media' : '' ),
+					// Sin imagen no hay proporción que repartir: se omite la
+					// clase para que «is-no-media» mande sin discusión.
+					'class' => 'm-fs is-media-' . $side . ( '' === $media ? ' is-no-media' : ' is-ratio-' . $ratio ) . ' is-h-' . $height,
 					'style' => $style,
 				],
 				self::skin( $theme )

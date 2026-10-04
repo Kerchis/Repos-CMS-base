@@ -36,6 +36,7 @@ bash tools/devenv.sh     # PHP 8.3 estático + Chromium + playwright-core en .to
 | `tools/prueba-articulo.mjs` | La pantalla «Editar entrada»: monta el editor clásico de WordPress (pestañas Visual/Texto y «Añadir multimedia») sobre el campo Contenido, guarda lo que hay **en el editor** y no el área de texto desfasada, lo desmonta al cambiar de pantalla y, si WordPress no lo sirve, deja la pantalla usable con su barra de etiquetas (31). |
 | `tools/prueba-blog.mjs` | Las tarjetas de una rejilla de entradas, medidas en el navegador: que forman rejilla de verdad, la proporción y el alto fijo que elige el panel, el color fundido sobre la foto y su cambio al pasar el ratón, el título como cita —que sigue siendo un `h3`—, el interruptor de la fecha —apagada de serie—, la alineación del texto en los dos ejes y las siete posiciones del logo, más que el color no se salga de la tarjeta (58). Con `KRG_SHOT=1` deja `captura-tarjetas-blog.png` y `captura-tarjetas-hover.png` (usa `.tools/foto-tarjeta.jpg` si está; si no, las fotos salen vacías). |
 | `tools/prueba-anclas.mjs` | Menú de una sola página: cinco secciones con ancla —dos con cortina— y los saltos del menú medidos de verdad, bajando y **subiendo**. Una sección pegada decía estar donde está pegada, así que volver arriba no movía la página (10). |
+| `tools/prueba-pie.mjs` | El pie partido contra el ejemplo: foto a sangre en dos quintos, el bloque de contacto y las columnas de enlaces **en la misma línea**, los títulos y el reparto de enlaces por columna, la raya y la barra de abajo con los legales a un lado y el copyright al otro, los cinco iconos de redes distintos, la foto a la derecha, el apilado en móvil y el pie sin datos (25). Con `KRG_SHOT=1` deja `captura-pie.png`. |
 | `tools/prueba-tarjetas.mjs` | El carril de productos: las tarjetas alinean categoría, título y enlace aunque los textos midan distinto, y la lista del panel son fichas plegables con miniatura que se arrastran para ordenar (32). |
 | `tools/prueba-tokens.php` | El token que el tema no puede perder: detecta un `spacing.section` inservible, lo rellena al leer, lo repara una sola vez en la base de datos, no toca jamás un valor del usuario y comprueba que el panel y el CSS dicen lo mismo (32). |
 | `tools/prueba-cortina.mjs` | El motor de secciones con la cortina encendida: siete tipos de sección detrás de una sección cortina × fondo, relleno y margen × tres tamaños × tres modos, con `public.js` y `modules.js` cargados de verdad. Comprueba que la cortina sigue tapando lo transparente y que NO escribe nada sobre las secciones (83). |
@@ -77,6 +78,7 @@ node tools/prueba-cta.mjs              # KRG_SHOT=1 deja además la captura del 
 node tools/prueba-tarjetas.mjs         # KRG_SHOT=1 deja además el carril parejo y la lista en fichas
 node tools/prueba-blog.mjs             # KRG_SHOT=1 deja además las tarjetas de blog, quietas y con el ratón encima
 node tools/prueba-anclas.mjs
+node tools/prueba-pie.mjs              # KRG_SHOT=1 deja captura-pie.png
 ```
 
 `tools/render.php` trae dos ayudantes para montar casos por el camino

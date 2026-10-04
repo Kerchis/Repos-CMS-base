@@ -2744,12 +2744,15 @@ body.m-curtain-on .m-page::after {
 /* ------------------------------------------------------------------ */
 
 .m-fs { width: 100%; }
-.m-fs-grid { display: grid; grid-template-columns: 1fr 1fr; min-height: inherit; }
-.m-fs.is-media-left.is-ratio-media-wide  .m-fs-grid { grid-template-columns: 3fr 2fr; }
-.m-fs.is-media-left.is-ratio-copy-wide   .m-fs-grid { grid-template-columns: 2fr 3fr; }
-.m-fs.is-media-right.is-ratio-media-wide .m-fs-grid { grid-template-columns: 2fr 3fr; }
-.m-fs.is-media-right.is-ratio-copy-wide  .m-fs-grid { grid-template-columns: 3fr 2fr; }
-.m-fs.is-no-media .m-fs-grid { grid-template-columns: 1fr; }
+/* El reparto viaja en una variable a propósito: así el apilado de
+   tablet y móvil se declara sobre la propia rejilla y no tiene que
+   ganarle en especificidad a «.m-fs.is-media-left.is-ratio-...». */
+.m-fs-grid { display: grid; grid-template-columns: var(--m-fs-cols, 1fr 1fr); min-height: inherit; }
+.m-fs.is-media-left.is-ratio-media-wide  { --m-fs-cols: 3fr 2fr; }
+.m-fs.is-media-left.is-ratio-copy-wide   { --m-fs-cols: 2fr 3fr; }
+.m-fs.is-media-right.is-ratio-media-wide { --m-fs-cols: 2fr 3fr; }
+.m-fs.is-media-right.is-ratio-copy-wide  { --m-fs-cols: 3fr 2fr; }
+.m-fs.is-no-media { --m-fs-cols: 1fr; }
 
 .m-fs.is-h-screen .m-fs-grid { min-height: 100svh; }
 .m-fs.is-h-tall   .m-fs-grid { min-height: 78svh; }
@@ -2767,22 +2770,25 @@ body.m-curtain-on .m-page::after {
 .m-fs-panel {
   display: flex;
   align-items: center;
-  padding: clamp(32px, 5vw, 80px) clamp(24px, 4vw, 72px);
+  padding: clamp(32px, 4.4vw, 72px) clamp(24px, 3.4vw, 56px);
 }
 .m-fs-panel-inner { width: 100%; }
 .m-fs-panel.is-align-center { text-align: center; }
 .m-fs-panel.is-align-right  { text-align: right; }
 
+/* Contacto a un lado y las columnas de enlaces al otro, en la misma
+   línea: es como está en el ejemplo. Antes el hueco entre los dos era
+   tan grande que no cabían y las columnas caían debajo del teléfono. */
 .m-fs-top {
   display: flex;
   flex-wrap: wrap;
-  gap: clamp(28px, 4vw, 64px);
+  gap: clamp(24px, 2.6vw, 44px);
   justify-content: space-between;
   align-items: flex-start;
 }
 .m-fs-panel.is-align-center .m-fs-top { justify-content: center; }
 .m-fs-panel.is-align-right  .m-fs-top { justify-content: flex-end; }
-.m-fs-contact { flex: 1 1 260px; min-width: 0; }
+.m-fs-contact { flex: 1 1 240px; min-width: 0; }
 .m-fs-logo { display: block; width: var(--m-fs-logo-w, 160px); margin-bottom: var(--spacing-md, 16px); }
 .m-fs-panel.is-align-center .m-fs-logo { margin-inline: auto; }
 .m-fs-panel.is-align-right  .m-fs-logo { margin-inline: auto 0; }
@@ -2806,17 +2812,17 @@ body.m-curtain-on .m-page::after {
 .m-fs-soc:hover { color: var(--color-primary); transform: translateY(-2px); }
 .m-fs-soc:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 4px; }
 
-.m-fs-cols { display: flex; flex-wrap: wrap; gap: clamp(24px, 3vw, 56px); }
-.m-fs-col { min-width: 120px; }
+.m-fs-cols { display: flex; flex-wrap: wrap; gap: clamp(20px, 2.2vw, 44px); }
+.m-fs-col { min-width: 104px; }
 .m-fs-col-title {
   margin: 0 0 14px;
   font-family: var(--font-heading);
   font-weight: 700;
   text-transform: var(--m-caps-sub);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.2;
 }
-.m-fs-links { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.m-fs-links { list-style: none; margin: 0; padding: 0; display: grid; gap: 11px; font-size: 15px; }
 .m-fs-links a,
 .m-fs-legal a { color: inherit; text-decoration: none; }
 .m-fs-links a:hover,
@@ -2841,7 +2847,7 @@ body.m-curtain-on .m-page::after {
 /* Responsive de los dos bloques nuevos */
 @media (max-width: 1023px) {
   .m-carta-grid { grid-template-columns: repeat(var(--m-cols-t, 1), minmax(0, 1fr)); }
-  .m-fs-grid { grid-template-columns: 1fr; }
+  .m-fs-grid { --m-fs-cols: 1fr; }
   .m-fs.is-media-right .m-fs-media { order: -1; }
   .m-fs-media { min-height: clamp(220px, 38vw, 340px); }
   .m-fs.is-h-screen .m-fs-grid,

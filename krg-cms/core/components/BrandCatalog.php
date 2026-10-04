@@ -1471,7 +1471,10 @@ class BrandCatalog {
 				'icon'        => 'split',
 				'defaults'    => [
 					'mediaSide'   => 'left',
-					'ratio'       => 'half',
+					// El ejemplo reparte 2 de imagen por 3 de texto: con
+					// mitad y mitad el contacto y las columnas no caben
+					// en la misma linea y se apilan.
+					'ratio'       => 'copy-wide',
 					'height'      => 'auto',
 					'heightValue' => 460,
 					'heightUnit'  => 'px',
