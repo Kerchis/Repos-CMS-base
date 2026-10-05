@@ -92,6 +92,24 @@ ok(lista.every((s) => porSlug.has(s.desde)),
 ok(lista.every((s) => !porSlug.has(s.slug)),
   'ninguna sección V.2 sustituye ni renombra a un bloque del registro');
 
+// Dos familias: la sección entera y la pieza suelta dentro de su
+// sección. La paleta las pinta en cajones distintos, así que el dato
+// tiene que venir de aquí y no inventárselo el panel.
+const piezas = lista.filter((s) => s.grupo === 'pieza');
+const enteras = lista.filter((s) => s.grupo !== 'pieza');
+ok(lista.every((s) => s.grupo === 'pieza' || s.grupo === 'seccion'),
+  'cada entrada dice si es una sección entera o una pieza suelta');
+ok(piezas.length >= 15 && enteras.length >= 15,
+  `${enteras.length} secciones enteras y ${piezas.length} piezas sueltas`);
+// El objetivo de las piezas: que no haga falta la paleta V.1 para
+// empezar. Si un átomo del registro se queda sin su pieza, aquí se ve.
+const ATOMOS = ['section', 'container', 'row', 'column', 'columns', 'spacer', 'divider',
+  'heading', 'paragraph', 'rich-text', 'eyebrow', 'image', 'button', 'button-group',
+  'card', 'feature', 'social-links'];
+const sinPieza = ATOMOS.filter((a) => !piezas.some((p) => p.desde === a));
+ok(sinPieza.length === 0,
+  `los ${ATOMOS.length} bloques básicos tienen su pieza V.2${sinPieza.length ? `: faltan ${sinPieza.join(', ')}` : ''}`);
+
 /* ------------------------------------------------------------------ */
 /* Cada plantilla, por dentro                                          */
 
@@ -125,7 +143,15 @@ for (const ficha of lista) {
 
   console.log(`  — ${ficha.name} (desde «${porSlug.get(ficha.desde).name}»)`);
   ok(sec.type === 'section', `    es una sección, no un módulo suelto`);
-  ok(hojas.length >= 3, `    tiene ${hojas.length} piezas editables y ${nodos.length - hojas.length} contenedores`);
+  // Una sección entera trae un diseño completo; una pieza suelta puede
+  // ser un solo bloque —un separador no necesita tres—, pero siempre
+  // dentro de su sección, su fila y su columna.
+  const minimo = ficha.grupo === 'pieza' ? 1 : 3;
+  ok(hojas.length >= minimo, `    tiene ${hojas.length} piezas editables y ${nodos.length - hojas.length} contenedores`);
+  if (ficha.grupo === 'pieza') {
+    const estructura = ['section', 'row', 'column'].every((tipo) => nodos.some(({ n }) => n.type === tipo));
+    ok(estructura, `    viene con su sección, su fila y su columna montadas`);
+  }
   ok(desconocidos.length === 0, `    sólo usa bloques que ya existen${desconocidos.length ? `: sobran ${desconocidos.join(', ')}` : ''}`);
   ok(sinNombre.length === 0, `    cada pieza tiene nombre propio en el árbol${sinNombre.length ? `: faltan ${sinNombre.length}` : ''}`);
   ok(filasAnchas.length === 0, `    ninguna fila se pasa de doce columnas`);

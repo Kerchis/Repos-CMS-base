@@ -97,7 +97,23 @@
       return c;
     };
 
-    return { nodo, columna, columnaAlineada, fila, seccion, relleno };
+    /**
+     * El esqueleto mínimo: una sección con una fila, una columna y lo
+     * que se le ponga dentro.
+     *
+     * Es lo que hace falta para que un bloque suelto —un título, una
+     * foto, un separador— pueda vivir en la página sin que nadie tenga
+     * que montar antes la sección, la fila y la columna a mano.
+     */
+    const pieza = (nombre, hijos, props, estilos) =>
+      seccion(
+        nombre,
+        [fila([columna(12, hijos, null, "Columna")], 24, "Fila")],
+        props || { width: "padded" },
+        estilos || relleno("48px", "24px")
+      );
+
+    return { nodo, columna, columnaAlineada, fila, seccion, relleno, pieza };
   }
 
   /* ------------------------------------------------------------------ */
@@ -821,12 +837,256 @@
         ], { width: "padded" }, t.relleno("72px", "24px"));
       },
     },
+    /* ------------------------------------------------------------------ */
+    /* Las piezas sueltas                                                  */
+    /*                                                                     */
+    /* Lo de arriba son secciones enteras. Esto es el otro extremo: la     */
+    /* pieza más pequeña, ya metida en su sección, su fila y su columna.   */
+    /*                                                                     */
+    /* Por qué están aquí: el objetivo es que algún día no haga falta la   */
+    /* paleta V.1 para empezar una página. Con esto, cualquier bloque      */
+    /* —un título, una foto, un separador— se añade ya colgando de una     */
+    /* sección, que es como se editan, se mueven y se guardan las cosas    */
+    /* en V.2. Las que se podían desmontar en piezas más pequeñas se han   */
+    /* desmontado: la tarjeta, el destacado, el grupo de botones y los     */
+    /* juegos de columnas no traen su módulo dentro, sino los bloques      */
+    /* sueltos con los que se construyen.                                  */
+
+    {
+      slug: "seccion-v2",
+      name: "Sección en blanco V.2",
+      desde: "section",
+      grupo: "pieza",
+      nota: "El esqueleto mínimo: una sección con su fila, su columna y un párrafo para empezar.",
+      build: (t) => t.pieza("Sección en blanco V.2", [
+        t.nodo("paragraph", { text: "Escribe aquí o arrastra dentro los bloques que quieras." }, "Párrafo"),
+      ]),
+    },
+    {
+      slug: "caja-v2",
+      name: "Caja V.2",
+      desde: "container",
+      grupo: "pieza",
+      nota: "Una caja con fondo y relleno para meter dentro lo que haga falta.",
+      build: (t) => t.seccion("Caja V.2", [
+        t.fila([
+          t.columna(12, [
+            t.nodo("heading", { text: "Un bloque destacado dentro de su caja", tag: "h2" }, "Título"),
+            t.nodo("paragraph", { text: "La caja es la columna: su fondo, su relleno y sus esquinas se cambian en el inspector." }, "Texto"),
+          ], Object.assign({ "background-color": "var(--color-surface)" }, t.relleno("40px", "32px")), "Caja"),
+        ], 24, "Fila"),
+      ], { width: "padded" }, t.relleno("48px", "24px")),
+    },
+    {
+      slug: "fila-v2",
+      name: "Fila de dos columnas V.2",
+      desde: "row",
+      grupo: "pieza",
+      nota: "Una fila partida en dos mitades, cada una con su texto.",
+      build: (t) => t.seccion("Fila de dos columnas V.2", [
+        t.fila([
+          t.columna(6, [
+            t.nodo("heading", { text: "Primera mitad", tag: "h3" }, "Título de la izquierda"),
+            t.nodo("paragraph", { text: "El texto de la columna de la izquierda." }, "Texto de la izquierda"),
+          ], null, "Columna izquierda"),
+          t.columna(6, [
+            t.nodo("heading", { text: "Segunda mitad", tag: "h3" }, "Título de la derecha"),
+            t.nodo("paragraph", { text: "El texto de la columna de la derecha." }, "Texto de la derecha"),
+          ], null, "Columna derecha"),
+        ], 24, "Fila de dos columnas"),
+      ], { width: "padded" }, t.relleno("48px", "24px")),
+    },
+    {
+      slug: "columna-v2",
+      name: "Columna V.2",
+      desde: "column",
+      grupo: "pieza",
+      nota: "Una columna sola, con su título y su texto, para ir añadiéndole bloques.",
+      build: (t) => t.pieza("Columna V.2", [
+        t.nodo("heading", { text: "El título de esta columna", tag: "h3" }, "Título"),
+        t.nodo("paragraph", { text: "Y el texto que la acompaña. Añade debajo lo que necesites." }, "Texto"),
+      ]),
+    },
+    {
+      slug: "columnas-v2",
+      name: "Tres columnas V.2",
+      desde: "columns",
+      grupo: "pieza",
+      nota: "Tres columnas iguales; en móvil se ponen una debajo de otra solas.",
+      build: (t) => {
+        const col = (n, titulo) => t.columna(4, [
+          t.nodo("heading", { text: titulo, tag: "h3" }, `Título ${n}`),
+          t.nodo("paragraph", { text: "Dos líneas para contar lo de esta columna." }, `Texto ${n}`),
+        ], null, `Columna ${n}`);
+        return t.seccion("Tres columnas V.2", [
+          t.fila([col(1, "Lo primero"), col(2, "Lo segundo"), col(3, "Lo tercero")], 24, "Fila de tres columnas"),
+        ], { width: "padded" }, t.relleno("56px", "24px"));
+      },
+    },
+    {
+      slug: "antetitulo-v2",
+      name: "Antetítulo V.2",
+      desde: "eyebrow",
+      grupo: "pieza",
+      nota: "La línea pequeña que va encima de un titular.",
+      build: (t) => t.pieza("Antetítulo V.2", [
+        t.nodo("eyebrow", { text: "UNA LÍNEA PEQUEÑA" }, "Antetítulo"),
+      ]),
+    },
+    {
+      slug: "titulo-v2",
+      name: "Título V.2",
+      desde: "heading",
+      grupo: "pieza",
+      nota: "Un titular suelto, con su nivel y su alineación.",
+      build: (t) => t.pieza("Título V.2", [
+        t.nodo("heading", { text: "Un título para esta sección", tag: "h2" }, "Título"),
+      ]),
+    },
+    {
+      slug: "parrafo-v2",
+      name: "Párrafo V.2",
+      desde: "paragraph",
+      grupo: "pieza",
+      nota: "Un párrafo suelto para escribir sin más.",
+      build: (t) => t.pieza("Párrafo V.2", [
+        t.nodo("paragraph", { text: "Escribe aquí el texto de esta sección, con la calma que haga falta." }, "Párrafo"),
+      ]),
+    },
+    {
+      slug: "texto-v2",
+      name: "Texto enriquecido V.2",
+      desde: "rich-text",
+      grupo: "pieza",
+      nota: "Un bloque de texto largo con negritas, enlaces y listas.",
+      build: (t) => t.pieza("Texto enriquecido V.2", [
+        t.nodo("rich-text", { html: "<p>Un texto largo, con <strong>negritas</strong>, enlaces y listas, para contar algo con detalle.</p>" }, "Texto"),
+      ]),
+    },
+    {
+      slug: "imagen-v2",
+      name: "Imagen V.2",
+      desde: "image",
+      grupo: "pieza",
+      nota: "Una foto con su pie, cada cosa por su lado.",
+      build: (t) => t.pieza("Imagen V.2", [
+        t.nodo("image", { alt: "", objectFit: "cover" }, "Foto", { "min-height": "360px" }),
+        t.nodo("paragraph", { text: "El pie de la foto, si hace falta.", align: "center" }, "Pie de foto"),
+      ]),
+    },
+    {
+      slug: "boton-v2",
+      name: "Botón V.2",
+      desde: "button",
+      grupo: "pieza",
+      nota: "Un botón suelto, centrado en su sección.",
+      build: (t) => t.seccion("Botón V.2", [
+        t.fila([
+          t.columnaAlineada(12, "center", [
+            t.nodo("button", { text: "Pulsa aquí", url: "#", variant: "primary" }, "Botón"),
+          ], "Columna"),
+        ], 24, "Fila"),
+      ], { width: "padded" }, t.relleno("40px", "24px")),
+    },
+    {
+      slug: "botones-v2",
+      name: "Botones V.2",
+      desde: "button-group",
+      grupo: "pieza",
+      nota: "Dos botones uno al lado del otro, cada uno con su propio inspector.",
+      build: (t) => t.seccion("Botones V.2", [
+        t.fila([
+          t.columnaAlineada(6, "end", [
+            t.nodo("button", { text: "Acción principal", url: "#", variant: "primary" }, "Botón principal"),
+          ], "Columna del botón principal"),
+          t.columnaAlineada(6, "start", [
+            t.nodo("button", { text: "Acción secundaria", url: "#", variant: "ghost" }, "Botón secundario"),
+          ], "Columna del botón secundario"),
+        ], 16, "Fila de botones"),
+      ], { width: "padded" }, t.relleno("40px", "24px")),
+    },
+    {
+      slug: "tarjeta-v2",
+      name: "Tarjeta V.2",
+      desde: "card",
+      grupo: "pieza",
+      nota: "Una tarjeta desmontada: foto, título, texto y botón son cuatro bloques.",
+      build: (t) => t.seccion("Tarjeta V.2", [
+        t.fila([
+          t.columna(6, [
+            t.nodo("image", { alt: "", objectFit: "cover" }, "Foto", { "min-height": "240px" }),
+            t.nodo("heading", { text: "El título de la tarjeta", tag: "h3" }, "Título"),
+            t.nodo("paragraph", { text: "Dos líneas para explicar de qué va esta tarjeta." }, "Texto"),
+            t.nodo("button", { text: "Ver más", url: "#", variant: "ghost" }, "Botón"),
+          ], Object.assign({ "background-color": "var(--color-surface)" }, t.relleno("24px", "24px")), "Tarjeta"),
+        ], 24, "Fila"),
+      ], { width: "padded" }, t.relleno("48px", "24px")),
+    },
+    {
+      slug: "destacado-v2",
+      name: "Destacado V.2",
+      desde: "feature",
+      grupo: "pieza",
+      nota: "Un destacado desmontado: el icono, el título y el texto, por separado.",
+      build: (t) => t.pieza("Destacado V.2", [
+        t.nodo("image", { alt: "", objectFit: "contain" }, "Icono", { "min-height": "64px", "max-width": "64px" }),
+        t.nodo("heading", { text: "Lo que queremos destacar", tag: "h3" }, "Título"),
+        t.nodo("paragraph", { text: "Una o dos frases explicando por qué importa." }, "Texto"),
+      ]),
+    },
+    {
+      slug: "redes-v2",
+      name: "Redes sociales V.2",
+      desde: "social-links",
+      grupo: "pieza",
+      nota: "Los enlaces a las redes, con su antetítulo encima.",
+      build: (t) => t.seccion("Redes sociales V.2", [
+        t.fila([
+          t.columnaAlineada(12, "center", [
+            t.nodo("eyebrow", { text: "SÍGUENOS" }, "Antetítulo"),
+            t.nodo("social-links", {}, "Redes"),
+          ], "Columna"),
+        ], 16, "Fila"),
+      ], { width: "padded" }, t.relleno("48px", "24px")),
+    },
+    {
+      slug: "espacio-v2",
+      name: "Espacio V.2",
+      desde: "spacer",
+      grupo: "pieza",
+      nota: "Un hueco en blanco entre dos secciones; el alto se pone en su inspector.",
+      build: (t) => t.pieza("Espacio V.2", [
+        t.nodo("spacer", {}, "Espacio"),
+      ], { width: "full" }, t.relleno("0px", "0px")),
+    },
+    {
+      slug: "separador-v2",
+      name: "Separador V.2",
+      desde: "divider",
+      grupo: "pieza",
+      nota: "Una raya de lado a lado para separar dos partes de la página.",
+      build: (t) => t.pieza("Separador V.2", [
+        t.nodo("divider", {}, "Raya"),
+      ], { width: "padded" }, t.relleno("24px", "24px")),
+    },
   ];
 
   window.KrgV2 = {
-    /** Lo que se pinta en la paleta. */
+    /**
+     * Lo que se pinta en la paleta.
+     *
+     * `grupo` separa las dos familias: «seccion» es una sección entera
+     * montada por piezas y «pieza» es un bloque suelto dentro de su
+     * sección. La paleta las enseña en dos cajones distintos.
+     */
     list() {
-      return SECCIONES.map((s) => ({ slug: s.slug, name: s.name, desde: s.desde, nota: s.nota }));
+      return SECCIONES.map((s) => ({
+        slug: s.slug,
+        name: s.name,
+        desde: s.desde,
+        nota: s.nota,
+        grupo: s.grupo === "pieza" ? "pieza" : "seccion",
+      }));
     },
     /** Monta la sección: devuelve un nodo `section` con todos sus hijos. */
     build(slug, makeNode) {

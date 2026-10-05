@@ -323,7 +323,7 @@ const textoAviso = await page.locator('.b-insp [data-bg-note]').innerText();
 ok(!/object Object/.test(textoAviso), `el aviso no enseña basura: «${textoAviso.replace(/\s+/g, ' ').trim().slice(0, 90)}»`);
 ok(/#0000ff/i.test(textoAviso), 'y nombra el color real del bloque');
 
-console.log('\nLa paleta: «Secciones V.1» recogidas y «Secciones V.2» por piezas');
+console.log('\nLa paleta: «Secciones V.1» recogidas, «Secciones V.2» por piezas y «Piezas V.2» sueltas');
 const pal = await page.evaluate(() => ({
   grupos: [...document.querySelectorAll('.b-left .b-pal-group')].map((g) => ({
     id: g.dataset.acc,
@@ -333,12 +333,23 @@ const pal = await page.evaluate(() => ({
   v1Visible: !document.querySelector('[data-acc="pal.v1"] .acc-b')?.hidden,
   bloquesV1: document.querySelectorAll('[data-acc="pal.v1"] [data-add]').length,
   v2: [...document.querySelectorAll('[data-acc="pal.v2"] [data-add-v2]')].map((b) => b.textContent.trim()),
+  piezas: [...document.querySelectorAll('[data-acc="pal.piezas"] [data-add-v2]')].map((b) => b.textContent.trim()),
 }));
-ok(pal.grupos.length === 2 && pal.grupos[0].titulo === 'Secciones V.1' && pal.grupos[1].titulo === 'Secciones V.2',
-  `la paleta tiene los dos grupos (${pal.grupos.map((g) => g.titulo).join(' · ')})`);
+ok(pal.grupos.length === 3
+  && pal.grupos[0].titulo === 'Secciones V.1'
+  && pal.grupos[1].titulo === 'Secciones V.2'
+  && pal.grupos[2].titulo === 'Piezas V.2',
+  `la paleta tiene los tres grupos (${pal.grupos.map((g) => g.titulo).join(' · ')})`);
 ok(!pal.v1Visible, 'las de siempre arrancan recogidas, como pediste');
 ok(pal.bloquesV1 > 40, `y dentro siguen todas: ${pal.bloquesV1} bloques, ninguno quitado ni renombrado`);
 ok(pal.v2.length >= 10, `hay ${pal.v2.length} secciones V.2: ${pal.v2.slice(0, 4).join(', ')}…`);
+// Las piezas van en su propio cajón: si se mezclasen con las secciones,
+// la lista pasaría de cuarenta y siete botones y no habría quien la
+// leyera.
+ok(pal.piezas.length >= 15 && !pal.piezas.some((t) => pal.v2.includes(t)),
+  `y ${pal.piezas.length} piezas sueltas en su propio grupo, sin repetirse con las secciones`);
+ok(['Título V.2', 'Imagen V.2', 'Separador V.2'].every((t) => pal.piezas.includes(t)),
+  'entre ellas las más básicas: título, imagen y separador');
 
 await page.click('[data-acc="pal.v1"] .acc-h');
 await page.waitForTimeout(200);
@@ -359,6 +370,26 @@ const ultima = guardados[guardados.length - 1];
 const secV2 = (ultima.sections || []).find((x) => x.name === 'Grid de cards V.2');
 ok(!!secV2, 'la sección viaja al servidor como una sección normal');
 ok(!!secV2 && JSON.stringify(secV2).includes('"type":"button"'), 'con sus botones, fotos y textos dentro');
+
+console.log('\nUna pieza suelta entra ya montada en su sección, su fila y su columna');
+ok(!pal.grupos[2].abierto, '«Piezas V.2» arranca recogida: lo primero que se ve son las secciones');
+await page.click('[data-acc="pal.piezas"] .acc-h');
+await page.waitForTimeout(200);
+ok(await page.evaluate(() => !document.querySelector('[data-acc="pal.piezas"] .acc-b').hidden),
+  'y al pulsar el título se despliega');
+const nPieza = guardados.length;
+await page.click('[data-add-v2="titulo-v2"]');
+ok(await esperarGuardado(nPieza + 1), 'añadir «Título V.2» guarda sin tocar nada más');
+const conPieza = guardados[guardados.length - 1];
+const secPieza = (conPieza.sections || []).find((x) => x.name === 'Título V.2');
+const dentro = [];
+(function walk(l) { (l || []).forEach((n) => { dentro.push(n.type); walk(n.children); }); })(secPieza ? [secPieza] : []);
+ok(!!secPieza, 'llega al servidor como una sección más');
+ok(['section', 'row', 'column', 'heading'].every((t) => dentro.includes(t)),
+  `con el andamiaje montado: ${dentro.join(' > ')}`);
+const arbol2 = await page.evaluate(() => [...document.querySelectorAll('.b-tree [data-sel]')].map((x) => x.textContent.trim()));
+ok(arbol2.includes('Título V.2') && arbol2.includes('Título'),
+  'y en el árbol se ve la sección y el título por separado, cada uno seleccionable');
 
 if (errores.length) {
   console.log('\nErrores de consola:');

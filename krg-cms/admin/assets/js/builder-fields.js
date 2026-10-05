@@ -3434,15 +3434,22 @@
   }
 
   /**
-   * La paleta, en dos grupos plegables.
+   * La paleta, en tres grupos plegables.
    *
    * «Secciones V.1» son las de siempre: el mismo módulo, el mismo
    * inspector, las mismas páginas. No cambian ni de nombre ni de sitio,
-   * sólo quedan recogidas bajo un título que se despliega.
+   * sólo quedan recogidas bajo un título que se despliega. Ojo: este
+   * grupo es además el que inserta bloques sueltos dentro de lo que
+   * haya seleccionado, así que no es sólo un catálogo de secciones.
    *
    * «Secciones V.2» son esas mismas secciones montadas por piezas: cada
    * texto, cada foto y cada sello es un bloque hijo que se edita por
-   * separado. Conviven; no sustituyen a nada.
+   * separado.
+   *
+   * «Piezas V.2» es el bloque más pequeño ya metido en su sección, su
+   * fila y su columna: añadir un título, una foto o una raya sin tener
+   * que montar antes el andamiaje. Los tres conviven; no se sustituye
+   * ni se esconde nada.
    */
   function palette() {
     const cats = {};
@@ -3458,11 +3465,14 @@
         </div>
       </div>`).join("");
     const nuevas = window.KrgV2 ? window.KrgV2.list() : [];
-    const v2 = nuevas.length
-      ? `<div class="b-palette">${nuevas.map((x) => `<button type="button" data-add-v2="${esc(x.slug)}" title="${esc(x.nota || "")}">${esc(x.name)}</button>`).join("")}</div>`
-      : "";
+    const botones = (lista) => (lista.length
+      ? `<div class="b-palette">${lista.map((x) => `<button type="button" data-add-v2="${esc(x.slug)}" title="${esc(x.nota || "")}">${esc(x.name)}</button>`).join("")}</div>`
+      : "");
+    const v2 = botones(nuevas.filter((x) => x.grupo !== "pieza"));
+    const piezas = botones(nuevas.filter((x) => x.grupo === "pieza"));
     return grupoPaleta("v1", "Secciones V.1", v1, "Las de siempre: cada sección es un módulo con su inspector.")
-      + grupoPaleta("v2", "Secciones V.2", v2, "Las mismas secciones, pero por piezas: cada texto, foto o sello es un bloque hijo que se edita aparte.");
+      + grupoPaleta("v2", "Secciones V.2", v2, "Las mismas secciones, pero por piezas: cada texto, foto o sello es un bloque hijo que se edita aparte.")
+      + grupoPaleta("piezas", "Piezas V.2", piezas, "Un solo bloque, ya metido en su sección: para empezar una parte de la página desde cero sin montar antes la sección, la fila y la columna.");
   }
 
   /** Un grupo plegable de la paleta, con el mismo aspecto que el inspector. */
