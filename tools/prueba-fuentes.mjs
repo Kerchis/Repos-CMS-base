@@ -137,8 +137,15 @@ const medir = (familia) => page.evaluate(async (fam) => {
   };
   return {
     familia: getComputedStyle(el).fontFamily,
-    conLaFuente: ancho(`${fam}, sans-serif`),
-    conArial: ancho('Arial, sans-serif'),
+    // El respaldo es `monospace` a propósito, no Arial: con Arial la
+    // medida depende de qué tipografías tenga instalada la máquina y
+    // en el servidor de integración salían los dos iguales —380 px y
+    // 380 px— porque el respaldo acababa siendo otra proporcional de
+    // la misma anchura. Contra la de ancho fijo no hay empate posible:
+    // si el renglón mide lo mismo que en monoespaciada, la fuente
+    // elegida no se ha usado.
+    conLaFuente: ancho(`${fam}, monospace`),
+    conArial: ancho('monospace'),
     cargada: [...document.fonts].some((f) => f.family.replace(/["']/g, '') === fam.replace(/["']/g, '')),
     hojas: [...document.querySelectorAll('link[rel="stylesheet"]')].map((l) => l.id),
   };
@@ -159,8 +166,8 @@ let m = await medir('Questrial');
 comprueba(pedidas.length > 0, `y el navegador lo descarga de verdad (${pedidas.length} petición/es)`);
 comprueba(/Questrial/.test(m.familia), `el antetítulo declara la familia (${m.familia})`);
 comprueba(m.cargada, 'el navegador tiene la fuente cargada y disponible');
-comprueba(m.conLaFuente !== m.conArial,
-  `y el texto se dibuja con ella: ${m.conLaFuente}px frente a ${m.conArial}px con Arial`);
+comprueba(Math.abs(m.conLaFuente - m.conArial) > 10,
+  `y el texto se dibuja con ella: ${m.conLaFuente}px, no los ${m.conArial}px del respaldo`);
 
 /* ================================================================== */
 console.log('\n--- El fallo de antes: declarada pero no descargada');
@@ -174,7 +181,7 @@ let m2 = await medir('Questrial');
 comprueba(pedidas.length === 0, 'sin la hoja de fuentes no se pide nada');
 comprueba(/Questrial/.test(m2.familia), 'el CSS sigue diciendo «Questrial» —por eso el inspector engañaba—');
 comprueba(m2.conLaFuente === m2.conArial,
-  `pero se pinta con la de respaldo: ${m2.conLaFuente}px, igual que Arial (${m2.conArial}px)`);
+  `pero se pinta con la de respaldo: ${m2.conLaFuente}px, clavados a los ${m2.conArial}px de la de ancho fijo`);
 comprueba(!m2.cargada, 'y no hay ninguna Questrial declarada en el documento');
 html = guardado;
 
@@ -191,8 +198,8 @@ await page.goto(PUBLICO);
 const m3 = await medir('"Mi Fuente Rara"');
 comprueba(pedidas.length > 0, 'el navegador la descarga');
 comprueba(m3.cargada, 'queda declarada en el documento');
-comprueba(m3.conLaFuente !== m3.conArial,
-  `y la pinta: ${m3.conLaFuente}px frente a ${m3.conArial}px`);
+comprueba(Math.abs(m3.conLaFuente - m3.conArial) > 10,
+  `y la pinta: ${m3.conLaFuente}px, no los ${m3.conArial}px del respaldo`);
 
 /* ================================================================== */
 console.log('\n--- Una fuente del sistema no pide nada a nadie');
