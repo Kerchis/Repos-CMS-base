@@ -5,3 +5,5 @@
 image-search/
 dist/
 .captures/
+captura-*.png
+captura-*.png/

@@ -173,6 +173,7 @@ foreach (
 		'/core/design/TokenRepository.php',
 		'/core/design/TokenCompiler.php',
 		'/core/security/UrlValidator.php',
+		'/core/content/BlogSettings.php',
 		'/core/components/Catalog.php',
 		'/core/components/BrandCatalog.php',
 		'/core/components/Registry.php',

@@ -27,6 +27,7 @@ foreach (
 		'/core/design/PresetStore.php',
 		'/core/design/FontCatalog.php',
 		'/core/security/UrlValidator.php',
+		'/core/content/BlogSettings.php',
 		'/core/components/Catalog.php',
 		'/core/components/BrandCatalog.php',
 		'/core/components/Registry.php',
@@ -60,6 +61,25 @@ if ( $cuantas > 0 ) {
 				'thumbnail_id' => 500 + $i,
 			]
 		);
+	}
+}
+
+// Categorias de mentira para el modulo de categorias: `KRG_CATEGORIAS=4`.
+// Sin esto `get_categories()` devuelve una lista vacia y el bloque no
+// pinta nada, que es un verde falso de manual: el banco daria por bueno
+// un modulo que en una web con categorias podria estar roto.
+$cats = (int) getenv( 'KRG_CATEGORIAS' );
+if ( $cats > 0 ) {
+	$nombres                     = [ 'Recetas', 'Apicultura', 'Temporada', 'Notas del campo', 'Prensa' ];
+	$GLOBALS['krg_categorias']   = [];
+	for ( $i = 0; $i < $cats; $i++ ) {
+		$nombre                      = $nombres[ $i % count( $nombres ) ];
+		$GLOBALS['krg_categorias'][] = (object) [
+			'term_id' => 10 + $i,
+			'name'    => $nombre,
+			'slug'    => sanitize_title( $nombre ),
+			'count'   => 3 + $i,
+		];
 	}
 }
 

@@ -184,6 +184,10 @@ for (const { ficha, sec, hojas } of documentos) {
     html = execFileSync(PHP, [`${ROOT}/tools/render-doc.php`, ruta], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      // Sin entradas ni categorías de mentira, los módulos del blog
+      // devuelven cadena vacía y la ficha pasaría la prueba sin haber
+      // pintado nada: un verde falso.
+      env: { ...process.env, KRG_ENTRADAS: '3', KRG_CATEGORIAS: '5' },
     });
   } catch (e) {
     error = String(e.stderr || e.message).slice(0, 300);

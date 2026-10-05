@@ -837,6 +837,184 @@
         ], { width: "padded" }, t.relleno("72px", "24px"));
       },
     },
+    {
+      slug: "reserva-v2",
+      name: "Reserva V.2",
+      desde: "contact-form",
+      nota: "Pedir mesa: a un lado el horario y el teléfono, al otro el formulario, y cada dato suelto.",
+      build: (t) => {
+        const dato = (n, etiqueta, linea) => [
+          t.nodo("eyebrow", { text: etiqueta }, `Etiqueta ${n}`),
+          t.nodo("paragraph", { text: linea }, `Dato ${n}`),
+        ];
+        return t.seccion("Reserva V.2", [
+          t.fila([
+            t.columna(12, [
+              t.nodo("eyebrow", { text: "RESERVAS" }, "Antetítulo"),
+              t.nodo("heading", { text: "Guardamos tu mesa", tag: "h2" }, "Título"),
+              t.nodo("paragraph", { text: "Dinos cuándo y cuántos sois y te confirmamos el mismo día." }, "Entradilla"),
+            ], null, "Columna del encabezado"),
+          ], 24, "Fila del encabezado"),
+          t.fila([
+            t.columna(5, [].concat(
+              dato(1, "HORARIO", "De martes a domingo, de 13:00 a 16:30 y de 20:00 a 23:30."),
+              dato(2, "TELÉFONO", "910 000 000 — también por WhatsApp."),
+              dato(3, "GRUPOS", "Para más de ocho personas, llámanos y lo organizamos."),
+              [t.nodo("button", { text: "Llamar ahora", url: "tel:+34910000000", variant: "ghost" }, "Botón de teléfono")]
+            ), null, "Columna de los datos"),
+            t.columna(7, [
+              t.nodo("contact-form", {
+                submit: "Pedir mesa",
+                success: "Hemos recibido tu petición. Te confirmamos enseguida.",
+                showPhone: true,
+                showSubject: true,
+                showMessage: true,
+              }, "Formulario de reserva"),
+            ], null, "Columna del formulario"),
+          ], 32, "Fila de la reserva"),
+        ], { width: "padded" }, t.relleno("80px", "24px"));
+      },
+    },
+    {
+      slug: "categorias-v2",
+      name: "Categorías del blog V.2",
+      desde: "categories",
+      nota: "Las categorías del blog con su encabezado por piezas. Si están apagadas en Blog, no salen en la web.",
+      build: (t) => t.seccion("Categorías del blog V.2", [
+        t.fila([
+          t.columna(8, [
+            t.nodo("eyebrow", { text: "POR TEMAS" }, "Antetítulo"),
+            t.nodo("heading", { text: "Busca por lo que te interese", tag: "h2" }, "Título"),
+          ], null, "Columna del encabezado"),
+          t.columnaAlineada(4, "end", [
+            t.nodo("button", { text: "Ver todo el blog", url: "#", variant: "ghost" }, "Botón del encabezado"),
+          ], "Columna del botón"),
+        ], 24, "Fila del encabezado"),
+        t.fila([
+          t.columna(12, [
+            t.nodo("categories", {}, "Lista de categorías"),
+          ], null, "Columna de las categorías"),
+        ], 24, "Fila de las categorías"),
+      ], { width: "padded" }, t.relleno("64px", "24px")),
+    },
+    {
+      slug: "relacionadas-v2",
+      name: "Entradas relacionadas V.2",
+      desde: "related-posts",
+      nota: "Para el final de una entrada: «sigue leyendo» con el encabezado y el pie por piezas.",
+      build: (t) => t.seccion("Entradas relacionadas V.2", [
+        t.fila([
+          t.columna(12, [
+            t.nodo("divider", {}, "Raya de separación"),
+            t.nodo("eyebrow", { text: "SIGUE LEYENDO" }, "Antetítulo"),
+            t.nodo("heading", { text: "Otras entradas que te pueden gustar", tag: "h2" }, "Título"),
+          ], null, "Columna del encabezado"),
+        ], 24, "Fila del encabezado"),
+        t.fila([
+          t.columna(12, [
+            t.nodo("related-posts", { count: 3, desktop: 3, showExcerpt: true }, "Rejilla de relacionadas"),
+          ], null, "Columna de la rejilla"),
+        ], 24, "Fila de la rejilla"),
+        t.fila([
+          t.columnaAlineada(12, "center", [
+            t.nodo("button", { text: "Ver todas las entradas", url: "#", variant: "ghost" }, "Botón del pie"),
+          ], "Columna del botón"),
+        ], 24, "Fila del pie"),
+      ], { width: "padded" }, t.relleno("64px", "24px")),
+    },
+    {
+      slug: "marquesina-v2",
+      name: "Marquesina V.2",
+      desde: "marquee",
+      nota: "La franja de textos que corre sola. Dos tiras en sentidos contrarios y un rótulo, cada una por su cuenta.",
+      build: (t) => t.seccion("Marquesina V.2", [
+        t.fila([
+          t.columnaAlineada(12, "center", [
+            // La franja va a sangre, sin relleno de sección, así que el
+            // rótulo se pone el suyo o se queda pegado al borde.
+            t.nodo("eyebrow", { text: "DESDE 1998" }, "Rótulo", {
+              "padding-left": "24px",
+              "padding-right": "24px",
+              "padding-bottom": "16px",
+            }),
+          ], "Columna del rótulo"),
+        ], 12, "Fila del rótulo"),
+        t.fila([
+          t.columna(12, [
+            t.nodo("marquee", {
+              items: [
+                { text: "Hecho a mano", url: "" },
+                { text: "Origen verificado", url: "" },
+                { text: "Sin prisa", url: "" },
+              ],
+              direction: "left",
+              speed: 40,
+              variant: "solid",
+            }, "Tira de ida"),
+            t.nodo("marquee", {
+              items: [
+                { text: "De temporada", url: "" },
+                { text: "En el campo", url: "" },
+                { text: "Cada semana", url: "" },
+              ],
+              direction: "right",
+              speed: 48,
+              variant: "outline",
+            }, "Tira de vuelta"),
+          ], null, "Columna de las tiras"),
+        ], 12, "Fila de las tiras"),
+      ], { width: "full" }, t.relleno("40px", "0px")),
+    },
+    {
+      slug: "acordeon-v2",
+      name: "Acordeón V.2",
+      desde: "accordion",
+      nota: "Desplegables para lo que no son preguntas: ingredientes, condiciones, ficha técnica.",
+      build: (t) => t.seccion("Acordeón V.2", [
+        t.fila([
+          t.columna(5, [
+            t.nodo("eyebrow", { text: "LA LETRA PEQUEÑA" }, "Antetítulo"),
+            t.nodo("heading", { text: "Todo lo que conviene saber", tag: "h2" }, "Título"),
+            t.nodo("paragraph", { text: "Lo que no cabe en la ficha, sin llenar la página de texto." }, "Entradilla"),
+          ], null, "Columna del encabezado"),
+          t.columna(7, [
+            t.nodo("accordion", {
+              items: [
+                { q: "Ingredientes", a: "Miel cruda de azahar. Nada más." },
+                { q: "Conservación", a: "A temperatura ambiente y lejos del sol. Si cristaliza, al baño María." },
+                { q: "Envíos y devoluciones", a: "Entre dos y cuatro días laborables. Catorce días para devolverlo." },
+              ],
+            }, "Desplegables"),
+          ], null, "Columna de los desplegables"),
+        ], 32, "Fila del acordeón"),
+      ], { width: "padded" }, t.relleno("72px", "24px")),
+    },
+    {
+      slug: "pestanas-v2",
+      name: "Pestañas V.2",
+      desde: "tabs",
+      nota: "Varios contenidos en el mismo sitio, uno por pestaña, con el encabezado por piezas.",
+      build: (t) => t.seccion("Pestañas V.2", [
+        t.fila([
+          t.columna(12, [
+            t.nodo("eyebrow", { text: "CÓMO SE HACE" }, "Antetítulo"),
+            t.nodo("heading", { text: "Del campo al tarro", tag: "h2", align: "center" }, "Título"),
+            t.nodo("paragraph", { text: "Tres pasos, cada uno en su pestaña, sin alargar la página.", align: "center" }, "Entradilla"),
+          ], null, "Columna del encabezado"),
+        ], 24, "Fila del encabezado"),
+        t.fila([
+          t.columna(12, [
+            t.nodo("tabs", {
+              items: [
+                { q: "En la colmena", a: "Se recoge sólo lo que sobra, cuando los panales están operculados." },
+                { q: "En el obrador", a: "Se filtra en frío, sin pasteurizar, para que conserve el polen." },
+                { q: "En tu casa", a: "Tarro de cristal, etiqueta con el lote y la fecha de recogida." },
+              ],
+            }, "Pestañas"),
+          ], null, "Columna de las pestañas"),
+        ], 24, "Fila de las pestañas"),
+      ], { width: "padded" }, t.relleno("72px", "24px")),
+    },
     /* ------------------------------------------------------------------ */
     /* Las piezas sueltas                                                  */
     /*                                                                     */
