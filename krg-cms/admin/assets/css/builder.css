@@ -472,6 +472,52 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 }
 .b-sel-name { font-size: 15px; line-height: 1.2; }
 .b-sel-sub { font-size: 11px; color: var(--m-muted); }
+
+/* Copiar y pegar: los botones de la cabecera del inspector y el aviso
+   del árbol. Ocupan poco a propósito —son acciones de paso, no ajustes—
+   y se reparten en varias líneas cuando el panel está estrecho. */
+.b-porta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  margin-top: 6px;
+}
+.b-porta-btn {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--m-line);
+  border-radius: 999px;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+}
+.b-porta-btn:hover:not(:disabled) { border-color: var(--m-brown, #6b4f3a); }
+.b-porta-btn:disabled { opacity: 0.45; cursor: default; }
+.b-porta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  border: 1px dashed var(--m-line);
+  border-radius: 8px;
+  font-size: 11px;
+  background: var(--m-surface-soft);
+}
+.b-porta-lbl { color: var(--m-muted); font-weight: 600; }
+.b-porta-chip {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.b-porta-bar .b-porta-mini { margin-left: auto; padding: 2px 8px; font-size: 11px; }
 .b-insp .b-tabs { margin: 12px; }
 .b-insp .b-groups { display: block; }
 .b-insp label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; margin-bottom: 8px; }
@@ -942,6 +988,19 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .b-rev { list-style: none; padding: 0; margin: 0 0 16px; }
 .b-rev li { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
 .b-rev h4, .box h4 { margin: 16px 0 8px; font-size: 13px; }
+
+/* Historial: cada versión en dos líneas —cuándo fue y de dónde salió—
+   con los botones a la derecha y el «qué cambiaría» desplegable. */
+.b-hist .b-rev li { flex-wrap: wrap; align-items: flex-start; }
+.b-rev-txt { flex: 1 1 240px; min-width: 0; }
+.b-rev-sub { display: block; color: var(--m-muted); font-size: 11px; margin-top: 2px; }
+.b-rev-btns { display: flex; gap: 4px; flex: 0 0 auto; }
+.b-rev-btns .m-btn { font-size: 11px; padding: 4px 8px; }
+.b-rev-dif { flex: 1 1 100%; margin-top: 8px; font-size: 12px; background: var(--m-surface-soft); border-radius: 8px; padding: 8px 10px; }
+.b-rev-dif p { margin: 0 0 6px; }
+.b-dif { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.b-dif li { display: block; border: 0; padding: 0; font-size: 12px; }
+.b-status.is-mal { color: var(--m-danger, #b3261e); font-weight: 600; }
 
 /* Aviso de contenido recortado en las secciones de alto exacto. */
 .b-insp .b-warn {

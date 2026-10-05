@@ -282,6 +282,8 @@
       }
       if (saved?.checksum) state.doc.checksum = saved.checksum;
       if (saved?.previewUrl) state.doc.previewUrl = saved.previewUrl;
+      clearTimeout(state.retryTimer);
+      state.saveTries = 0;
       if (state.dirtyGen === gen) {
         // El lienzo solo repintaba el CSS en vivo: los cambios de contenido
         // no se veian hasta recargar a mano. Tras guardar se refresca el
@@ -293,6 +295,8 @@
         state.dirty = false;
         state.saveTries = 0;
         state.save = "Guardado (borrador)";
+        state.savedAt = Date.now();
+        copiaBorrar();
         adoptSaved(saved);
         const sig = treeSig(state.doc.sections);
         if (state.frameSig && sig !== state.frameSig) {
@@ -307,9 +311,20 @@
         state.saveQueued = true;
       }
     } catch (e) {
-      state.saveTries = 0;
-      state.save = "Error al guardar";
-      toast((e.message || "No se pudo guardar") + ". El trabajo sigue aquí; no recargues la página.");
+      // Lo primero, poner el trabajo a salvo en el propio navegador.
+      copiaGuardar();
+      const intento = state.saveTries || 0;
+      if (intento < ESPERAS.length) {
+        state.saveTries = intento + 1;
+        const espera = ESPERAS[intento];
+        state.save = `Error al guardar · reintentando en ${Math.round(espera / 1000)} s`;
+        clearTimeout(state.retryTimer);
+        state.retryTimer = setTimeout(() => { state.saving = false; saveDraft(); }, espera);
+      } else {
+        state.save = "Error al guardar";
+        toast((e.message || "No se pudo guardar")
+          + ". Hay una copia en este navegador: no cierres la pestaña sin volver a intentarlo.");
+      }
     }
     state.saving = false;
     paintStatus();
@@ -321,12 +336,108 @@
 
   function paintStatus() {
     const s = root.querySelector(".b-status");
-    if (s) s.textContent = state.save;
+    if (s) {
+      s.textContent = state.save === "Guardado (borrador)" && state.savedAt
+        ? `Guardado ${desdeHace(state.savedAt)}`
+        : state.save;
+      s.classList.toggle("is-mal", /Error|Reintent/.test(state.save));
+    }
     const w = root.querySelector(".b-warn");
     if (w) {
       w.textContent = state.styleWarn || "";
       w.hidden = !state.styleWarn;
     }
+  }
+
+  /** «hace un momento», «hace 4 min», «hace 2 h». */
+  function desdeHace(ms) {
+    const seg = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (seg < 45) return "hace un momento";
+    if (seg < 5400) return `hace ${Math.round(seg / 60)} min`;
+    if (seg < 86400) return `hace ${Math.round(seg / 3600)} h`;
+    return `hace ${Math.round(seg / 86400)} días`;
+  }
+
+  /* ================================================================
+     La red de seguridad del autoguardado
+     ----------------------------------------------------------------
+     El guardado automático ya existía, pero si el POST fallaba —se cae
+     la conexión, caduca la sesión, el servidor devuelve un 500— se
+     escribía «Error al guardar» y ahí se quedaba: no se reintentaba
+     nunca y el trabajo sólo vivía en la memoria de la pestaña. Cerrarla
+     por accidente lo borraba todo.
+
+     Ahora hay dos cosas. Una, reintentos con espera creciente, que es
+     lo que arregla el 90 % de los casos (un wifi que parpadea). Y dos,
+     una copia del documento en el propio navegador: si al abrir la
+     página el servidor devuelve algo distinto de esa copia, se ofrece
+     recuperarla. No sustituye al guardado; es el cinturón por si falla.
+     ================================================================ */
+
+  const COPIA = `krg-borrador-${id}`;
+  const ESPERAS = [3000, 6000, 12000, 30000, 60000];
+
+  function copiaGuardar() {
+    if (!state.doc) return;
+    try {
+      localStorage.setItem(COPIA, JSON.stringify({
+        at: Date.now(),
+        titulo: state.doc.title || "",
+        sections: state.doc.sections || [],
+      }));
+    } catch (e) { /* sin sitio: el guardado normal sigue siendo el bueno */ }
+  }
+
+  function copiaBorrar() {
+    try { localStorage.removeItem(COPIA); } catch (e) { /* nada */ }
+  }
+
+  function copiaLeer() {
+    try {
+      const raw = localStorage.getItem(COPIA);
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      return d && Array.isArray(d.sections) ? d : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Al abrir: si hay una copia local que no coincide con lo que manda
+   * el servidor, se pregunta. Nunca se pisa nada sin preguntar.
+   */
+  function ofrecerRecuperacion() {
+    const copia = copiaLeer();
+    if (!copia) return;
+    if (JSON.stringify(copia.sections) === JSON.stringify(state.doc.sections || [])) {
+      copiaBorrar();
+      return;
+    }
+    const wrap = document.createElement("div");
+    wrap.className = "confirm";
+    wrap.innerHTML = `<div class="box">
+      <h3>Hay cambios sin guardar</h3>
+      <p>Este navegador guardó una copia de esta página ${esc(desdeHace(copia.at))} que no llegó al servidor,
+      seguramente porque se cortó la conexión o se cerró la pestaña.</p>
+      <p class="m-muted">La copia tiene ${esc(plural(copia.sections.length, "sección", "secciones"))};
+      lo que hay guardado ahora mismo, ${(state.doc.sections || []).length}.</p>
+      <div class="m-row">
+        <button class="m-btn" id="rec">Recuperar la copia</button>
+        <button class="m-btn ghost" id="des">Descartarla</button>
+      </div>
+    </div>`;
+    document.body.appendChild(wrap);
+    wrap.querySelector("#des").onclick = () => { copiaBorrar(); wrap.remove(); };
+    wrap.querySelector("#rec").onclick = () => {
+      snapshot();
+      state.doc.sections = copia.sections;
+      if (copia.titulo) state.doc.title = copia.titulo;
+      wrap.remove();
+      markDirty();
+      render();
+      toast("Copia recuperada. Revísala y guarda.");
+    };
   }
 
   function frameScrollSnap(iframe) {
@@ -446,6 +557,8 @@
       title: node.name && node.name !== node.type ? node.name : (def.name || node.type),
       subtitle: def.name && node.name && node.name !== def.name && node.name !== node.type ? def.name : "",
       tab: state.inspTab || "content",
+      // Copiar, cortar, pegar y llevarse el aspecto a otro bloque.
+      actions: FIELDS.accionesPorta(node),
       schema: def.inspector || null,
       node: node,
       def: def,
@@ -578,6 +691,98 @@
     if (red) red.onclick = redo;
   }
 
+  /* ================================================================
+     Historial de versiones
+     ----------------------------------------------------------------
+     El servidor ya guardaba hasta cincuenta versiones de cada página
+     —cada guardado automático, cada publicación— pero la lista las
+     enseñaba como «2026-10-05 20:47:57 · autosave ·», catorce líneas
+     iguales. Nadie puede elegir en eso: restaurar era una lotería.
+
+     Ahora cada línea dice cuándo fue en palabras, de dónde salió, quién
+     la hizo y cuánto ocupaba la página entonces; y antes de restaurar
+     se puede ver qué cambiaría, bloque a bloque. Restaurar sigue
+     guardando una copia de lo actual, así que siempre se puede volver.
+     ================================================================ */
+
+  const ORIGENES = {
+    autosave: "guardado automático",
+    manual: "guardado a mano",
+    publish: "al publicar",
+    restore: "copia antes de restaurar",
+  };
+
+  /**
+   * La fecha, en palabras y sin mentir.
+   *
+   * El servidor la escribe en la hora del sitio y sin zona horaria, así
+   * que el navegador puede estar en otra: si la cuenta sale rara —algo
+   * del futuro o de hace años— se enseña la fecha tal cual y punto.
+   */
+  function fechaRevision(iso) {
+    const limpio = String(iso || "").trim().replace(" ", "T");
+    const d = new Date(limpio);
+    if (isNaN(d.getTime())) return { texto: String(iso || ""), relativo: "" };
+    const reloj = d.toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    const dif = Date.now() - d.getTime();
+    if (dif < -120000 || dif > 1000 * 60 * 60 * 24 * 365) return { texto: reloj, relativo: "" };
+    return { texto: reloj, relativo: desdeHace(d.getTime()) };
+  }
+
+  /** Mapa id → firma de cada bloque del documento, para comparar. */
+  function indiceNodos(sections) {
+    const mapa = new Map();
+    const walk = (list) => (list || []).forEach((n) => {
+      mapa.set(n.id, {
+        nombre: n.name && n.name !== n.type ? n.name : (defOf(n.type)?.name || n.type),
+        firma: JSON.stringify({ t: n.type, p: n.props || {}, s: n.styles || {}, v: n.visible !== false }),
+      });
+      walk(n.children);
+    });
+    walk(sections);
+    return mapa;
+  }
+
+  /** Qué pasaría si se restaurase esa versión encima de lo de ahora. */
+  function compararDocs(viejo, actual) {
+    const a = indiceNodos(viejo);
+    const b = indiceNodos(actual);
+    const vuelven = [];
+    const desaparecen = [];
+    const cambian = [];
+    a.forEach((v, id) => {
+      if (!b.has(id)) vuelven.push(v.nombre);
+      else if (b.get(id).firma !== v.firma) cambian.push(v.nombre);
+    });
+    b.forEach((v, id) => { if (!a.has(id)) desaparecen.push(v.nombre); });
+    return { vuelven, desaparecen, cambian };
+  }
+
+  /** «1 bloque» / «9 bloques», sin paréntesis raros. */
+  const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+
+  function resumenComparacion(dif) {
+    const partes = [
+      ["vuelven", dif.vuelven.length],
+      ["desaparecen", dif.desaparecen.length],
+      ["cambian", dif.cambian.length],
+    ].filter(([, n]) => n > 0);
+    // El sustantivo va sólo en el primero: «vuelven 3 bloques,
+    // desaparecen 2, cambian 4».
+    const trozos = partes.map(([verbo, n], i) =>
+      i === 0 ? `${verbo} ${plural(n, "bloque", "bloques")}` : `${verbo} ${n}`);
+    if (!trozos.length) return "Esta versión es idéntica a lo que hay ahora.";
+    const lista = (t, arr) => arr.length
+      ? `<li><strong>${t}:</strong> ${esc(arr.slice(0, 8).join(", "))}${arr.length > 8 ? ` y ${arr.length - 8} más` : ""}</li>`
+      : "";
+    return `<p>Si la restauras: ${esc(trozos.join(", "))}.</p>
+      <ul class="b-dif">
+        ${lista("Vuelven", dif.vuelven)}
+        ${lista("Desaparecen", dif.desaparecen)}
+        ${lista("Cambian", dif.cambian)}
+      </ul>`;
+  }
+
   async function openHistory() {
     try {
       state.revisions = await api.get(`/pages/${id}/revisions`);
@@ -585,33 +790,78 @@
       toast(e.message);
       return;
     }
+    const revs = state.revisions || [];
     const wrap = document.createElement("div");
     wrap.className = "confirm";
-    wrap.innerHTML = `<div class="box" style="width:min(520px,92vw);max-height:80vh;overflow:auto">
-      <h3>Historial</h3>
-      <p class="m-muted">Restaurar escribe sobre el borrador. Luego puedes publicar.</p>
+    wrap.innerHTML = `<div class="box b-hist" style="width:min(620px,94vw);max-height:84vh;overflow:auto">
+      <h3>Historial de esta página</h3>
+      <p class="m-muted">Se guarda una versión en cada guardado automático y cada vez que publicas,
+      hasta las cincuenta últimas. Restaurar escribe sobre el borrador y guarda antes una copia de lo
+      que hay ahora, así que siempre se puede volver atrás.</p>
       <ul class="b-rev">
-        ${(state.revisions || []).map((r) => `<li>
-          <span>${esc(r.createdAt)} · ${esc(r.origin)} · ${esc(r.author)}</span>
-          <button class="m-btn ghost" data-rid="${r.id}">Restaurar</button>
-        </li>`).join("") || "<li>Sin revisiones</li>"}
+        ${revs.map((r, i) => {
+          const f = fechaRevision(r.createdAt);
+          return `<li data-rev="${r.id}">
+            <div class="b-rev-txt">
+              <strong>${esc(f.texto)}</strong>
+              ${f.relativo ? `<span class="m-muted"> · ${esc(f.relativo)}</span>` : ""}
+              ${i === 0 ? ` <span class="b-tag">la más reciente</span>` : ""}
+              <span class="b-rev-sub">${esc(ORIGENES[r.origin] || r.origin || "")}${r.author ? ` · ${esc(r.author)}` : ""}
+                · ${esc(plural(Number(r.sections) || 0, "sección", "secciones"))}, ${esc(plural(Number(r.blocks) || 0, "bloque", "bloques"))}</span>
+            </div>
+            <span class="b-rev-btns">
+              <button class="m-btn ghost" data-ver="${r.id}">Ver qué cambió</button>
+              <button class="m-btn ghost" data-rid="${r.id}">Restaurar</button>
+            </span>
+            <div class="b-rev-dif" hidden></div>
+          </li>`;
+        }).join("") || "<li>Todavía no hay versiones guardadas.</li>"}
       </ul>
       <button class="m-btn ghost" id="close">Cerrar</button>
     </div>`;
     document.body.appendChild(wrap);
     wrap.querySelector("#close").onclick = () => wrap.remove();
+
+    const cache = {};
+    const traer = async (rid) => {
+      if (!cache[rid]) cache[rid] = await api.get(`/pages/${id}/revisions/${rid}`);
+      return cache[rid];
+    };
+
+    wrap.querySelectorAll("[data-ver]").forEach((b) => {
+      b.onclick = async () => {
+        const caja = b.closest("li").querySelector(".b-rev-dif");
+        if (!caja.hidden) { caja.hidden = true; b.textContent = "Ver qué cambió"; return; }
+        b.disabled = true;
+        try {
+          const doc = await traer(b.dataset.ver);
+          caja.innerHTML = resumenComparacion(compararDocs(doc.sections || [], state.doc.sections || []));
+          caja.hidden = false;
+          b.textContent = "Ocultar";
+        } catch (e) {
+          toast(e.message || "No se pudo leer esa versión.");
+        }
+        b.disabled = false;
+      };
+    });
+
     wrap.querySelectorAll("[data-rid]").forEach((b) => {
       b.onclick = async () => {
+        b.disabled = true;
         try {
           const doc = await api.post(`/pages/${id}/revisions/${b.dataset.rid}/restore`, {});
           state.doc = window.KrgBuilderCore.adoptDoc(doc);
           state.selected = null;
+          state.savedAt = Date.now();
+          state.save = "Guardado (borrador)";
+          copiaBorrar();
           wrap.remove();
           render();
           reloadFrame();
-          toast("Revisión restaurada en el borrador");
+          toast("Versión restaurada. Lo anterior ha quedado guardado como otra versión.");
         } catch (e) {
           toast(e.message);
+          b.disabled = false;
         }
       };
     });
@@ -839,6 +1089,35 @@
     }
   }
 
+  /**
+   * Los atajos del portapapeles de bloques.
+   *
+   * `+` delante significa con Mayúsculas: Ctrl+Mayús+C copia el aspecto
+   * y Ctrl+Mayús+V lo pega.
+   */
+  const PORTA_TECLAS = {
+    c: "copiar",
+    x: "cortar",
+    v: "pegar",
+    "+c": "copiar-estilo",
+    "+v": "pegar-estilo",
+  };
+
+  /** ¿El foco está escribiendo en algún sitio? */
+  function enTexto(el) {
+    if (!el) return false;
+    if (el.isContentEditable) return true;
+    const t = (el.tagName || "").toLowerCase();
+    if (t === "textarea" || t === "select") return true;
+    if (t === "input") {
+      const tipo = (el.type || "text").toLowerCase();
+      return !["checkbox", "radio", "button", "submit", "range", "color"].includes(tipo);
+    }
+    // Y si hay texto seleccionado en la pantalla, Ctrl+C es del texto.
+    const sel = window.getSelection ? String(window.getSelection()) : "";
+    return sel.length > 0;
+  }
+
   window.addEventListener("message", onMsg);
   window.addEventListener("keydown", (e) => {
     const meta = e.ctrlKey || e.metaKey;
@@ -851,17 +1130,30 @@
     } else if (meta && e.key.toLowerCase() === "s") {
       e.preventDefault();
       saveDraft();
+    } else if (meta && !enTexto(e.target) && PORTA_TECLAS[(e.shiftKey ? "+" : "") + e.key.toLowerCase()]) {
+      // Copiar y pegar bloques. Sólo cuando el foco no está en un campo
+      // de texto: dentro de una casilla, Ctrl+C tiene que seguir
+      // copiando letras, que para eso está.
+      e.preventDefault();
+      FIELDS.accionPorta(PORTA_TECLAS[(e.shiftKey ? "+" : "") + e.key.toLowerCase()], null);
     }
   });
   window.addEventListener("beforeunload", (e) => {
     if (state.dirty) {
+      // Antes de que la pestaña se vaya, la copia local.
+      copiaGuardar();
       e.preventDefault();
       e.returnValue = "";
     }
   });
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden" && state.dirty) saveDraft();
+    if (document.visibilityState === "hidden" && state.dirty) {
+      copiaGuardar();
+      saveDraft();
+    }
   });
+  // El «hace X» del estado se queda viejo si nadie lo toca.
+  setInterval(() => { if (state.savedAt && !state.dirty) paintStatus(); }, 30000);
 
   Promise.all([
     api.get(`/pages/${id}`),
@@ -881,6 +1173,7 @@
       state.menus = Array.isArray(menus) ? menus : [];
       window.KrgUi?.setTokens(tokens);
       render();
+      ofrecerRecuperacion();
     })
     .catch((e) => {
       root.innerHTML = `<p style="padding:24px">${esc(e.message)}</p>`;

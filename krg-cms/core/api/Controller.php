@@ -171,6 +171,15 @@ class Controller {
 		return rest_ensure_response( RevisionRepository::list( (int) $req['id'] ) );
 	}
 
+	/** Una version suelta: para poder enseñar que cambiaria al restaurar. */
+	public static function revisions_get( WP_REST_Request $req ) {
+		try {
+			return rest_ensure_response( RevisionRepository::get( (int) $req['id'], (int) $req['rid'] ) );
+		} catch ( \Throwable $e ) {
+			return self::err( 'meridian_revision', __( 'No se encontró esa versión.', 'meridian' ), 404 );
+		}
+	}
+
 	public static function revisions_restore( WP_REST_Request $req ) {
 		try {
 			return rest_ensure_response( RevisionRepository::restore( (int) $req['id'], (int) $req['rid'] ) );

@@ -1862,6 +1862,7 @@
     // el usuario tiene debajo del dedo no desaparece.
     window.KrgBuilderCore.bindGroups(box);
     if (!box) return;
+    bindPorta(box);
     const hit = () => findNode(state.doc.sections, state.selected);
     box.querySelectorAll("[data-prop]").forEach((inp) => {
       const apply = (ev) => {
@@ -3373,6 +3374,280 @@
     render();
   }
 
+  /* ================================================================
+     Copiar y pegar
+     ----------------------------------------------------------------
+     Duplicar ya existía, pero sólo sirve para repetir algo donde ya
+     está. Lo que faltaba era llevarse un bloque —o sólo su aspecto— a
+     otro sitio: a otra sección, a otra página, al pie.
+
+     Por eso el portapapeles vive en `localStorage` y no en una
+     variable: las páginas del constructor son documentos distintos y
+     cada una recarga su pantalla. Guardado ahí, lo copiado sobrevive al
+     cambio de página, a la recarga y hasta a cerrar la pestaña, que es
+     exactamente lo que una persona espera de un portapapeles.
+
+     No se usa el del sistema (`navigator.clipboard`) a propósito: pide
+     permiso, se pierde al copiar cualquier texto por el camino y en un
+     iframe de administración no siempre está disponible. El del
+     navegador para el texto; éste, para los bloques.
+     ================================================================ */
+
+  const PORTA_BLOQUE = "krg-porta-bloque";
+  const PORTA_ESTILO = "krg-porta-estilo";
+  const BPS = ["desktop", "tablet", "mobile"];
+
+  function portaLeer(clave) {
+    try {
+      const raw = localStorage.getItem(clave);
+      if (!raw) return null;
+      const dato = JSON.parse(raw);
+      return dato && typeof dato === "object" ? dato : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function portaEscribir(clave, dato) {
+    try {
+      localStorage.setItem(clave, JSON.stringify(dato));
+      return true;
+    } catch (e) {
+      // Navegación privada o almacenamiento lleno. Mejor decirlo que
+      // dejar al usuario pulsando «Pegar» sin que pase nada.
+      toast("El navegador no deja guardar el portapapeles.");
+      return false;
+    }
+  }
+
+  /** El nombre con el que la persona reconoce un bloque. */
+  function etiquetaNodo(node) {
+    if (!node) return "";
+    if (node.name && node.name !== node.type) return node.name;
+    return defOf(node.type)?.name || node.type;
+  }
+
+  /** El antepasado más cercano de ese tipo, contando el propio nodo. */
+  function ancestro(hit, tipo) {
+    let cursor = hit;
+    while (cursor) {
+      if (cursor.node.type === tipo) return cursor;
+      cursor = cursor.parent ? findNode(state.doc.sections, cursor.parent.id) : null;
+    }
+    return null;
+  }
+
+  function copyNode(nid, cortar) {
+    const hit = findNode(state.doc.sections, nid || state.selected);
+    if (!hit) {
+      toast("Selecciona antes un bloque.");
+      return false;
+    }
+    const etiqueta = etiquetaNodo(hit.node);
+    const guardado = portaEscribir(PORTA_BLOQUE, {
+      nodo: JSON.parse(JSON.stringify(hit.node)),
+      etiqueta: etiqueta,
+      tipo: hit.node.type,
+      at: Date.now(),
+    });
+    if (!guardado) return false;
+    if (cortar) {
+      snapshot();
+      hit.list.splice(hit.index, 1);
+      if (state.selected === hit.node.id) state.selected = null;
+      markDirty();
+    }
+    render();
+    toast(cortar ? `Cortado «${etiqueta}»` : `Copiado «${etiqueta}»`);
+    return true;
+  }
+
+  /**
+   * Pega el bloque copiado.
+   *
+   * Dónde cae, que es lo único que importa aquí:
+   *
+   *   · una sección, siempre detrás de la sección donde estés —dentro
+   *     de una columna no cabe y colarla ahí sería mentir;
+   *   · una columna, dentro de la fila más cercana;
+   *   · un contenedor seleccionado (sección, fila, columna), dentro;
+   *   · cualquier otra cosa, justo debajo del bloque seleccionado, que
+   *     es donde la mano espera que aparezca.
+   */
+  function pasteNode(nid) {
+    const dato = portaLeer(PORTA_BLOQUE);
+    if (!dato || !dato.nodo || !dato.nodo.type) {
+      toast("No hay ningún bloque copiado.");
+      return;
+    }
+    const tipo = dato.nodo.type;
+    if (!defOf(tipo)) {
+      toast(`Aquí no existe el bloque «${tipo}».`);
+      return;
+    }
+    const destino = nid || state.selected;
+    const hit = destino ? findNode(state.doc.sections, destino) : null;
+
+    if (tipo === "column") {
+      const fila = hit ? ancestro(hit, "row") : null;
+      if (!fila) {
+        toast("Una columna sólo se pega dentro de una fila.");
+        return;
+      }
+      snapshot();
+      const copia = cloneNode(dato.nodo);
+      fila.node.children = fila.node.children || [];
+      fila.node.children.push(copia);
+      terminarPegado(copia, dato.etiqueta);
+      return;
+    }
+
+    snapshot();
+    const copia = cloneNode(dato.nodo);
+    if (tipo === "section") {
+      const sec = hit ? ancestro(hit, "section") : null;
+      if (sec) sec.list.splice(sec.index + 1, 0, copia);
+      else state.doc.sections.push(copia);
+      terminarPegado(copia, dato.etiqueta);
+      return;
+    }
+    const esContenedor = hit
+      && (["section", "row", "column"].includes(hit.node.type) || defOf(hit.node.type)?.children);
+    if (hit && !esContenedor) {
+      hit.list.splice(hit.index + 1, 0, copia);
+    } else {
+      insertNode(copia, hit ? hit.node : null);
+    }
+    terminarPegado(copia, dato.etiqueta);
+  }
+
+  function terminarPegado(copia, etiqueta) {
+    state.selected = copia.id;
+    markDirty();
+    render();
+    toast(`Pegado «${etiqueta || etiquetaNodo(copia)}»`);
+  }
+
+  /** Sólo los tres cajones de estilos, sin el contenido ni los hijos. */
+  function copyStyles(nid) {
+    const hit = findNode(state.doc.sections, nid || state.selected);
+    if (!hit) {
+      toast("Selecciona antes un bloque.");
+      return;
+    }
+    const st = hit.node.styles || {};
+    const copia = {};
+    let cuantos = 0;
+    BPS.forEach((bp) => {
+      copia[bp] = Object.assign({}, st[bp] || {});
+      cuantos += Object.keys(copia[bp]).length;
+    });
+    if (!cuantos) {
+      // Copiar la nada y pegarla borraría el estilo del destino sin que
+      // nadie lo haya pedido.
+      toast(`«${etiquetaNodo(hit.node)}» no tiene estilos propios.`);
+      return;
+    }
+    if (!portaEscribir(PORTA_ESTILO, { estilos: copia, etiqueta: etiquetaNodo(hit.node), cuantos, at: Date.now() })) return;
+    render();
+    toast(`Copiado el estilo de «${etiquetaNodo(hit.node)}» (${cuantos} ajuste${cuantos === 1 ? "" : "s"})`);
+  }
+
+  function pasteStyles(nid) {
+    const dato = portaLeer(PORTA_ESTILO);
+    if (!dato || !dato.estilos) {
+      toast("No hay ningún estilo copiado.");
+      return;
+    }
+    const hit = findNode(state.doc.sections, nid || state.selected);
+    if (!hit) {
+      toast("Selecciona antes el bloque que quieres cambiar.");
+      return;
+    }
+    snapshot();
+    // Reemplaza, no mezcla: «pegar estilo» significa que el destino se
+    // ve como el origen, y mezclar dejaría restos del aspecto anterior
+    // imposibles de explicar.
+    const nuevos = {};
+    BPS.forEach((bp) => { nuevos[bp] = Object.assign({}, dato.estilos[bp] || {}); });
+    hit.node.styles = nuevos;
+    markDirty();
+    render();
+    toast(`Estilo pegado en «${etiquetaNodo(hit.node)}»`);
+  }
+
+  /**
+   * Los cuatro botones de la cabecera del inspector.
+   *
+   * Van aquí, y no en el árbol, porque la fila del árbol ya lleva hasta
+   * nueve iconos y en un panel de 320 px no cabe ni uno más; y porque
+   * cuando alguien quiere repetir un aspecto está mirando justo aquí.
+   */
+  function accionesPorta(node) {
+    const bloque = portaLeer(PORTA_BLOQUE);
+    const estilo = portaLeer(PORTA_ESTILO);
+    const nid = node && node.id ? node.id : "";
+    const btn = (accion, texto, titulo, apagado) =>
+      `<button type="button" class="b-porta-btn" data-porta="${accion}" data-nid="${nid}"${apagado ? " disabled" : ""} title="${esc(titulo)}">${esc(texto)}</button>`;
+    return `<div class="b-porta">
+      ${btn("copiar", "Copiar", "Copiar este bloque con todo lo que lleva dentro (Ctrl+C)")}
+      ${btn("cortar", "Cortar", "Quitarlo de aquí y llevárselo (Ctrl+X)")}
+      ${btn("pegar", bloque ? `Pegar «${bloque.etiqueta}»` : "Pegar", bloque ? `Pegar el bloque copiado (Ctrl+V)` : "No hay ningún bloque copiado", !bloque)}
+      ${btn("copiar-estilo", "Copiar estilo", "Copiar sólo el aspecto: fondo, espaciado, borde, sombra, tipografía… (Ctrl+Mayús+C)")}
+      ${btn("pegar-estilo", "Pegar estilo", estilo ? `Dar a este bloque el aspecto de «${estilo.etiqueta}» (Ctrl+Mayús+V)` : "No hay ningún estilo copiado", !estilo)}
+    </div>`;
+  }
+
+  /** La línea del árbol que dice qué llevas en la mano. */
+  function avisoPorta() {
+    const bloque = portaLeer(PORTA_BLOQUE);
+    const estilo = portaLeer(PORTA_ESTILO);
+    if (!bloque && !estilo) return "";
+    // Con palabras y no con iconos: un pictograma raro se ve como un
+    // cuadradito vacío en la mitad de los ordenadores.
+    const trozos = [];
+    if (bloque) trozos.push(`<span class="b-porta-chip" data-porta-chip="bloque">bloque «${esc(bloque.etiqueta)}»</span>`);
+    if (estilo) trozos.push(`<span class="b-porta-chip" data-porta-chip="estilo">estilo de «${esc(estilo.etiqueta)}»</span>`);
+    return `<div class="b-porta-bar">
+      <span class="b-porta-lbl">En el portapapeles:</span>
+      ${trozos.join(" · ")}
+      ${bloque ? `<button type="button" class="m-btn ghost b-porta-mini" data-porta="pegar" title="Pegar el bloque copiado donde estés">Pegar</button>` : ""}
+      <button type="button" class="b-ico" data-porta="vaciar" title="Vaciar el portapapeles">✕</button>
+    </div>`;
+  }
+
+  function vaciarPorta() {
+    try {
+      localStorage.removeItem(PORTA_BLOQUE);
+      localStorage.removeItem(PORTA_ESTILO);
+    } catch (e) { /* no pasa nada */ }
+    render();
+    toast("Portapapeles vacío");
+  }
+
+  /** Un solo sitio para los botones y los atajos de teclado. */
+  /** Ata los botones del portapapeles de un trozo de pantalla. */
+  function bindPorta(caja) {
+    if (!caja) return;
+    caja.querySelectorAll("[data-porta]").forEach((b) => {
+      b.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        accionPorta(b.getAttribute("data-porta"), b.getAttribute("data-nid") || null);
+      };
+    });
+  }
+
+  function accionPorta(accion, nid) {
+    if (accion === "copiar") return copyNode(nid, false);
+    if (accion === "cortar") return copyNode(nid, true);
+    if (accion === "pegar") return pasteNode(nid);
+    if (accion === "copiar-estilo") return copyStyles(nid);
+    if (accion === "pegar-estilo") return pasteStyles(nid);
+    if (accion === "vaciar") return vaciarPorta();
+    return undefined;
+  }
+
   function hideNode(nid) {
     const hit = findNode(state.doc.sections, nid);
     if (!hit) return;
@@ -3629,6 +3904,7 @@
           <button type="button" class="b-ico" data-tree-all="close" title="Contraer todo">⤡</button>
         </span>
       </h4>
+      ${avisoPorta()}
       <div class="b-tree">${walk(state.doc.sections) || "<p class='b-empty'>Añade una sección.</p>"}</div>
     </div>`;
   }
@@ -3887,6 +4163,7 @@
       root.querySelectorAll("[data-del]").forEach((b) => { b.onclick = () => deleteNode(b.dataset.del); });
       root.querySelectorAll("[data-tpl]").forEach((b) => { b.onclick = () => saveTemplate(b.dataset.tpl); });
       root.querySelectorAll("[data-glb]").forEach((b) => { b.onclick = () => saveGlobal(b.dataset.glb); });
+      bindPorta(root.querySelector(".b-left"));
       bindTree();
     }
 
@@ -3918,6 +4195,13 @@
       moveNode: moveNode,
       shiftAcrossColumns: shiftAcrossColumns,
       duplicateNode: duplicateNode,
+      copyNode: copyNode,
+      pasteNode: pasteNode,
+      copyStyles: copyStyles,
+      pasteStyles: pasteStyles,
+      accionPorta: accionPorta,
+      accionesPorta: accionesPorta,
+      bindPorta: bindPorta,
       hideNode: hideNode,
       deleteNode: deleteNode,
       saveTemplate: saveTemplate,

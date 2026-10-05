@@ -92,6 +92,11 @@ class Routes {
 			'permission_callback' => $edit,
 			'callback' => [ Controller::class, 'revisions_list' ],
 		] );
+		register_rest_route( $ns, '/pages/(?P<id>\d+)/revisions/(?P<rid>\d+)', [
+			'methods' => 'GET',
+			'permission_callback' => $edit,
+			'callback' => [ Controller::class, 'revisions_get' ],
+		] );
 		register_rest_route( $ns, '/pages/(?P<id>\d+)/revisions/(?P<rid>\d+)/restore', [
 			'methods' => 'POST',
 			'permission_callback' => $edit,

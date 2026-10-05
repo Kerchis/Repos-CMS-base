@@ -807,7 +807,10 @@
           title: node.name && node.name !== node.type ? node.name : (def.name || node.type),
           subtitle: def.name && node.name && node.name !== def.name && node.name !== node.type ? def.name : "",
           tab: tab,
-          actions: '<button type="button" class="m-btn ghost" data-froot>← Ajustes del pie</button>',
+          // El mismo portapapeles que en páginas: un bloque copiado en
+          // una página se pega aquí, y al revés.
+          actions: '<button type="button" class="m-btn ghost" data-froot>← Ajustes del pie</button>'
+            + FIELDS.accionesPorta(node),
           schema: def.inspector || null,
           node: node,
           def: def,
