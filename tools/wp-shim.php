@@ -209,6 +209,39 @@ if ( ! function_exists( 'get_option' ) ) {
 		return array_key_exists( $k, $GLOBALS['krg_options'] ?? [] ) ? $GLOBALS['krg_options'][ $k ] : $d;
 	}
 }
+/*
+ * Las hojas de estilo que el tema encola.
+ *
+ * El shim no pintaba nada de esto, asi que no habia forma de comprobar
+ * si una fuente se pide o no —que es justo donde estaba el fallo de las
+ * familias tipograficas: el CSS declaraba «Questrial» y nadie bajaba el
+ * archivo. Aqui se apuntan en `$GLOBALS['krg_styles']` para que los
+ * bancos puedan mirarlas.
+ */
+if ( ! function_exists( 'wp_enqueue_style' ) ) {
+	function wp_enqueue_style( $handle, $src = '', $deps = [], $ver = false, $media = 'all' ) {
+		$GLOBALS['krg_styles'][ $handle ] = [
+			'src'    => (string) $src,
+			'inline' => $GLOBALS['krg_styles'][ $handle ]['inline'] ?? '',
+		];
+	}
+}
+if ( ! function_exists( 'wp_register_style' ) ) {
+	function wp_register_style( $handle, $src = '', $deps = [], $ver = false, $media = 'all' ) {
+		$GLOBALS['krg_styles'][ $handle ] = $GLOBALS['krg_styles'][ $handle ] ?? [ 'src' => (string) $src, 'inline' => '' ];
+	}
+}
+if ( ! function_exists( 'wp_style_is' ) ) {
+	function wp_style_is( $handle, $lista = 'enqueued' ) {
+		return isset( $GLOBALS['krg_styles'][ $handle ] );
+	}
+}
+if ( ! function_exists( 'wp_add_inline_style' ) ) {
+	function wp_add_inline_style( $handle, $css ) {
+		$GLOBALS['krg_styles'][ $handle ]['inline'] = ( $GLOBALS['krg_styles'][ $handle ]['inline'] ?? '' ) . $css;
+		return true;
+	}
+}
 if ( ! function_exists( 'get_bloginfo' ) ) {
 	function get_bloginfo( $campo = 'name' ) {
 		return 'name' === $campo ? 'Sitio de prueba' : '';

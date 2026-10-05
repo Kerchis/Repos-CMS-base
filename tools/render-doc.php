@@ -24,6 +24,8 @@ foreach (
 		'/core/design/TokenDefaults.php',
 		'/core/design/TokenRepository.php',
 		'/core/design/TokenCompiler.php',
+		'/core/design/PresetStore.php',
+		'/core/design/FontCatalog.php',
 		'/core/security/UrlValidator.php',
 		'/core/components/Catalog.php',
 		'/core/components/BrandCatalog.php',
@@ -58,6 +60,23 @@ if ( $cuantas > 0 ) {
 				'thumbnail_id' => 500 + $i,
 			]
 		);
+	}
+}
+
+// Tokens de una instalacion concreta: `KRG_TOKENS=/ruta/tokens.json`.
+// Sin esto cada proceso arranca con el preset y no hay forma de probar
+// «este sitio tiene elegida esta tipografia».
+$tok = getenv( 'KRG_TOKENS' );
+if ( $tok && is_readable( $tok ) ) {
+	$datos = json_decode( (string) file_get_contents( $tok ), true );
+	if ( is_array( $datos ) ) {
+		update_option( MERIDIAN_OPTION_TOKENS, $datos['tokens'] ?? $datos, false );
+		if ( isset( $datos['header'] ) ) {
+			update_option( MERIDIAN_OPTION_HEADER, $datos['header'], false );
+		}
+		if ( isset( $datos['footer'] ) ) {
+			update_option( MERIDIAN_OPTION_FOOTER, $datos['footer'], false );
+		}
 	}
 }
 
@@ -97,6 +116,19 @@ foreach ( [ 'base', 'components', 'modules' ] as $hoja ) {
 	echo '<style id="krg-' . $hoja . '">' . file_get_contents( $assets . '/' . $hoja . '.css' ) . '</style>';
 }
 echo '<style id="krg-doc-css">' . $css . '</style>';
+// Las fuentes, por el mismo camino que en WordPress: el tema las encola
+// y WordPress las imprime. Sin esto la pagina declara la familia y nadie
+// baja el archivo —que es justo el fallo que arreglamos—, asi que el
+// banco tiene que ver los <link> de verdad.
+\Meridian\Design\FontCatalog::enqueue_used();
+foreach ( $GLOBALS['krg_styles'] ?? [] as $id => $hoja ) {
+	if ( ! empty( $hoja['src'] ) ) {
+		echo '<link rel="stylesheet" id="' . htmlspecialchars( (string) $id ) . '" href="' . htmlspecialchars( (string) $hoja['src'] ) . '">';
+	}
+	if ( ! empty( $hoja['inline'] ) ) {
+		echo '<style id="' . htmlspecialchars( (string) $id ) . '-inline">' . $hoja['inline'] . '</style>';
+	}
+}
 echo '</head><body class="' . ( $ctx->isCanvas ? 'krg-canvas' : '' ) . '">';
 echo '<div class="m-page"><main class="m-main">' . $html . '</main></div>';
 

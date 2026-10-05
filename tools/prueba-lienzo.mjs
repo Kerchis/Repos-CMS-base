@@ -104,6 +104,13 @@ const errores = [];
 page.on('pageerror', (e) => errores.push(String(e).split('\n')[0]));
 page.on('console', (m) => { if (m.type() === 'error') errores.push(m.text()); });
 
+// La página pide ahora las fuentes elegidas a Google, como la de
+// verdad. Aquí no hay internet, así que se contesta con una hoja vacía:
+// lo que se mide son cajas y colores, no la letra.
+await page.route('**/fonts.googleapis.com/**', (route) =>
+  route.fulfill({ status: 200, contentType: 'text/css', body: '' })
+);
+
 await page.route('**/krg.test/**', async (route) => {
   const req = route.request();
   const url = req.url().replace(REST, '');

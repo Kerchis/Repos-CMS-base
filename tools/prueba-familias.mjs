@@ -53,10 +53,13 @@ let tokens = {
     spacing: { section: '96px' },
   },
 };
+const variantes = (pesos) => pesos.map((w) => ({ id: `${w}-normal`, label: String(w), weight: String(w), style: 'normal' }));
 const fuentes = [
-  { name: 'Archivo', css: 'Archivo, sans-serif', group: 'web', google: 'Archivo', variants: [] },
-  { name: 'Inter', css: 'Inter, sans-serif', group: 'web', google: 'Inter', variants: [] },
-  { name: 'Inter Tight', css: '"Inter Tight", sans-serif', group: 'web', google: 'Inter+Tight', variants: [] },
+  { name: 'Archivo', css: 'Archivo, sans-serif', group: 'web', google: 'Archivo', weights: ['400', '700', '800'], variants: variantes([400, 700, 800]) },
+  { name: 'Inter', css: 'Inter, sans-serif', group: 'web', google: 'Inter', weights: ['400', '500', '600', '700'], variants: variantes([400, 500, 600, 700]) },
+  { name: 'Inter Tight', css: '"Inter Tight", sans-serif', group: 'web', google: 'Inter Tight', weights: ['400', '500'], variants: variantes([400, 500]) },
+  { name: 'Questrial', css: '"Questrial", sans-serif', group: 'web', google: 'Questrial', weights: ['400'], variants: variantes([400]) },
+  { name: 'Georgia', css: 'Georgia, "Times New Roman", serif', group: 'system', google: '', weights: [], variants: variantes([400, 700]) },
 ];
 const guardados = [];
 
@@ -133,6 +136,52 @@ f = await filas();
 ok(f.find((x) => x.clave === 'ui')?.valor === '"Inter Tight", sans-serif',
   `el panel la recuerda (${f.find((x) => x.clave === 'ui')?.valor})`);
 ok(f.length === 4, 'y sigue habiendo cuatro filas, no cinco');
+
+/* ------------------------------------------------------------------ */
+console.log('\n--- Una fuente de un solo peso avisa de que no tiene negrita');
+await page.selectOption('[data-font-wrap="ui"] [data-font]', '"Questrial", sans-serif');
+await page.waitForTimeout(150);
+const quest = await page.evaluate(() => {
+  const w = document.querySelector('[data-font-wrap="ui"]');
+  return {
+    variantes: [...w.querySelectorAll('[data-font-variant] option')].map((o) => o.textContent.trim()),
+    aviso: w.querySelector('.m-font-aviso')?.textContent.trim() || '',
+  };
+});
+ok(quest.variantes.length === 1 && quest.variantes[0] === '400',
+  `el selector de variante solo ofrece el peso que existe (${quest.variantes.join(', ')})`);
+ok(/solo existe en el peso 400/i.test(quest.aviso), `y lo dice en claro («${quest.aviso.slice(0, 60)}…»)`);
+
+/* ------------------------------------------------------------------ */
+console.log('\n--- Una familia escrita a mano se puede cargar de Google');
+await page.selectOption('[data-font-wrap="ui"] [data-font]', '__custom__');
+await page.waitForTimeout(120);
+const aMano = await page.evaluate(() => {
+  const w = document.querySelector('[data-font-wrap="ui"]');
+  return {
+    campo: !w.querySelector('[data-font-custom]').hidden,
+    casilla: !w.querySelector('[data-font-google-wrap]').hidden,
+    marcada: w.querySelector('[data-font-google]').checked,
+  };
+});
+ok(aMano.campo, 'aparece el campo para escribirla');
+ok(aMano.casilla, 'y la casilla «Cargar desde Google Fonts»');
+ok(aMano.marcada, 'marcada de serie: si no, la web la declara y nadie la descarga');
+
+await page.fill('[data-font-wrap="ui"] [data-font-custom]', '"Fuente Mía", sans-serif');
+await page.waitForTimeout(120);
+await page.click('#save-tokens');
+await page.waitForTimeout(400);
+const conGoogle = guardados[guardados.length - 1]?.tokens?.font?.ui;
+ok(conGoogle?.value === '"Fuente Mía", sans-serif', `la familia escrita se guarda (${conGoogle?.value})`);
+ok(conGoogle?.google === 'Fuente Mía', `y con ella el encargo de descargarla (${conGoogle?.google})`);
+
+await page.uncheck('[data-font-wrap="ui"] [data-font-google]');
+await page.waitForTimeout(120);
+await page.click('#save-tokens');
+await page.waitForTimeout(400);
+ok(guardados[guardados.length - 1]?.tokens?.font?.ui?.google === undefined,
+  'y al desmarcarla deja de pedirse: para quien aloje su propia fuente');
 
 /* ------------------------------------------------------------------ */
 console.log('\n--- Ningún error de JavaScript');

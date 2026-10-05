@@ -804,7 +804,7 @@
       heading: "Títulos",
       body: "Cuerpo",
       display: "Display",
-      ui: "Texto general (menús, botones, etiquetas…)",
+      ui: "Texto general",
     };
     return out.map(([k, v]) => {
       const item = (v && typeof v === "object") ? { ...v } : { value: String(v || "") };
@@ -840,8 +840,25 @@
       ).join("")}</optgroup>`;
     }).join("");
     const preview = matched ? matched.css : current;
+    // Una familia escrita a mano no la sirve nadie: hay que pedirle el
+    // archivo a Google o la web la pinta con la de respaldo (Arial) por
+    // mucho que el CSS diga otra cosa. Se marca por defecto porque es
+    // lo que quiere el 99 % de quien escribe un nombre ahí; quien aloje
+    // su propia fuente lo desmarca.
+    const googleOn = item.google === undefined ? isCustom : !!item.google;
+    // Una fuente de un solo peso no tiene negrita: si el diseño la pide,
+    // el navegador la engorda él mismo y la letra deja de parecerse a la
+    // original. Mejor decirlo aquí que dejar que se descubra mirando la
+    // web y pensando que la fuente no se aplicó.
+    const pesos = (matched?.weights || []).map(String);
+    const corto = pesos.length > 0 && pesos.length <= 2;
+    const aviso = `<small class="m-font-aviso" data-font-aviso="${esc(key)}" ${corto ? "" : "hidden"}>`
+      + (corto
+        ? `Esta fuente solo existe en ${pesos.length === 1 ? "el peso" : "los pesos"} ${esc(pesos.join(" y "))}. Si el diseño pide una negrita, el navegador la simula y la letra cambia de aspecto.`
+        : "")
+      + "</small>";
     return `<div class="m-font-row" data-font-wrap="${esc(key)}">
-      <span>${esc(item.label || key)}</span>
+      <span>${esc(item.label || key)}${key === "ui" ? "<small>menús, botones, etiquetas…</small>" : ""}</span>
       <select data-font="${esc(key)}">
         <option value="" ${current ? "" : "selected"}>— Sin elegir —</option>
         ${opts}
@@ -850,7 +867,17 @@
       <select data-font-variant="${esc(key)}" title="Variante">${variantOptionsHtml(matched?.variants, weight, style)}</select>
       <span class="m-font-preview" style="font-family:${esc(preview || "inherit")};font-weight:${esc(weight)};font-style:${esc(style)}">Aa Bb Cc 123</span>
       <input data-font-custom="${esc(key)}" value="${esc(current)}" ${isCustom ? "" : "hidden"} placeholder='"Mi Fuente", sans-serif'>
+      ${aviso}
+      <label class="m-font-google" data-font-google-wrap="${esc(key)}" ${isCustom ? "" : "hidden"}>
+        <input type="checkbox" data-font-google="${esc(key)}" ${googleOn ? "checked" : ""}>
+        Cargar desde Google Fonts
+      </label>
     </div>`;
+  }
+
+  /** «"Questrial", sans-serif» → «Questrial». */
+  function nombreDeFamilia(css) {
+    return String(css || "").split(",")[0].replace(/["']/g, "").trim();
   }
 
   function ensureFontLink(google) {
@@ -1141,15 +1168,23 @@
       });
       if (Object.keys(nextColors).length) next.tokens.color = nextColors;
       el.querySelectorAll("[data-font]").forEach((inp) => {
+        const clave = inp.dataset.font;
         let v = inp.value;
-        if (v === "__custom__") {
-          const c = el.querySelector(`[data-font-custom="${inp.dataset.font}"]`);
+        const aMano = v === "__custom__";
+        if (aMano) {
+          const c = el.querySelector(`[data-font-custom="${clave}"]`);
           v = c ? c.value : "";
         }
         next.tokens.font = next.tokens.font || {};
-        const cur = next.tokens.font[inp.dataset.font];
+        const cur = next.tokens.font[clave];
         if (cur && typeof cur === "object") cur.value = v;
-        else next.tokens.font[inp.dataset.font] = { value: v, type: "fontFamily" };
+        else next.tokens.font[clave] = { value: v, type: "fontFamily" };
+        // Quién tiene que servir el archivo de la fuente. Sin esto el
+        // CSS declara la familia y nadie la descarga: la web se ve con
+        // Arial aunque el inspector diga «Questrial».
+        const chk = el.querySelector(`[data-font-google="${clave}"]`);
+        if (aMano && chk?.checked && v) next.tokens.font[clave].google = nombreDeFamilia(v);
+        else delete next.tokens.font[clave].google;
       });
       el.querySelectorAll("[data-font-variant]").forEach((sel) => {
         const key = sel.dataset.fontVariant;
@@ -1292,10 +1327,35 @@
       const custom = wrap?.querySelector("[data-font-custom]");
       const preview = wrap?.querySelector(".m-font-preview");
       const vsel = wrap?.querySelector("[data-font-variant]");
+      const gwrap = wrap?.querySelector("[data-font-google-wrap]");
+      const gchk = wrap?.querySelector("[data-font-google]");
+      const aviso = wrap?.querySelector(".m-font-aviso");
+      gchk?.addEventListener("change", () => { gchk.dataset.tocada = "1"; });
       const sync = () => {
         const opt = sel.selectedOptions[0];
         const isCustom = sel.value === "__custom__";
         if (custom) custom.hidden = !isCustom;
+        if (gwrap) gwrap.hidden = !isCustom;
+        // Al pasar a «Personalizada…» la casilla se marca sola: una
+        // familia escrita a mano no la sirve nadie si no se pide. Si
+        // alguien la desmarca, se respeta.
+        if (isCustom && gchk && gchk.dataset.tocada !== "1") gchk.checked = true;
+        // El aviso de los pesos cambia con la familia, así que se
+        // reescribe aquí y no solo al pintar la fila.
+        if (aviso) {
+          let pesos = [];
+          try {
+            pesos = [...new Set(JSON.parse(opt?.getAttribute("data-variants") || "[]").map((v) => String(v.weight)))];
+          } catch (e) {
+            pesos = [];
+          }
+          const corto = !isCustom && pesos.length && pesos.length <= 2;
+          aviso.hidden = !corto;
+          if (corto) {
+            aviso.textContent = `Esta fuente solo existe en ${pesos.length === 1 ? "el peso" : "los pesos"} ${pesos.join(" y ")}. `
+              + "Si el diseño pide una negrita, el navegador la simula y la letra cambia de aspecto.";
+          }
+        }
         const css = isCustom ? (custom?.value || "") : sel.value;
         fillFontVariants(wrap);
         const vopt = vsel?.selectedOptions[0];
@@ -1304,10 +1364,19 @@
           preview.style.fontWeight = vopt?.dataset.weight || "400";
           preview.style.fontStyle = vopt?.dataset.style || "normal";
         }
-        ensureFontLink(opt?.dataset.google || "");
+        // La vista previa de aquí arriba tiene que cargar la fuente por
+        // el mismo criterio que la web pública, o el panel enseña una
+        // cosa y el sitio otra: del catálogo, por su nombre de Google;
+        // escrita a mano, solo si se ha pedido cargarla.
+        if (isCustom) {
+          if (gchk?.checked) ensureFontLink(nombreDeFamilia(css));
+        } else {
+          ensureFontLink(opt?.dataset.google || "");
+        }
       };
       sel.addEventListener("change", sync);
       custom?.addEventListener("input", sync);
+      gchk?.addEventListener("change", sync);
       vsel?.addEventListener("change", sync);
       sync();
     });

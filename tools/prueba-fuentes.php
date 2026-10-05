@@ -1,0 +1,195 @@
+<?php
+/**
+ * Que la fuente elegida se descargue de verdad.
+ *
+ * El fallo que esto vigila: el panel dejaba elegir «Questrial», el CSS
+ * del sitio decía `font-family: Questrial, sans-serif` —el inspector lo
+ * enseñaba tal cual— y sin embargo la página se veía con Arial. Nadie
+ * pedía el archivo de la fuente: el cargador solo sabía bajar las
+ * treinta y una familias que llevaba escritas dentro, y Questrial no
+ * estaba entre ellas.
+ *
+ * Declarar una familia y cargarla son dos cosas distintas, y el banco
+ * comprueba la segunda, que es la que faltaba:
+ *
+ *   1. Una familia del catálogo se pide a Google con sus pesos reales.
+ *   2. Una familia que solo existe en un peso NO pide los demás: si se
+ *      piden, el navegador engorda la letra él solo y deja de parecerse
+ *      a la original.
+ *   3. Una familia escrita a mano se pide igual, en su propia hoja,
+ *      para que un nombre mal escrito no se lleve por delante al resto.
+ *   4. Una familia del sistema no pide nada: ya está en el ordenador.
+ *   5. La tipografía de la cabecera y la del pie también cuentan,
+ *      aunque vivan fuera de los tokens.
+ *
+ *   .tools/php/php tools/prueba-fuentes.php
+ */
+
+define( 'ABSPATH', __DIR__ . '/' );
+require_once __DIR__ . '/wp-shim.php';
+
+$base = dirname( __DIR__ ) . '/krg-cms';
+require_once $base . '/core/constants.php';
+foreach (
+	[
+		'/core/design/PresetStore.php',
+		'/core/design/TokenDefaults.php',
+		'/core/design/TokenRepository.php',
+		'/core/design/TokenCompiler.php',
+		'/core/design/FontCatalog.php',
+	] as $f
+) {
+	require_once $base . $f;
+}
+
+use Meridian\Design\FontCatalog;
+
+$fallos = 0;
+$ok     = 0;
+
+function comprueba( bool $cond, string $msg ): void {
+	global $fallos, $ok;
+	if ( $cond ) {
+		++$ok;
+		echo "  OK    $msg\n";
+	} else {
+		++$fallos;
+		echo "  FALLA $msg\n";
+	}
+}
+
+/** Deja una instalación con estas familias y devuelve las hojas encoladas. */
+function monta( array $font, array $header = [], array $footer = [] ): array {
+	$GLOBALS['krg_styles'] = [];
+	update_option(
+		MERIDIAN_OPTION_TOKENS,
+		[
+			'activePreset' => 'marca',
+			'version'      => 1,
+			'tokens'       => [
+				'color'   => [ 'primary' => [ 'value' => '#3f5e58' ] ],
+				'font'    => $font,
+				'spacing' => [ 'section' => '96px' ],
+			],
+		],
+		false
+	);
+	update_option( MERIDIAN_OPTION_HEADER, $header, false );
+	update_option( MERIDIAN_OPTION_FOOTER, $footer, false );
+	FontCatalog::enqueue_used();
+	return $GLOBALS['krg_styles'] ?? [];
+}
+
+/** Todas las URLs encoladas, juntas, para buscar dentro. */
+function urls( array $hojas ): string {
+	return implode( ' ', array_map( static fn( $h ) => urldecode( (string) ( $h['src'] ?? '' ) ), $hojas ) );
+}
+
+echo "\nPRUEBA 1 — el catálogo tiene las familias y sus pesos de verdad\n";
+
+$cat = FontCatalog::list();
+$por_nombre = [];
+foreach ( $cat as $f ) {
+	$por_nombre[ $f['name'] ] = $f;
+}
+comprueba( count( $cat ) > 60, 'hay más de sesenta familias donde elegir (' . count( $cat ) . ')' );
+comprueba( isset( $por_nombre['Questrial'] ), 'Questrial está en el catálogo' );
+comprueba( isset( $por_nombre['Jost'], $por_nombre['Fraunces'], $por_nombre['Instrument Serif'] ), 'y otras que no estaban' );
+comprueba( [ '400' ] === ( $por_nombre['Questrial']['weights'] ?? [] ), 'Questrial declara un solo peso: 400' );
+comprueba( count( $por_nombre['Questrial']['variants'] ?? [] ) === 1, 'así que el selector de variante ofrece una sola opción, no diez' );
+comprueba( count( $por_nombre['Inter']['variants'] ?? [] ) > 10, 'y una familia completa como Inter sigue ofreciendo todas' );
+comprueba( [ '400' ] === ( $por_nombre['Anton']['weights'] ?? [] ), 'Anton también es de un solo peso' );
+
+echo "\nPRUEBA 2 — una familia del catálogo se descarga\n";
+
+$hojas = monta(
+	[
+		'heading' => [ 'value' => 'Archivo, sans-serif', 'weight' => '800' ],
+		'body'    => [ 'value' => '"Inter", sans-serif' ],
+	]
+);
+$u = urls( $hojas );
+comprueba( str_contains( $u, 'fonts.googleapis.com' ), 'se pide la hoja de Google' );
+comprueba( str_contains( $u, 'family=Archivo' ) && str_contains( $u, 'family=Inter' ), 'con las dos familias en la misma petición' );
+comprueba( str_contains( $u, 'display=swap' ), 'y con «display=swap», para que el texto se vea mientras llega' );
+
+echo "\nPRUEBA 3 — Questrial, el caso que estaba roto\n";
+
+$hojas = monta( [ 'ui' => [ 'value' => 'Questrial, sans-serif', 'weight' => '400' ] ] );
+$u = urls( $hojas );
+comprueba( str_contains( $u, 'family=Questrial' ), 'elegirla en «Texto general» pide el archivo' );
+comprueba( ! str_contains( $u, 'Questrial:ital' ) && ! str_contains( $u, 'Questrial:wght' ),
+	"y no se le piden pesos que no tiene ($u)" );
+
+echo "\nPRUEBA 4 — una familia escrita a mano\n";
+
+$hojas = monta( [ 'ui' => [ 'value' => '"Mi Fuente Rara", sans-serif', 'google' => 'Mi Fuente Rara' ] ] );
+$u = urls( $hojas );
+comprueba( str_contains( $u, 'family=Mi Fuente Rara' ), 'marcando «Cargar desde Google Fonts» se pide igual' );
+comprueba( count( $hojas ) === 1, 'en su propia hoja: si el nombre está mal, cae ella sola' );
+
+$hojas = monta(
+	[
+		'heading' => [ 'value' => 'Archivo, sans-serif' ],
+		'ui'      => [ 'value' => '"Mi Fuente Rara", sans-serif', 'google' => 'Mi Fuente Rara' ],
+	]
+);
+comprueba( count( $hojas ) === 2, 'y la del catálogo va aparte, en la suya (' . count( $hojas ) . ' hojas)' );
+
+$hojas = monta( [ 'ui' => [ 'value' => '"Mi Fuente Alojada", sans-serif' ] ] );
+comprueba( 0 === count( $hojas ), 'sin marcar la casilla no se pide nada a Google: quizá la sirve el propio sitio' );
+
+echo "\nPRUEBA 5 — una familia del sistema no pide nada\n";
+
+$hojas = monta( [ 'body' => [ 'value' => 'Georgia, "Times New Roman", serif' ] ] );
+comprueba( 0 === count( $hojas ), 'Georgia ya está en el ordenador de quien mira la página' );
+
+echo "\nPRUEBA 6 — la cabecera y el pie también cuentan\n";
+
+$hojas = monta( [], [ 'navFont' => '"Bebas Neue", sans-serif' ] );
+$u = urls( $hojas );
+comprueba( str_contains( $u, 'family=Bebas Neue' ), 'la tipografía del menú se descarga aunque no esté en los tokens' );
+comprueba( ! str_contains( $u, 'Bebas Neue:' ), 'y sin pedirle los pesos que no tiene' );
+
+$hojas = monta( [], [], [ 'copyrightFont' => '"Lora", serif' ] );
+comprueba( str_contains( urls( $hojas ), 'family=Lora' ), 'y la del copyright del pie, igual' );
+
+echo "\nPRUEBA 7 — las cuatro familias a la vez\n";
+
+$hojas = monta(
+	[
+		'heading' => [ 'value' => '"Playfair Display", serif', 'weight' => '700' ],
+		'body'    => [ 'value' => '"Lora", serif' ],
+		'display' => [ 'value' => '"Bebas Neue", sans-serif' ],
+		'ui'      => [ 'value' => 'Questrial, sans-serif' ],
+	],
+	[ 'navFont' => '"Jost", sans-serif' ]
+);
+$u = urls( $hojas );
+foreach ( [ 'Playfair Display', 'Lora', 'Bebas Neue', 'Questrial', 'Jost' ] as $fam ) {
+	comprueba( str_contains( $u, 'family=' . $fam ), "«{$fam}» se descarga" );
+}
+comprueba( 1 === count( $hojas ), 'las cinco en una sola petición (' . count( $hojas ) . ')' );
+comprueba( substr_count( $u, 'display=swap' ) === 1, 'con un solo «display=swap» al final' );
+
+echo "\nPRUEBA 8 — lo que el CSS declara y lo que se descarga coinciden\n";
+
+$hoja = \Meridian\Design\TokenCompiler::css( \Meridian\Design\TokenRepository::get() );
+preg_match_all( '/--font-[a-z]+: ([^;]+);/', $hoja, $m );
+$declaradas = $m[1] ?? [];
+comprueba( count( $declaradas ) === 4, 'el CSS declara las cuatro familias (' . count( $declaradas ) . ')' );
+$faltan = [];
+foreach ( $declaradas as $decl ) {
+	$nombre = trim( explode( ',', $decl )[0], " \"'" );
+	if ( ! str_contains( $u, 'family=' . $nombre ) ) {
+		$faltan[] = $nombre;
+	}
+}
+comprueba( ! $faltan, $faltan ? 'se declaran sin descargarse: ' . implode( ', ', $faltan ) : 'y ninguna se queda sin descargar' );
+
+echo "\n";
+if ( $fallos ) {
+	echo "HAY $fallos FALLOS ($ok comprobaciones correctas)\n";
+	exit( 1 );
+}
+echo "LAS FUENTES SE DESCARGAN ($ok comprobaciones)\n";
