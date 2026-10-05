@@ -8,11 +8,13 @@ Antes de nada, una vez por sesión:
 
 ```sh
 bash tools/devenv.sh     # PHP 8.3 estático + Chromium + playwright-core en .tools/
+bash tools/pruebas.sh    # y ya está: pasa todos los bancos de golpe (unos 4 min)
 ```
 
 | Herramienta | Qué hace |
 | --- | --- |
 | `tools/devenv.sh` | Prepara `.tools/php`, `.tools/chromium` y `playwright-core`. Idempotente. |
+| `tools/pruebas.sh` | Pasa **todos** los bancos de una vez —lint, los de PHP y los del navegador—, enseña un resumen y devuelve código 1 si alguno falla. Los descubre solos (`tools/prueba-*.php` y `tools/prueba-*.mjs`), así que un banco nuevo entra sin tocar ninguna lista. `bash tools/pruebas.sh v2 panel` corre solo esos, `--rapido` se salta el navegador y `--lista` enseña lo que hay. Es lo que ejecuta GitHub en cada empujón. |
 | `tools/lint-php.sh` | `php -l` sobre todos los `.php` del tema. |
 | `tools/wp-shim.php` | El mínimo de WordPress que necesitan catálogo, registro, saneador y renderizadores. Todo con `function_exists`. |
 | `tools/render.php` | Imprime el marcado real de un caso. `.tools/php/php tools/render.php` lista los casos. Tres contextos: sin nada = web pública, `KRG_PREVIEW=1` = pestaña «Preview», `KRG_CANVAS=1` = lienzo del constructor. |
@@ -37,6 +39,7 @@ bash tools/devenv.sh     # PHP 8.3 estático + Chromium + playwright-core en .to
 | `tools/prueba-blog.mjs` | Las tarjetas de una rejilla de entradas, medidas en el navegador: que forman rejilla de verdad, la proporción y el alto fijo que elige el panel, el color fundido sobre la foto y su cambio al pasar el ratón, el título como cita —que sigue siendo un `h3`—, el interruptor de la fecha —apagada de serie—, la alineación del texto en los dos ejes y las siete posiciones del logo, más que el color no se salga de la tarjeta (58). Con `KRG_SHOT=1` deja `captura-tarjetas-blog.png` y `captura-tarjetas-hover.png` (usa `.tools/foto-tarjeta.jpg` si está; si no, las fotos salen vacías). |
 | `tools/prueba-anclas.mjs` | Menú de una sola página: cinco secciones con ancla —dos con cortina— y los saltos del menú medidos de verdad, bajando y **subiendo**. Una sección pegada decía estar donde está pegada, así que volver arriba no movía la página (10). |
 | `tools/prueba-v2.mjs` | Las **secciones V.2** una por una: que sólo usan bloques que ya existen en el registro, que cada pieza tiene nombre propio en el árbol, que ninguna fila se pasa de doce columnas, que el servidor las pinta sin un aviso de PHP, que sus textos y sus clases por id salen en la web y que sobreviven al saneador del guardado. Las treinta secciones enteras y las diecisiete piezas sueltas, que traen su sección, su fila y su columna montadas (684). |
+| `tools/prueba-huecos.mjs` | La separación entre columnas no puede echar la fila fuera de la pantalla. Una fila son doce pistas con **once** huecos: con la separación en 40 px suman 440 px y en un móvil de 390 px la fila no cabe ni vacía, así que el texto salía cortado por la derecha. Mide la separación de verdad —por dónde han quedado las columnas, que `getComputedStyle` devuelve el `min()` sin resolver— con seis separaciones (0, 16, 24, 40, 64, 80) en tres tamaños, y comprueba que lo que cabía no se toca, que lo que no cabía se recorta y que el hueco vertical se respeta siempre (41). |
 | `tools/prueba-pie.mjs` | El pie partido contra el ejemplo: foto a sangre en dos quintos, el bloque de contacto y las columnas de enlaces **en la misma línea**, los títulos y el reparto de enlaces por columna, la raya y la barra de abajo con los legales a un lado y el copyright al otro, los cinco iconos de redes distintos, la foto a la derecha, el apilado en móvil y el pie sin datos (25). Con `KRG_SHOT=1` deja `captura-pie.png`. |
 | `tools/prueba-tarjetas.mjs` | El carril de productos: las tarjetas alinean categoría, título y enlace aunque los textos midan distinto, y la lista del panel son fichas plegables con miniatura que se arrastran para ordenar (32). |
 | `tools/prueba-editor.mjs` | El editor de texto con botones, de punta a punta: poner una palabra en negrita en el panel, verlo guardado, recargar el panel, encontrarlo igual, cambiarlo desde la pestaña «HTML», pegar desde fuera sin que entre maquetado ajeno y comprobar que la web lo pinta como formato y no como etiquetas escritas (21). |
@@ -58,34 +61,29 @@ Chromium necesita sus librerías en el entorno:
 export LD_LIBRARY_PATH="$PWD/.tools/chromium/lib/lib:$PWD/.tools/chromium/lib"
 ```
 
-Las cuatro pruebas devuelven código 1 si falla alguna comprobación, así que
-sirven tal cual en un gancho de integración continua:
+Todos los bancos devuelven código 1 si falla alguna comprobación, así que
+basta con uno:
 
 ```sh
-bash tools/lint-php.sh
-.tools/php/php tools/prueba-guardado.php
-node tools/prueba-preview.mjs
-node tools/prueba-vacias.mjs
-node tools/prueba-estilos.mjs
-node tools/prueba-panel.mjs
-node tools/prueba-inspector.mjs
-node tools/prueba-chrome.mjs
-node tools/prueba-articulo.mjs
-node tools/prueba-categorias.mjs
-node tools/prueba-lienzo.mjs
-node tools/prueba-matriz.mjs
-.tools/php/php tools/prueba-tokens.php
-node tools/prueba-cortina.mjs
-node tools/prueba-motor.mjs
-node tools/prueba-caja.mjs
-node tools/prueba-estirar.mjs
-node tools/prueba-carta.mjs            # KRG_SHOT=1 deja además las capturas del árbol, del visor y del plato en móvil
-node tools/prueba-cta.mjs              # KRG_SHOT=1 deja además la captura del fondo fusionado
-node tools/prueba-tarjetas.mjs         # KRG_SHOT=1 deja además el carril parejo y la lista en fichas
-node tools/prueba-blog.mjs             # KRG_SHOT=1 deja además las tarjetas de blog, quietas y con el ratón encima
-node tools/prueba-anclas.mjs
-node tools/prueba-pie.mjs              # KRG_SHOT=1 deja captura-pie.png
+bash tools/pruebas.sh
 ```
+
+Eso es exactamente lo que corre GitHub en cada empujón
+(`.github/workflows/pruebas.yml`): monta el entorno con el mismo
+`tools/devenv.sh` —no hay dos recetas que mantener—, guarda `.tools` en la
+caché para que las rondas siguientes empiecen en segundos y deja la tabla de
+resultados en el resumen del trabajo.
+
+Para correr uno suelto mientras se trabaja:
+
+```sh
+node tools/prueba-huecos.mjs
+.tools/php/php tools/prueba-tokens.php
+bash tools/pruebas.sh carta cta          # o varios, con el resumen de siempre
+```
+
+Algunos aceptan `KRG_SHOT=1` y dejan además sus capturas: `prueba-carta`,
+`prueba-cta`, `prueba-tarjetas`, `prueba-blog` y `prueba-pie`.
 
 `tools/render.php` trae dos ayudantes para montar casos por el camino
 completo: `arbol()` (sección → fila → columna → módulos, como los intercala

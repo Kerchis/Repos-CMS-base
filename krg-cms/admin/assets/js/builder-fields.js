@@ -46,6 +46,7 @@
     // Caja y color: una sola copia, la del núcleo.
     const CAJA_PROPS = window.KrgBuilderCore.CAJA_PROPS;
     const cssCaja = (st) => window.KrgBuilderCore.cssCaja(st);
+    const gridGap = (g, pistas) => window.KrgBuilderCore.gridGap(g, pistas);
 
 
   function unitize(v, unit) {
@@ -2819,7 +2820,7 @@
           if (n.type === "row") {
             const g = Number(n.props?.gap ?? 24);
             const va = ["start", "center", "end", "stretch"].includes(n.props?.vAlign) ? n.props.vAlign : "start";
-            css += `${sel}{display:grid;gap:${g}px;grid-template-columns:repeat(12,minmax(0,1fr));align-items:${va}}`;
+            css += `${sel}{display:grid;${gridGap(g, 12)}grid-template-columns:repeat(12,minmax(0,1fr));align-items:${va}}`;
           }
           if (n.type === "column") {
             const bp = state.bp;

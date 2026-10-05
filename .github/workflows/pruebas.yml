@@ -1,0 +1,59 @@
+# Pasa las pruebas del tema en cada empujón.
+#
+# Hasta ahora las pruebas solo existían en el portátil de quien las
+# escribía: si alguien subía un cambio sin pasarlas, el fallo aparecía
+# días después y ya nadie se acordaba de qué lo había roto. Esto las
+# ejecuta en GitHub, en una máquina limpia, y deja el aspa roja en el
+# commit que la rompió.
+#
+# El entorno lo monta `tools/devenv.sh`, el mismo guion que se usa en
+# local: no hay dos recetas que mantener sincronizadas. PHP y Chromium
+# tardan en bajarse, así que se guardan en la caché y los siguientes
+# pases empiezan en segundos.
+
+name: Pruebas
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# Si se empuja dos veces seguidas, la ronda vieja se cancela: interesa
+# el resultado del último commit, no el del penúltimo.
+concurrency:
+  group: pruebas-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    name: Sintaxis, PHP y navegador
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # PHP y Chromium pesan y se bajan de sitios distintos. Mientras no
+      # se toque devenv.sh, se reaprovechan tal cual.
+      - name: Recuperar el entorno de la caché
+        uses: actions/cache@v4
+        with:
+          path: .tools
+          key: tools-${{ runner.os }}-${{ hashFiles('tools/devenv.sh') }}
+
+      - name: Montar PHP y Chromium
+        env:
+          # `devenv.sh` baja PHP con `gh api`; en Actions el token del
+          # propio trabajo basta y no hay que dar de alta ningún secreto.
+          GH_TOKEN: ${{ github.token }}
+        run: bash tools/devenv.sh
+
+      - name: Pruebas
+        run: bash tools/pruebas.sh

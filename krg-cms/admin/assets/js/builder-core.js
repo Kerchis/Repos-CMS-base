@@ -378,10 +378,30 @@
       .map((p) => `${p}:${String(st[p]).trim()}`);
   }
 
+  /**
+   * El hueco entre columnas de una rejilla, sin que se salga de la
+   * pantalla.
+   *
+   * Gemelo en JavaScript de `DocumentCssCompiler::grid_gap()`. Una fila
+   * son doce pistas con once huecos: con el hueco en 40 px esos once
+   * huecos suman 440 px y en un móvil de 390 px la fila no cabe ni
+   * vacía. El tope reparte un 90 % del ancho entre todos los huecos y
+   * `min()` sigue eligiendo los píxeles mientras quepan, así que lo que
+   * hoy se ve bien no cambia. El hueco vertical no se toca.
+   */
+  function gridGap(gap, pistas) {
+    const g = Math.max(0, Number(gap) || 0);
+    if (!g) return "gap:0;";
+    if (!(pistas > 1)) return `gap:${g}px;`;
+    const tope = Math.round((90 / (pistas - 1)) * 100) / 100;
+    return `row-gap:${g}px;column-gap:min(${g}px,${tope}%);`;
+  }
+
   window.KrgBuilderCore = {
     dict: dict,
     cssColor: cssColor,
     cssCaja: cssCaja,
+    gridGap: gridGap,
     CAJA_PROPS: CAJA_PROPS,
     scrollSnap: scrollSnap,
     scrollRestore: scrollRestore,

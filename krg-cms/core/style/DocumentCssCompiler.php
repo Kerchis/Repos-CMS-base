@@ -162,7 +162,7 @@ class DocumentCssCompiler {
 						if ( $estirar ) {
 							$va = 'stretch';
 						}
-						$extra[] = "{$sel}{display:grid;gap:{$g}px;grid-template-columns:repeat(12,minmax(0,1fr));align-items:{$va};{$estira_css}}";
+						$extra[] = "{$sel}{display:grid;" . self::grid_gap( $g, 12 ) . "grid-template-columns:repeat(12,minmax(0,1fr));align-items:{$va};{$estira_css}}";
 					}
 					if ( 'column' === $type ) {
 						$d       = max( 1, min( 12, (int) ( $n['props']['span'] ?? 12 ) ) );
@@ -193,9 +193,9 @@ class DocumentCssCompiler {
 					if ( 'columns' === $type ) {
 						[ $d, $t, $m ] = self::cols( $n['props'] ?? [], 3, 2, 1 );
 						$g             = max( 0, (int) ( $n['props']['gap'] ?? 24 ) );
-						$extra[]       = "{$sel}{display:grid;gap:{$g}px;grid-template-columns:repeat({$d},minmax(0,1fr));}";
-						$tab[]         = "{$sel}{grid-template-columns:repeat({$t},minmax(0,1fr));}";
-						$mob[]         = "{$sel}{grid-template-columns:repeat({$m},minmax(0,1fr));}";
+						$extra[]       = "{$sel}{display:grid;" . self::grid_gap( $g, $d ) . "grid-template-columns:repeat({$d},minmax(0,1fr));}";
+						$tab[]         = "{$sel}{grid-template-columns:repeat({$t},minmax(0,1fr));" . self::grid_gap( $g, $t ) . '}';
+						$mob[]         = "{$sel}{grid-template-columns:repeat({$m},minmax(0,1fr));" . self::grid_gap( $g, $m ) . '}';
 					}
 					if ( 'gallery' === $type && ( $n['props']['layout'] ?? 'carousel' ) === 'grid' ) {
 						[ $d, $t, $m ] = self::cols( $n['props'] ?? [], 3, 2, 1 );
@@ -253,6 +253,40 @@ class DocumentCssCompiler {
 	/**
 	 * @return array{0:int,1:int,2:int}
 	 */
+	/**
+	 * El hueco entre columnas de una rejilla, sin que se salga de la
+	 * pantalla.
+	 *
+	 * El fallo que esto arregla: una fila son doce pistas con once
+	 * huecos entre ellas. Con el hueco en 40 px, esos once huecos suman
+	 * 440 px: en un movil de 390 px la fila no cabe ni vacia, las
+	 * columnas se salen por la derecha y el texto aparece cortado. No
+	 * hacia falta ponerlo a mano con mala idea —basta con subir la
+	 * «separacion» de la fila en el inspector— y no habia forma de
+	 * verlo hasta abrir la web en el telefono.
+	 *
+	 * La cuenta: con `$pistas` columnas hay `$pistas - 1` huecos, asi
+	 * que cada uno no puede pasar del 90 % repartido entre todos. Las
+	 * pistas son `minmax(0,1fr)` y pueden encogerse hasta cero, de modo
+	 * que con ese tope la fila nunca mide mas que su contenedor.
+	 *
+	 * `min()` elige el valor en pixeles mientras quepa —en un escritorio
+	 * de 1200 px el tope son 98 px, muy por encima de cualquier
+	 * separacion razonable—, asi que lo que hoy se ve bien no cambia ni
+	 * un pixel. Solo se encoge lo que ya estaba roto. El hueco vertical
+	 * no se toca: ese no desborda nada.
+	 */
+	private static function grid_gap( int $gap, int $pistas ): string {
+		if ( $gap <= 0 ) {
+			return 'gap:0;';
+		}
+		if ( $pistas < 2 ) {
+			return "gap:{$gap}px;";
+		}
+		$tope = round( 90 / ( $pistas - 1 ), 2 );
+		return "row-gap:{$gap}px;column-gap:min({$gap}px,{$tope}%);";
+	}
+
 	private static function cols( array $props, int $d, int $t, int $m ): array {
 		$desktop = max( 1, min( 6, (int) ( $props['desktop'] ?? $props['columns'] ?? $d ) ) );
 		$tablet  = max( 1, min( 6, (int) ( $props['tablet'] ?? min( 2, $desktop ) ) ) );
