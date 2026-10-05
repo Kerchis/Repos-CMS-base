@@ -84,7 +84,20 @@
       "padding-left": x,
     });
 
-    return { nodo, columna, fila, seccion, relleno };
+    /**
+     * Una columna que alinea lo que lleva dentro.
+     *
+     * Un botón es tan ancho como su texto: aunque el título de al lado
+     * esté centrado, el botón se queda pegado a la izquierda si la
+     * columna no dice otra cosa.
+     */
+    const columnaAlineada = (span, donde, hijos, nombre, estilos) => {
+      const c = columna(span, hijos, estilos, nombre);
+      Object.assign(dict(c, "props"), { contentHAlign: donde });
+      return c;
+    };
+
+    return { nodo, columna, columnaAlineada, fila, seccion, relleno };
   }
 
   /* ------------------------------------------------------------------ */
@@ -328,6 +341,211 @@
             cuerpo,
           ], 0, "Fila del pie"),
         ], { width: "full", fullWidth: true });
+      },
+    },
+    {
+      slug: "preguntas-v2",
+      name: "Preguntas V.2",
+      desde: "faq",
+      nota: "Las preguntas frecuentes abiertas: cada pregunta y cada respuesta, un bloque.",
+      build: (t) => {
+        const par = (n, q, a) => t.fila([
+          t.columna(5, [
+            t.nodo("heading", { text: q, tag: "h3" }, `Pregunta ${n}`),
+          ], null, `Columna de la pregunta ${n}`),
+          t.columna(7, [
+            t.nodo("paragraph", { text: a }, `Respuesta ${n}`),
+          ], null, `Columna de la respuesta ${n}`),
+        ], 24, `Pregunta ${n}`);
+        return t.seccion("Preguntas V.2", [
+          t.fila([
+            t.columna(12, [
+              t.nodo("eyebrow", { text: "DUDAS FRECUENTES" }, "Antetítulo"),
+              t.nodo("heading", { text: "Preguntas que nos hacéis mucho", tag: "h2" }, "Título"),
+            ], null, "Columna del encabezado"),
+          ], 24, "Fila del encabezado"),
+          par(1, "¿Cuánto tarda el envío?", "Entre dos y cuatro días laborables en península."),
+          t.nodo("divider", {}, "Raya 1"),
+          par(2, "¿Puedo cambiar el pedido?", "Sí, mientras no haya salido del almacén. Escríbenos y lo ajustamos."),
+          t.nodo("divider", {}, "Raya 2"),
+          par(3, "¿Hacéis factura?", "Siempre. Pídela al hacer el pedido y la mandamos por correo."),
+        ], { width: "padded" }, t.relleno("80px", "24px"));
+      },
+    },
+    {
+      slug: "tiempo-v2",
+      name: "Línea de tiempo V.2",
+      desde: "timeline",
+      nota: "Los hitos en orden: el año, el título y el relato de cada uno son bloques sueltos.",
+      build: (t) => {
+        const hito = (n, anio, titulo) => t.fila([
+          t.columna(3, [
+            t.nodo("heading", { text: anio, tag: "h3" }, `Año ${n}`),
+          ], null, `Columna del año ${n}`),
+          t.columna(9, [
+            t.nodo("heading", { text: titulo, tag: "h4" }, `Título del hito ${n}`),
+            t.nodo("paragraph", { text: "Qué pasó ese año, contado en dos frases." }, `Texto del hito ${n}`),
+          ], null, `Columna del hito ${n}`),
+        ], 20, `Hito ${n}`);
+        return t.seccion("Línea de tiempo V.2", [
+          t.fila([
+            t.columna(12, [
+              t.nodo("heading", { text: "De dónde venimos", tag: "h2" }, "Título"),
+            ], null, "Columna del título"),
+          ], 24, "Fila del título"),
+          hito(1, "2014", "Abrimos el primer local"),
+          t.nodo("divider", {}, "Raya 1"),
+          hito(2, "2019", "Montamos el obrador"),
+          t.nodo("divider", {}, "Raya 2"),
+          hito(3, "2024", "Llegamos a toda la península"),
+        ], { width: "padded" }, t.relleno("76px", "24px"));
+      },
+    },
+    {
+      slug: "pasos-v2",
+      name: "Pasos con foto V.2",
+      desde: "trace-module",
+      nota: "El recorrido del producto en cuatro pasos; foto, número y texto de cada paso por separado.",
+      build: (t) => {
+        const paso = (n, titulo) => t.columna(3, [
+          t.nodo("image", { alt: "", objectFit: "cover" }, `Foto del paso ${n}`, { "min-height": "180px" }),
+          t.nodo("eyebrow", { text: "PASO 0" + n }, `Número del paso ${n}`),
+          t.nodo("heading", { text: titulo, tag: "h3" }, `Título del paso ${n}`),
+          t.nodo("paragraph", { text: "Una frase sobre lo que ocurre en este punto." }, `Texto del paso ${n}`),
+        ], null, `Paso ${n}`);
+        return t.seccion("Pasos con foto V.2", [
+          t.fila([
+            t.columna(12, [
+              t.nodo("eyebrow", { text: "DE ORIGEN A CASA" }, "Antetítulo"),
+              t.nodo("heading", { text: "Así llega hasta ti", tag: "h2", align: "center" }, "Título"),
+            ], null, "Columna del encabezado"),
+          ], 24, "Fila del encabezado"),
+          t.fila([paso(1, "En el campo"), paso(2, "En el obrador"), paso(3, "Al tarro"), paso(4, "A tu casa")], 24, "Fila de pasos"),
+        ], { width: "padded" }, t.relleno("80px", "24px"));
+      },
+    },
+    {
+      slug: "carta-v2",
+      name: "Carta V.2",
+      desde: "menu-list",
+      nota: "La carta por piezas: cada plato es un nombre, una descripción y un precio.",
+      build: (t) => {
+        const plato = (n, nombre, precio) => t.fila([
+          t.columna(9, [
+            t.nodo("heading", { text: nombre, tag: "h3" }, `Plato ${n}`),
+            t.nodo("paragraph", { text: "Ingredientes del plato, cortos y claros." }, `Descripción ${n}`),
+          ], null, `Columna del plato ${n}`),
+          t.columna(3, [
+            t.nodo("heading", { text: precio, tag: "h3", align: "right" }, `Precio ${n}`),
+          ], null, `Columna del precio ${n}`),
+        ], 16, `Plato ${n}`);
+        return t.seccion("Carta V.2", [
+          t.fila([
+            t.columna(12, [
+              t.nodo("eyebrow", { text: "PARA COMPARTIR" }, "Antetítulo"),
+              t.nodo("heading", { text: "Entrantes", tag: "h2" }, "Título de la categoría"),
+            ], null, "Columna del encabezado"),
+          ], 20, "Fila del encabezado"),
+          plato(1, "Croquetas de la casa", "9,50 €"),
+          t.nodo("divider", {}, "Raya 1"),
+          plato(2, "Ensaladilla con ventresca", "12,00 €"),
+          t.nodo("divider", {}, "Raya 2"),
+          plato(3, "Tabla de quesos", "14,00 €"),
+        ], { width: "padded" }, t.relleno("72px", "24px"));
+      },
+    },
+    {
+      slug: "fotos-v2",
+      name: "Mosaico de fotos V.2",
+      desde: "gallery",
+      nota: "Seis fotos en rejilla; cada foto se cambia por su cuenta, sin tocar las demás.",
+      build: (t) => {
+        const foto = (n) => t.columna(4, [
+          t.nodo("image", { alt: "", objectFit: "cover" }, `Foto ${n}`, { "min-height": "240px" }),
+        ], null, `Hueco ${n}`);
+        return t.seccion("Mosaico de fotos V.2", [
+          t.fila([
+            t.columna(12, [
+              t.nodo("heading", { text: "El sitio por dentro", tag: "h2", align: "center" }, "Título"),
+            ], null, "Columna del título"),
+          ], 20, "Fila del título"),
+          t.fila([foto(1), foto(2), foto(3)], 16, "Primera fila de fotos"),
+          t.fila([foto(4), foto(5), foto(6)], 16, "Segunda fila de fotos"),
+        ], { width: "padded" }, t.relleno("72px", "24px"));
+      },
+    },
+    {
+      slug: "datos-v2",
+      name: "Ficha de datos V.2",
+      desde: "info-table",
+      nota: "La tabla de características, fila a fila: cada dato y cada valor son un bloque.",
+      build: (t) => {
+        const dato = (n, clave, valor) => t.fila([
+          t.columna(6, [
+            t.nodo("paragraph", { text: clave }, `Dato ${n}`),
+          ], null, `Columna del dato ${n}`),
+          t.columna(6, [
+            t.nodo("paragraph", { text: valor, align: "right" }, `Valor ${n}`),
+          ], null, `Columna del valor ${n}`),
+        ], 12, `Fila de datos ${n}`);
+        return t.seccion("Ficha de datos V.2", [
+          t.fila([
+            t.columna(12, [
+              t.nodo("heading", { text: "Ficha del producto", tag: "h2" }, "Título"),
+            ], null, "Columna del título"),
+          ], 16, "Fila del título"),
+          dato(1, "Formato", "Tarro de 500 g"),
+          t.nodo("divider", {}, "Raya 1"),
+          dato(2, "Origen", "Sierra de Guadarrama"),
+          t.nodo("divider", {}, "Raya 2"),
+          dato(3, "Conservación", "Lugar seco, sin frío"),
+          t.nodo("divider", {}, "Raya 3"),
+          dato(4, "Caducidad", "24 meses"),
+          t.nodo("paragraph", { text: "Los valores son orientativos y pueden variar según la cosecha." }, "Pie de la ficha"),
+        ], { width: "padded" }, t.relleno("72px", "24px"));
+      },
+    },
+    {
+      slug: "portada-v2",
+      name: "Portada de marca V.2",
+      desde: "brand-hero",
+      nota: "Portada a pantalla completa: antetítulo, titular grande, dos subtítulos y botón.",
+      build: (t) => t.seccion("Portada de marca V.2", [
+        t.fila([
+          t.columnaAlineada(12, "center", [
+            t.nodo("eyebrow", { text: "DESDE 1998" }, "Antetítulo"),
+            t.nodo("heading", { text: "MIEL CRUDA", tag: "h1", align: "center" }, "Titular"),
+            t.nodo("heading", { text: "de la sierra", tag: "h2", align: "center" }, "Segundo titular"),
+            t.nodo("paragraph", { text: "Sin filtrar, sin pasteurizar, sin prisa.", align: "center" }, "Subtítulo"),
+            t.nodo("button", { text: "Ver la tienda", url: "#", variant: "primary" }, "Botón"),
+          ], "Columna de la portada"),
+        ], 20, "Fila de la portada"),
+      ], { width: "full", minHeight: "screen-minus-header", vAlign: "center" }, t.relleno("96px", "32px")),
+    },
+    {
+      slug: "carril-v2",
+      name: "Carril de productos V.2",
+      desde: "product-rail",
+      nota: "Cuatro productos en fila; categoría, foto, nombre, precio y enlace, cada uno aparte.",
+      build: (t) => {
+        const prod = (n, nombre, precio) => t.columna(3, [
+          t.nodo("image", { alt: "", objectFit: "cover" }, `Foto ${n}`, { "min-height": "260px" }),
+          t.nodo("eyebrow", { text: "CATEGORÍA" }, `Categoría ${n}`),
+          t.nodo("heading", { text: nombre, tag: "h3" }, `Nombre ${n}`),
+          t.nodo("paragraph", { text: precio }, `Precio ${n}`),
+          t.nodo("button", { text: "Ver producto", url: "#", variant: "ghost" }, `Botón ${n}`),
+        ], null, `Producto ${n}`);
+        return t.seccion("Carril de productos V.2", [
+          t.fila([
+            t.columna(8, [
+              t.nodo("heading", { text: "Lo más vendido", tag: "h2" }, "Título"),
+            ], null, "Columna del título"),
+            t.columnaAlineada(4, "end", [
+              t.nodo("button", { text: "Ver todo", url: "#", variant: "ghost" }, "Botón de la cabecera"),
+            ], "Columna del botón"),
+          ], 24, "Fila del encabezado"),
+          t.fila([prod(1, "Tarro de 500 g", "12,00 €"), prod(2, "Tarro de 250 g", "7,50 €"), prod(3, "Pack de tres", "32,00 €"), prod(4, "Caja regalo", "45,00 €")], 24, "Fila de productos"),
+        ], { width: "padded" }, t.relleno("80px", "24px"));
       },
     },
   ];
