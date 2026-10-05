@@ -67,13 +67,43 @@ class BrandRenders {
 	}
 
 	/** Título con revelado opcional por letra, accesible (texto real en sr-only). */
+	/**
+	 * Titular grande, con o sin marcas dentro de la linea.
+	 *
+	 * El titular se escribe con el editor visual, asi que puede traer
+	 * una palabra en negrita, una cursiva o un enlace. Esas marcas no
+	 * se pueden partir letra a letra sin romper el HTML, de modo que
+	 * cuando las hay el titular aparece de una pieza (la animacion
+	 * pasa de «letra a letra» a «fundido») y cuando no las hay todo
+	 * sigue exactamente como estaba.
+	 *
+	 * El `<br>` que escribe el editor vale lo mismo que un salto de
+	 * linea manual: parte el titular en dos lineas.
+	 */
 	private static function display_title( string $text, string $tag, string $classes, string $reveal = 'none' ): string {
-		if ( '' === trim( $text ) ) {
+		if ( '' === trim( wp_strip_all_tags( $text ) ) ) {
 			return '';
+		}
+		$text = \Meridian\Security\Sanitizer::inline( $text );
+		$text = preg_replace( '#<br\s*/?>#i', "\n", $text );
+		$con_marcas = str_contains( $text, '<' );
+		if ( ! $con_marcas ) {
+			// Sin marcas vuelve a ser texto plano: si se dejaran las
+			// entidades, `esc_html()` escaparia el escape y una «&»
+			// saldria en pantalla como «&amp;».
+			$text = html_entity_decode( $text, ENT_QUOTES, 'UTF-8' );
 		}
 		$lines = preg_split( '/\r\n|\r|\n/', $text ) ?: [ $text ];
 		$inner = '';
-		if ( 'letters' === $reveal ) {
+		if ( $con_marcas ) {
+			// Hay formato: no se parte en letras.
+			if ( 'letters' === $reveal ) {
+				$reveal = 'fade';
+			}
+			foreach ( $lines as $line ) {
+				$inner .= '<span class="m-line">' . $line . '</span>';
+			}
+		} elseif ( 'letters' === $reveal ) {
 			$inner .= '<span class="screen-reader-text">' . esc_html( $text ) . '</span>';
 			foreach ( $lines as $line ) {
 				$inner .= '<span class="m-line">' . self::letters( $line ) . '</span>';
@@ -239,7 +269,7 @@ class BrandRenders {
 			$body .= '<' . $tag . ' class="' . $cls . '">' . esc_html( $title ) . '</' . $tag . '>';
 		}
 		if ( '' !== $text ) {
-			$body .= '<span class="m-card-text">' . esc_html( $text ) . '</span>';
+			$body .= '<span class="m-card-text">' . ComponentRenders::prosa( $text ) . '</span>';
 		}
 		if ( '' !== $cta ) {
 			$body .= '<span class="m-card-cta">' . esc_html( $cta ) . '</span>';
@@ -526,7 +556,7 @@ class BrandRenders {
 			$copy .= self::display_title( (string) $props['subtitle2'], 'p', 'm-bh-sub m-track-wide', 'fade' );
 		}
 		if ( ! empty( $props['text'] ) ) {
-			$copy .= '<p class="m-bh-text">' . nl2br( esc_html( (string) $props['text'] ) ) . '</p>';
+			$copy .= '<p class="m-bh-text">' . nl2br( ComponentRenders::prosa( (string) $props['text'] ) ) . '</p>';
 		}
 		$btns = is_array( $props['buttons'] ?? null ) ? $props['buttons'] : [];
 		$row  = '';
@@ -560,7 +590,7 @@ class BrandRenders {
 
 		$split_extra = '';
 		if ( 'split' === $variant && $img ) {
-			$split_extra = '<div class="m-bh-side">' . self::media( $ctx, $img, (string) ( $props['title'] ?? '' ), 'm-bh-side-img', 'large', true ) . '</div>';
+			$split_extra = '<div class="m-bh-side">' . self::media( $ctx, $img, ComponentRenders::texto_plano( $props['title'] ?? '' ), 'm-bh-side-img', 'large', true ) . '</div>';
 			$media       = '';
 		}
 
@@ -611,7 +641,7 @@ class BrandRenders {
 		}
 		$copy .= '</div>';
 
-		$media = '<div class="m-sf-media is-shape-' . $shape . '">' . self::media( $ctx, $img, (string) ( $props['title'] ?? '' ), 'm-sf-img' ) . '</div>';
+		$media = '<div class="m-sf-media is-shape-' . $shape . '">' . self::media( $ctx, $img, ComponentRenders::texto_plano( $props['title'] ?? '' ), 'm-sf-img' ) . '</div>';
 
 		return ComponentRenders::wrap(
 			$node,
@@ -669,7 +699,7 @@ class BrandRenders {
 		}
 		$body .= '<div class="m-sc-headline">' . $icons . self::display_title( (string) ( $props['title'] ?? '' ), 'h2', 'm-sc-title m-track-wide', 'letters' ) . '</div>';
 		if ( ! empty( $props['text'] ) ) {
-			$body .= '<p class="m-sc-text">' . nl2br( esc_html( (string) $props['text'] ) ) . '</p>';
+			$body .= '<p class="m-sc-text">' . nl2br( ComponentRenders::prosa( (string) $props['text'] ) ) . '</p>';
 		}
 		if ( ! empty( $props['buttonText'] ) ) {
 			$body .= '<div class="m-btn-row"><a class="m-btn m-btn-primary" href="' . esc_url( (string) ( $props['buttonUrl'] ?: '#' ) ) . '">' . esc_html( (string) $props['buttonText'] ) . '</a></div>';
@@ -826,7 +856,7 @@ class BrandRenders {
 		$head = '<div class="m-fc-head is-align-' . $align . '">';
 		$head .= self::display_title( (string) ( $props['title'] ?? '' ), self::tag( $props['titleTag'] ?? 'h2' ), 'm-fc-title m-track-normal', 'fade' );
 		if ( ! empty( $props['text'] ) ) {
-			$head .= '<p class="m-fc-intro">' . nl2br( esc_html( (string) $props['text'] ) ) . '</p>';
+			$head .= '<p class="m-fc-intro">' . nl2br( ComponentRenders::prosa( (string) $props['text'] ) ) . '</p>';
 		}
 		$head .= '</div>';
 
@@ -936,7 +966,7 @@ class BrandRenders {
 				: '';
 			$slides .= '<li class="m-rev-slide" role="group" aria-roledescription="slide">'
 				. '<blockquote class="m-rev-card">' . $stars
-				. '<p class="m-rev-text"' . $text_attr . '>' . esc_html( (string) $it['text'] ) . '</p>'
+				. '<p class="m-rev-text"' . $text_attr . '>' . ComponentRenders::prosa( (string) $it['text'] ) . '</p>'
 				. $more_btn . $meta . '</blockquote></li>';
 			$dots   .= '<button type="button" class="m-rev-dot' . ( 0 === $i ? ' is-on' : '' ) . '" data-rev-dot="' . $i . '" aria-label="' . esc_attr( sprintf( /* translators: %d index */ __( 'Reseña %d', 'meridian' ), $i + 1 ) ) . '"></button>';
 		}
@@ -999,7 +1029,7 @@ class BrandRenders {
 
 			$num_html = '' !== $num ? '<span class="m-nl-num" aria-hidden="true">' . esc_html( $num ) . '</span>' : '';
 			$fig      = $img ? '<div class="m-nl-media">' . self::media( $ctx, $img, $alt, 'm-nl-img' ) . '</div>' : '';
-			$body     = ( '' !== $text ? '<p class="m-nl-text">' . nl2br( esc_html( $text ) ) . '</p>' : '' ) . $fig;
+			$body     = ( '' !== $text ? '<p class="m-nl-text">' . ComponentRenders::prosa_br( $text ) . '</p>' : '' ) . $fig;
 
 			if ( 'accordion' === $variant ) {
 				$open   = ( $open1 && 0 === $i ) ? ' open' : '';
@@ -1047,7 +1077,7 @@ class BrandRenders {
 			$title = trim( (string) ( $it['title'] ?? '' ) );
 			$url   = (string) ( $it['url'] ?? '' );
 			$body  = ( '' !== $label ? '<span class="m-sl-label">' . esc_html( $label ) . '</span>' : '' )
-				. '<span class="m-sl-title">' . esc_html( $title ) . '</span>';
+				. '<span class="m-sl-title">' . ComponentRenders::prosa( $title ) . '</span>';
 			$rows .= '<li class="m-sl-row">' . ( '' !== $url
 				? '<a class="m-sl-link" href="' . esc_url( $url ) . '">' . $body . '</a>'
 				: $body ) . '</li>';
@@ -1072,14 +1102,25 @@ class BrandRenders {
 		$theme = self::theme( $props['theme'] ?? 'cream' );
 		$max   = max( 320, min( 1600, absint( $props['maxWidth'] ?? 900 ) ) );
 
-		$words = preg_split( '/\s+/u', $text ) ?: [];
-		$out   = '';
+		// El texto se revela palabra a palabra, asi que hay que partirlo.
+		// Si trae formato del editor visual (una palabra en negrita, un
+		// enlace) no se puede partir sin romper el HTML: entonces se
+		// escribe de una pieza y el revelado lo hace el parrafo entero.
+		$text       = \Meridian\Security\Sanitizer::inline( $text );
+		$con_marcas = str_contains( $text, '<' );
+		$plano      = $con_marcas ? '' : html_entity_decode( $text, ENT_QUOTES, 'UTF-8' );
+		$words      = $con_marcas ? [] : ( preg_split( '/\s+/u', $plano ) ?: [] );
+		$out        = '';
 		foreach ( $words as $i => $w ) {
 			$out .= '<span class="m-st-w" style="--m-w:' . (int) $i . '" aria-hidden="true">' . esc_html( $w ) . '</span> ';
 		}
+		if ( $con_marcas ) {
+			$out = '<span class="m-st-w" style="--m-w:0">' . $text . '</span>';
+		}
 
 		$inner = '<div class="m-container"><p class="m-st-text is-align-' . $align . '" data-scroll-text>'
-			. '<span class="screen-reader-text">' . esc_html( $text ) . '</span>' . $out . '</p></div>';
+			. ( $con_marcas ? '' : '<span class="screen-reader-text">' . esc_html( $plano ) . '</span>' )
+			. $out . '</p></div>';
 
 		return ComponentRenders::wrap(
 			$node,
@@ -1088,7 +1129,7 @@ class BrandRenders {
 			$inner,
 			[
 				'class' => 'm-st is-size-' . $size . ' is-theme-' . $theme,
-				'style' => '--m-st-max:' . $max . 'px;--m-st-count:' . count( $words ) . ';' . self::section_style( $props ),
+				'style' => '--m-st-max:' . $max . 'px;--m-st-count:' . max( 1, count( $words ) ) . ';' . self::section_style( $props ),
 			]
 		);
 	}
@@ -1119,7 +1160,7 @@ class BrandRenders {
 				. '<span class="m-tr-body">'
 				. '<span class="m-tr-title">' . esc_html( $title ) . '</span>'
 				. ( '' !== $meta ? '<span class="m-tr-meta">' . esc_html( $meta ) . '</span>' : '' )
-				. ( '' !== $text ? '<span class="m-tr-text">' . esc_html( $text ) . '</span>' : '' )
+				. ( '' !== $text ? '<span class="m-tr-text">' . ComponentRenders::prosa( $text ) . '</span>' : '' )
 				. '</span></li>';
 		}
 
@@ -1129,7 +1170,7 @@ class BrandRenders {
 		}
 		$head .= self::display_title( (string) ( $props['title'] ?? '' ), self::tag( $props['titleTag'] ?? 'h2' ), 'm-tr-heading m-track-wide', 'letters' );
 		if ( ! empty( $props['text'] ) ) {
-			$head .= '<p class="m-tr-intro">' . nl2br( esc_html( (string) $props['text'] ) ) . '</p>';
+			$head .= '<p class="m-tr-intro">' . nl2br( ComponentRenders::prosa( (string) $props['text'] ) ) . '</p>';
 		}
 
 		$ph   = trim( (string) ( $props['placeholder'] ?? '' ) ) ?: __( 'Código', 'meridian' );
@@ -1236,7 +1277,7 @@ class BrandRenders {
 			. '<th scope="col">' . esc_html( (string) ( $props['headA'] ?? '' ) ) . '</th>'
 			. '<th scope="col">' . esc_html( (string) ( $props['headB'] ?? '' ) ) . '</th>'
 			. '</tr></thead><tbody>' . $body . '</tbody></table></div>'
-			. ( '' !== $caption ? '<p class="m-it-caption">' . esc_html( $caption ) . '</p>' : '' );
+			. ( '' !== $caption ? '<p class="m-it-caption">' . ComponentRenders::prosa( $caption ) . '</p>' : '' );
 
 		return ComponentRenders::wrap( $node, $ctx, 'div', $inner, array_merge( [ 'class' => 'm-it is-theme-' . $theme ], self::style_attr( $props ) ) );
 	}
@@ -1297,7 +1338,7 @@ class BrandRenders {
 		}
 		$copy .= $title_html;
 		if ( ! empty( $props['subtitle'] ) ) {
-			$copy .= '<p class="m-sp-sub m-track-wide">' . nl2br( esc_html( (string) $props['subtitle'] ) ) . '</p>';
+			$copy .= '<p class="m-sp-sub m-track-wide">' . nl2br( ComponentRenders::prosa( (string) $props['subtitle'] ) ) . '</p>';
 		}
 		$rich = (string) ( $props['text'] ?? '' );
 		if ( '' !== trim( wp_strip_all_tags( $rich ) ) ) {
@@ -1614,7 +1655,7 @@ class BrandRenders {
 			$body .= '<span class="m-carta-badge">' . esc_html( $badge ) . '</span>';
 		}
 		if ( '' !== $text ) {
-			$body .= '<span class="m-carta-desc">' . nl2br( esc_html( $text ) ) . '</span>';
+			$body .= '<span class="m-carta-desc">' . ComponentRenders::prosa_br( $text ) . '</span>';
 		}
 
 		// Un boton no puede ir dentro de un enlace. Cuando el plato tiene

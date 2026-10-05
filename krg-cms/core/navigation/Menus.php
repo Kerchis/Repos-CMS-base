@@ -316,6 +316,15 @@ class Menus {
 			'animDuration'=> max( 0, min( 3000, absint( $data['animDuration'] ?? 600 ) ) ),
 			'animDelay'   => max( 0, min( 3000, absint( $data['animDelay'] ?? 0 ) ) ),
 			'distribute'  => in_array( $data['distribute'] ?? 'none', [ 'none', 'x', 'y' ], true ) ? $data['distribute'] : 'none',
+			// Tipografía del menú de la cabecera. Vacío significa «lo que
+			// diga el tema»: así una cabecera que nunca se tocó se ve
+			// exactamente igual que antes.
+			'navFont'      => sanitize_text_field( $data['navFont'] ?? '' ),
+			'navWeight'    => preg_replace( '/[^0-9]/', '', (string) ( $data['navWeight'] ?? '' ) ),
+			'navStyle'     => in_array( ( $data['navStyle'] ?? '' ), [ 'italic', 'oblique' ], true ) ? (string) $data['navStyle'] : 'normal',
+			'navSize'      => max( 0, min( 48, absint( $data['navSize'] ?? 0 ) ) ),
+			'navTransform' => in_array( ( $data['navTransform'] ?? '' ), [ 'uppercase', 'lowercase', 'capitalize' ], true ) ? (string) $data['navTransform'] : 'none',
+			'navTracking'  => max( -10, min( 100, (int) ( $data['navTracking'] ?? 0 ) ) ),
 			'navModeDesktop' => self::nav_mode( $data['navModeDesktop'] ?? 'bar', 'bar' ),
 			'navModeTablet'  => self::nav_mode( $data['navModeTablet'] ?? 'bar', 'bar' ),
 			'navModeMobile'  => self::nav_mode( $data['navModeMobile'] ?? 'drawer', 'drawer' ),
@@ -490,6 +499,12 @@ class Menus {
 			'animDuration'=> 600,
 			'animDelay'   => 0,
 			'distribute'  => 'none',
+			'navFont'      => '',
+			'navWeight'    => '',
+			'navStyle'     => 'normal',
+			'navSize'      => 0,
+			'navTransform' => 'none',
+			'navTracking'  => 0,
 			'navModeDesktop' => 'bar',
 			'navModeTablet'  => 'bar',
 			'navModeMobile'  => 'drawer',

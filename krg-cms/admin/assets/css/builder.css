@@ -804,7 +804,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   font-size: 12px;
   cursor: pointer;
 }
-.b-rt-area { min-height: 140px; }
+.b-rt-area { min-height: 140px; width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
 .b-rt-visual {
   min-height: 140px;
   border: 1px solid var(--m-line);
@@ -816,6 +816,20 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 }
 .b-rt-visual:focus { outline: 2px solid var(--m-brown); }
 .b-rt-bar button.is-on { background: var(--m-brown); color: var(--m-surface-soft); border-color: var(--m-brown); }
+
+/* Editor de texto de los campos del bloque.
+   En un titular o una descripcion el recuadro no necesita ser tan
+   alto como el del modulo de texto largo: crece con lo que se
+   escribe y arranca con dos lineas. */
+.b-rt { display: block; margin-bottom: 10px; }
+.b-rt-label { display: block; font-size: 12px; margin-bottom: 4px; }
+.b-rt-sep { flex: 1 1 auto; }
+.b-rt-b { line-height: 1; }
+.b-rt[data-rt-modo="linea"] .b-rt-visual,
+.b-rt[data-rt-modo="linea"] .b-rt-area { min-height: 52px; }
+.b-rt-visual img { max-width: 100%; height: auto; }
+.b-rt-visual:empty::before { content: attr(data-vacio); color: var(--m-muted, #888); }
+.b-rt-tab { font-size: 11px; }
 .b-tree { max-height: 42vh; overflow: auto; }
 .b-tabs { display: flex; gap: 4px; margin: 0 0 12px; }
 .b-tabs button {

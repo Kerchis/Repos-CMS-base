@@ -620,18 +620,18 @@
   function bodyTextContent(node) {
     const p = node.props || {};
     if (node.type === "heading") {
-      return `<label>Contenido <textarea data-prop="text">${esc(p.text || "")}</textarea></label>
+      return `${richEditor(node, "text", "linea", "Contenido")}
         <label>Enlace <input data-prop="link" value="${esc(p.link || "")}" placeholder="https://"></label>`;
     }
     if (node.type === "paragraph") {
-      return `<label>Contenido <textarea data-prop="text">${esc(p.text || "")}</textarea></label>`;
+      return richEditor(node, "text", "linea", "Contenido");
     }
-    if (node.type === "rich-text") return richEditor(node, "html");
+    if (node.type === "rich-text") return richEditor(node, "html", "bloque", "Contenido");
     if (node.type === "eyebrow") {
       return `<label>Contenido <input data-prop="text" value="${esc(p.text || "")}"></label>`;
     }
     if (node.type === "quote") {
-      return `<label>Texto <textarea data-prop="text">${esc(p.text || "")}</textarea></label>
+      return `${richEditor(node, "text", "linea", "Texto")}
         <label>Autor <input data-prop="cite" value="${esc(p.cite || "")}"></label>`;
     }
     return "";
@@ -1386,24 +1386,60 @@
     return out;
   }
 
-  function richEditor(node, key) {
-    const mode = state.rtMode || "visual";
-    const val = node.props?.[key] || "";
-    return `<div class="b-rt">
+  /* ================================================================
+     Editor de texto con botones (como el de WordPress)
+     ================================================================ */
+
+  /**
+   * Un campo de texto con barra de formato.
+   *
+   * Hasta ahora casi todos los textos se escribian en un recuadro
+   * pelado: lo que se tecleaba era lo que salia, sin una negrita ni un
+   * enlace. Aqui se escribe viendo el resultado, como en WordPress, y
+   * debajo sigue estando el mismo `<textarea>` de siempre con el HTML
+   * dentro: ese recuadro es el que guarda, el que el inspector ya
+   * sabia leer y el que los bancos de pruebas siguen usando. El editor
+   * visual solo escribe en el.
+   *
+   * Dos modos:
+   *  - «linea»: un titular, un subtitulo, la descripcion de una
+   *    tarjeta. Admite negrita, cursiva, subrayado, tachado y enlace.
+   *    El Enter parte la linea, no abre un parrafo nuevo.
+   *  - «bloque»: el modulo de texto enriquecido. Ademas, listas,
+   *    parrafos e imagenes.
+   *
+   * La pestana «HTML» ensena el codigo tal cual, por si alguien
+   * prefiere escribirlo a mano. Es el mismo contenido: solo cambia
+   * como se ve.
+   */
+  function editorRico(attrs, valor, modo, etiqueta) {
+    const bloque = modo === "bloque";
+    const bot = (cmd, cara, titulo) =>
+      `<button type="button" class="b-rt-b" data-rt-cmd="${cmd}" title="${esc(titulo)}" aria-label="${esc(titulo)}">${cara}</button>`;
+    return `<div class="b-rt" data-rt-caja data-rt-modo="${bloque ? "bloque" : "linea"}">
+      ${etiqueta ? `<span class="b-rt-label">${esc(etiqueta)}</span>` : ""}
       <div class="b-rt-bar">
-        <button type="button" data-rt-mode="visual" class="${mode === "visual" ? "is-on" : ""}">Visual</button>
-        <button type="button" data-rt-mode="code" class="${mode === "code" ? "is-on" : ""}">Texto</button>
-        <button type="button" data-rt-media="${key}">Añadir media</button>
-        <button type="button" data-rt="b" data-rt-key="${key}"><b>B</b></button>
-        <button type="button" data-rt="i" data-rt-key="${key}"><i>I</i></button>
-        <button type="button" data-rt="u" data-rt-key="${key}"><u>U</u></button>
-        <button type="button" data-rt="ul" data-rt-key="${key}">Lista</button>
-        <button type="button" data-rt="a" data-rt-key="${key}">Enlace</button>
+        ${bot("bold", "<b>B</b>", "Negrita")}
+        ${bot("italic", "<i>I</i>", "Cursiva")}
+        ${bot("underline", "<u>U</u>", "Subrayado")}
+        ${bot("strikeThrough", "<s>S</s>", "Tachado")}
+        ${bloque ? bot("insertUnorderedList", "•", "Lista") + bot("insertOrderedList", "1.", "Lista numerada") + bot("formatBlock:p", "¶", "Párrafo") : ""}
+        ${bot("createLink", "🔗", "Enlace")}
+        ${bot("unlink", "⛓", "Quitar el enlace")}
+        ${bot("removeFormat", "✕", "Quitar el formato")}
+        ${bloque ? `<button type="button" class="b-rt-b" data-rt-media title="Insertar imagen">🖼</button>` : ""}
+        <span class="b-rt-sep"></span>
+        <button type="button" class="b-rt-tab is-on" data-rt-tab="visual">Visual</button>
+        <button type="button" class="b-rt-tab" data-rt-tab="html">HTML</button>
       </div>
-      ${mode === "code"
-        ? `<textarea data-prop="${key}" class="b-rt-area">${esc(val)}</textarea>`
-        : `<div class="b-rt-visual" contenteditable="true" data-rt-html="${key}"></div>`}
+      <div class="b-rt-visual" contenteditable="true" role="textbox" aria-multiline="true" data-rt-visual></div>
+      <textarea class="b-rt-area" ${attrs} hidden>${esc(valor || "")}</textarea>
     </div>`;
+  }
+
+  /** El editor de un campo del propio bloque. */
+  function richEditor(node, key, modo, etiqueta) {
+    return editorRico(`data-prop="${esc(key)}"`, node.props?.[key] || "", modo || "bloque", etiqueta);
   }
 
 
@@ -1479,8 +1515,13 @@
         ${opts.map((o) => `<option value="${esc(o)}" ${cur === o ? "selected" : ""}>${esc(o)}</option>`).join("")}
       </select></label>`;
     }
-    if (sf.type === "textarea") {
-      return `<label>${esc(sf.label)} <textarea data-rep="${f.key}" data-i="${i}" data-k="${sf.key}">${esc(it[sf.key] ?? "")}</textarea></label>`;
+    if (sf.type === "textarea" || sf.type === "richtext") {
+      return editorRico(
+        `data-rep="${esc(f.key)}" data-i="${i}" data-k="${esc(sf.key)}"`,
+        it[sf.key] ?? "",
+        sf.type === "richtext" ? "bloque" : "linea",
+        sf.label
+      );
     }
     if (sf.type === "toggle") {
       return `<label class="rep-toggle">${esc(sf.label)} <input type="checkbox" data-rep-bool="${f.key}" data-i="${i}" data-k="${sf.key}" ${it[sf.key] ? "checked" : ""}></label>`;
@@ -1734,22 +1775,10 @@
       return `<label>${esc(f.label)} <input type="checkbox" data-prop="${f.key}" ${val ? "checked" : ""}></label>`;
     }
     if (f.type === "richtext") {
-      return `<label class="m-pick-label">${esc(f.label)}
-        <div class="b-rt">
-          <div class="b-rt-bar">
-            <button type="button" data-rt="b" data-rt-key="${f.key}"><b>B</b></button>
-            <button type="button" data-rt="i" data-rt-key="${f.key}"><i>I</i></button>
-            <button type="button" data-rt="u" data-rt-key="${f.key}"><u>U</u></button>
-            <button type="button" data-rt="ul" data-rt-key="${f.key}">• Lista</button>
-            <button type="button" data-rt="a" data-rt-key="${f.key}">Enlace</button>
-            <button type="button" data-rt="p" data-rt-key="${f.key}">P</button>
-          </div>
-          <textarea data-prop="${f.key}" class="b-rt-area">${esc(val || "")}</textarea>
-        </div>
-      </label>`;
+      return editorRico(`data-prop="${esc(f.key)}"`, val || "", "bloque", f.label);
     }
     if (f.type === "textarea") {
-      return `<label>${esc(f.label)} <textarea data-prop="${f.key}">${esc(val || "")}</textarea></label>`;
+      return editorRico(`data-prop="${esc(f.key)}"`, val || "", "linea", f.label);
     }
     if (f.type === "mapsUrl") {
       return `<label class="m-pick-label">${esc(f.label)}
@@ -2116,74 +2145,94 @@
         markDirty();
       });
     });
-    box.querySelectorAll("[data-rt]").forEach((b) => {
-      b.onclick = () => {
-        const vis = box.querySelector(`[data-rt-html="${b.dataset.rtKey}"]`);
-        if (vis) {
-          vis.focus();
-          const cmd = { b: "bold", i: "italic", u: "underline", ul: "insertUnorderedList" };
-          if (b.dataset.rt === "a") {
-            const url = window.prompt("URL del enlace", "https://");
-            if (url) document.execCommand("createLink", false, url);
-          } else if (cmd[b.dataset.rt]) {
-            document.execCommand(cmd[b.dataset.rt], false, null);
-          }
-          const h = hit();
-          if (h) h.node.props[b.dataset.rtKey] = vis.innerHTML;
-          markDirty();
-          return;
-        }
-        const ta = box.querySelector(`[data-prop="${b.dataset.rtKey}"]`);
-        if (!ta) return;
-        const a = ta.selectionStart, z = ta.selectionEnd;
-        const sel = ta.value.slice(a, z) || "texto";
-        const map = {
-          b: `<strong>${sel}</strong>`,
-          i: `<em>${sel}</em>`,
-          u: `<u>${sel}</u>`,
-          ul: `<ul><li>${sel}</li></ul>`,
-          p: `<p>${sel}</p>`,
-          a: `<a href="#">${sel}</a>`,
-        };
-        ta.value = ta.value.slice(0, a) + (map[b.dataset.rt] || sel) + ta.value.slice(z);
-        ta.dispatchEvent(new Event("input", { bubbles: true }));
+    /**
+     * Los editores de texto con botones.
+     *
+     * El recuadro editable y el `<textarea>` son la misma cosa vista
+     * de dos maneras: lo que se escribe arriba se copia abajo y abajo
+     * es donde ya estaba atado el guardado. Por eso aqui no se toca el
+     * estado del documento: se vuelca el HTML en el recuadro de
+     * siempre y se avisa con el mismo evento `input` que dispara un
+     * tecleo normal.
+     */
+    box.querySelectorAll("[data-rt-caja]").forEach((caja) => {
+      const area = caja.querySelector("textarea");
+      const vis = caja.querySelector("[data-rt-visual]");
+      if (!area || !vis || caja.dataset.rtAtado) return;
+      caja.dataset.rtAtado = "1";
+      vis.innerHTML = area.value || "";
+
+      const volcar = () => {
+        const html = vis.innerHTML.replace(/^<br\s*\/?>$/i, "").trim();
+        if (area.value === html) return;
+        area.value = html;
+        area.dispatchEvent(new Event("input", { bubbles: true }));
       };
-    });
-    box.querySelectorAll("[data-rt-mode]").forEach((b) => {
-      b.onclick = () => {
-        const vis = box.querySelector("[data-rt-html]");
-        const h = hit();
-        if (vis && h) h.node.props[vis.dataset.rtHtml] = vis.innerHTML;
-        state.rtMode = b.dataset.rtMode;
-        render({ keepFrame: true });
-      };
-    });
-    box.querySelectorAll("[data-rt-html]").forEach((el) => {
-      const h = hit();
-      el.innerHTML = h?.node?.props?.[el.dataset.rtHtml] || "";
-      el.addEventListener("input", () => {
-        const cur = hit();
-        if (!cur) return;
-        cur.node.props[el.dataset.rtHtml] = el.innerHTML;
-        markDirty();
+      vis.addEventListener("input", volcar);
+      vis.addEventListener("blur", volcar);
+      // Al pegar entra el texto, no el maquetado de Word o de una web.
+      vis.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const txt = (e.clipboardData || window.clipboardData)?.getData("text/plain") || "";
+        document.execCommand("insertText", false, txt);
       });
-    });
-    box.querySelectorAll("[data-rt-media]").forEach((b) => {
-      b.onclick = () => {
-        if (!window.wp?.media) return;
-        const frame = wp.media({ title: "Insertar imagen", multiple: false });
-        frame.on("select", () => {
-          const att = frame.state().get("selection").first().toJSON();
-          const h = hit();
-          if (!h) return;
-          const key = b.dataset.rtMedia;
-          const tag = `<img src="${att.url || ""}" alt="${att.alt || ""}">`;
-          h.node.props[key] = (h.node.props[key] || "") + tag;
-          markDirty();
-          render({ keepFrame: true });
+      if (caja.dataset.rtModo !== "bloque") {
+        // En un titular el Enter parte la linea; no abre un parrafo.
+        vis.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            document.execCommand("insertLineBreak");
+            volcar();
+          }
         });
-        frame.open();
-      };
+      }
+
+      caja.querySelectorAll("[data-rt-cmd]").forEach((b) => {
+        // Sin esto el raton quita el foco del texto y se pierde lo
+        // que habia seleccionado justo antes de pulsar el boton.
+        b.addEventListener("mousedown", (e) => e.preventDefault());
+        b.addEventListener("click", () => {
+          vis.focus();
+          try { document.execCommand("styleWithCSS", false, false); } catch (e) { /* da igual */ }
+          const orden = b.dataset.rtCmd;
+          if (orden === "createLink") {
+            const url = window.prompt("Dirección del enlace", "https://");
+            if (!url) return;
+            document.execCommand("createLink", false, url);
+          } else if (orden.startsWith("formatBlock:")) {
+            document.execCommand("formatBlock", false, orden.split(":")[1]);
+          } else {
+            document.execCommand(orden, false, null);
+          }
+          volcar();
+        });
+      });
+
+      caja.querySelectorAll("[data-rt-tab]").forEach((b) => {
+        b.addEventListener("click", () => {
+          const codigo = b.dataset.rtTab === "html";
+          if (codigo) volcar(); else vis.innerHTML = area.value || "";
+          vis.hidden = codigo;
+          area.hidden = !codigo;
+          caja.querySelectorAll("[data-rt-tab]").forEach((o) => o.classList.toggle("is-on", o === b));
+          (codigo ? area : vis).focus();
+        });
+      });
+
+      const media = caja.querySelector("[data-rt-media]");
+      if (media) {
+        media.addEventListener("click", () => {
+          if (!window.wp?.media) return;
+          const frame = wp.media({ title: "Insertar imagen", multiple: false });
+          frame.on("select", () => {
+            const att = frame.state().get("selection").first().toJSON();
+            vis.focus();
+            document.execCommand("insertHTML", false, `<img src="${att.url || ""}" alt="${att.alt || ""}">`);
+            volcar();
+          });
+          frame.open();
+        });
+      }
     });
     box.querySelectorAll("[data-color-custom]").forEach((inp) => {
       const apply = () => {
@@ -2963,15 +3012,57 @@
     iframe.contentWindow?.dispatchEvent(new Event("scroll"));
   }
 
+  /**
+   * El mismo filtro que el servidor, en el navegador.
+   *
+   * La vista del editor tiene que enseñar lo mismo que la web. Si el
+   * texto se metiera tal cual se vería «<strong>» escrito; si se
+   * metiera sin mirar, cualquier cosa pegada entraría en la página.
+   * Así que se filtra con la misma lista corta que usa el saneador de
+   * PHP: lo que no es una marca de línea se cae y su texto se queda.
+   */
+  const RT_LINEA = ["STRONG", "B", "EM", "I", "U", "S", "DEL", "INS", "MARK", "SMALL", "SUB", "SUP", "CODE", "BR", "SPAN", "A"];
+  const RT_BLOQUE = RT_LINEA.concat(["P", "UL", "OL", "LI", "BLOCKQUOTE", "H2", "H3", "H4", "IMG", "FIGURE", "FIGCAPTION"]);
+
+  function limpiaHtml(html, modo) {
+    const permitidas = modo === "bloque" ? RT_BLOQUE : RT_LINEA;
+    const caja = document.createElement("div");
+    caja.innerHTML = String(html ?? "");
+    const limpia = (padre) => {
+      [...padre.childNodes].forEach((nodo) => {
+        if (nodo.nodeType === 3) return;
+        if (nodo.nodeType !== 1) { nodo.remove(); return; }
+        if (!permitidas.includes(nodo.tagName)) {
+          // La etiqueta se va; lo que decía se queda.
+          while (nodo.firstChild) padre.insertBefore(nodo.firstChild, nodo);
+          nodo.remove();
+          return;
+        }
+        [...nodo.attributes].forEach((at) => {
+          const k = at.name.toLowerCase();
+          const vale = (nodo.tagName === "A" && ["href", "target", "rel", "title"].includes(k))
+            || (nodo.tagName === "IMG" && ["src", "alt", "width", "height"].includes(k))
+            || (k === "class" && ["SPAN", "P", "FIGURE", "FIGCAPTION"].includes(nodo.tagName));
+          if (!vale || /^javascript:/i.test(String(at.value).trim())) nodo.removeAttribute(at.name);
+        });
+        limpia(nodo);
+      });
+    };
+    limpia(caja);
+    return caja.innerHTML;
+  }
+
   function patchLiveContent(el, n) {
     const p = n.props || {};
     const setText = (node, val) => {
       if (!node || val == null) return;
-      if (node.childElementCount) {
-        const t = node.querySelector("h1,h2,h3,h4,h5,h6,p,span,a") || node;
-        if (t.childElementCount === 0) t.textContent = val;
-        else t.childNodes.forEach((c) => { if (c.nodeType === 3) c.textContent = val; });
-      } else node.textContent = val;
+      // El texto puede traer formato (negrita, cursiva, un enlace):
+      // va como HTML filtrado, que es justo lo que pinta el servidor.
+      const destino = node.childElementCount && !node.matches("h1,h2,h3,h4,h5,h6,p,span,a,blockquote,cite,div")
+        ? (node.querySelector("h1,h2,h3,h4,h5,h6,p,span,a") || node)
+        : node;
+      const html = limpiaHtml(val, "linea");
+      if (destino.innerHTML !== html) destino.innerHTML = html;
     };
     if (n.type === "heading") setText(el.querySelector("h1,h2,h3,h4,h5,h6,.m-heading") || el, p.text);
     if (n.type === "paragraph") setText(el.querySelector("p,.m-p") || el, p.text);
@@ -2983,7 +3074,8 @@
     }
     if (n.type === "rich-text" && p.html != null) {
       const box = el.querySelector(".m-rich, .m-rt") || el;
-      if (box.innerHTML !== p.html) box.innerHTML = p.html;
+      const html = limpiaHtml(p.html, "bloque");
+      if (box.innerHTML !== html) box.innerHTML = html;
     }
     if (n.type === "button" || n.type === "buttons") {
       const a = el.querySelector("a.m-btn, a");

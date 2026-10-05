@@ -156,7 +156,7 @@ console.log('\nPRUEBA 2 — los grupos de Diseño de la cabecera');
 await page.click('.b-insp [data-insp-tab="design"]');
 await esperar();
 const idsH = (await grupos()).map((x) => x.id);
-for (const g of ['h.align', 'h.navMode', 'h.colors', 'h.logo', 'h.size', 'h.glass', 'h.anim']) {
+for (const g of ['h.align', 'h.navType', 'h.navMode', 'h.colors', 'h.logo', 'h.size', 'h.glass', 'h.anim']) {
   ok(idsH.includes(g), `está el grupo ${g}`);
 }
 
@@ -172,6 +172,30 @@ await page.evaluate(() => document.querySelector('.b-insp [data-h-set="navModeDe
 ok(await esperarEnvio(enviados.header, n + 1), 'el tipo de menú se envía');
 ok(enviados.header[enviados.header.length - 1].navModeDesktop === 'drawer',
   `tipo de menú en escritorio = ${enviados.header[enviados.header.length - 1].navModeDesktop}`);
+
+console.log('\nPRUEBA 3b — la tipografía del menú');
+// Hasta ahora los enlaces del menú iban con la familia de títulos y no
+// había dónde cambiarlos. Ahora se eligen aquí, como el copyright del pie.
+const tipoMenu = await page.evaluate(() => ({
+  familia: !!document.querySelector('.b-insp [data-font="navFont"], .b-insp [data-h="navFont"]'),
+  peso: !!document.querySelector('.b-insp [data-h="navWeight"]'),
+  tam: !!document.querySelector('.b-insp [data-h-num="navSize"]'),
+  caja: !!document.querySelector('.b-insp [data-h="navTransform"]'),
+  track: !!document.querySelector('.b-insp [data-h-num="navTracking"]'),
+}));
+ok(tipoMenu.familia, 'hay familia tipográfica para el menú');
+ok(tipoMenu.peso && tipoMenu.tam, 'con peso y tamaño');
+ok(tipoMenu.caja && tipoMenu.track, 'con caja (mayúsculas) y espaciado entre letras');
+n = enviados.header.length;
+await page.selectOption('.b-insp [data-h="navTransform"]', 'uppercase');
+ok(await esperarEnvio(enviados.header, n + 1), 'elegir la caja se envía');
+ok(enviados.header[enviados.header.length - 1].navTransform === 'uppercase',
+  `caja guardada = ${enviados.header[enviados.header.length - 1].navTransform}`);
+n = enviados.header.length;
+await page.fill('.b-insp [data-h-num="navSize"]', '18');
+ok(await esperarEnvio(enviados.header, n + 1), 'y el tamaño también');
+ok(Number(enviados.header[enviados.header.length - 1].navSize) === 18,
+  `tamaño guardado = ${enviados.header[enviados.header.length - 1].navSize}`);
 
 console.log('\nPRUEBA 4 — Avanzado de la cabecera');
 await page.click('.b-insp [data-insp-tab="advanced"]');
@@ -388,10 +412,38 @@ const elegido = await page.evaluate(() => ({
 ok(elegido.titulo === 'Teléfono', `al pulsar una pieza se edita sólo ella («${elegido.titulo}»)`);
 ok((elegido.campo || '').includes('000'), `con su propio texto («${elegido.campo || ''}»)`);
 n = enviados.footer.length;
-await page.fill('.b-insp [data-prop="text"]', '+34 600 123 456');
+// El campo de texto ahora es el editor con botones: se escribe en el
+// recuadro visual y eso vuelca en el `<textarea>` de siempre.
+async function escribirProsa(prop, texto) {
+  await page.evaluate(([p, t]) => {
+    const area = document.querySelector(`.b-insp [data-prop="${p}"]`);
+    const caja = area?.closest('[data-rt-caja]');
+    const vis = caja?.querySelector('[data-rt-visual]');
+    if (!vis) throw new Error('no hay editor para ' + p);
+    vis.focus();
+    vis.textContent = t;
+    vis.dispatchEvent(new Event('input', { bubbles: true }));
+  }, [prop, texto]);
+}
+await escribirProsa('text', '+34 600 123 456');
 ok(await esperarEnvio(enviados.footer, n + 1), 'y lo que se escribe en esa pieza se guarda');
 const guardadoPieza = JSON.stringify(enviados.footer[enviados.footer.length - 1]?.sections || []);
 ok(guardadoPieza.includes('+34 600 123 456'), 'dentro de las secciones del pie, como un nodo más');
+const editor = await page.evaluate(() => {
+  const area = document.querySelector('.b-insp [data-prop="text"]');
+  const caja = area?.closest('[data-rt-caja]');
+  return {
+    hay: !!caja,
+    botones: [...(caja?.querySelectorAll('[data-rt-cmd]') || [])].map((b) => b.dataset.rtCmd),
+    visual: caja?.querySelector('[data-rt-visual]')?.innerHTML || '',
+    oculto: !!area?.hidden,
+  };
+});
+ok(editor.hay, 'el texto se escribe con el editor de formato, no con un recuadro pelado');
+ok(editor.botones.includes('bold') && editor.botones.includes('italic') && editor.botones.includes('createLink'),
+  `con negrita, cursiva y enlace (${editor.botones.join(', ')})`);
+ok(editor.visual.includes('+34 600 123 456'), 'y lo escrito se ve en el editor');
+ok(editor.oculto, 'el recuadro de HTML queda detrás de la pestaña «HTML»');
 
 console.log('\nPRUEBA 13 — la barra de arriba y los paneles, como en páginas');
 const barra = await page.evaluate(() => ({
@@ -438,7 +490,7 @@ ok(srcAntes !== srcDespues, 'y la vista se recarga sola para enseñarlo');
 // Escribir texto no recarga: eso se pinta en vivo, sin parpadeo.
 const srcTexto = await page.evaluate(() => document.querySelector('.b-canvas iframe').src);
 n = enviados.footer.length;
-await page.fill('.b-insp [data-prop="text"]', 'Hola pie');
+await escribirProsa('text', 'Hola pie');
 ok(await esperarEnvio(enviados.footer, n + 1), 'escribir en un bloque se guarda');
 await esperar(700);
 ok(srcTexto === await page.evaluate(() => document.querySelector('.b-canvas iframe').src),

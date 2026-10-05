@@ -448,9 +448,42 @@ class ComponentRenders {
 		return self::wrap( $node, $ctx, 'hr', '', [ 'class' => 'm-divider is-' . $style ] );
 	}
 
+	/**
+	 * Un campo de prosa, listo para imprimir.
+	 *
+	 * Los campos de texto de los modulos se escriben con el editor
+	 * visual del panel, que deja marcas dentro de la linea: una
+	 * palabra en negrita, una cursiva, un enlace. Si el renderizador
+	 * las escapara, el lector veria «<strong>» en pantalla.
+	 *
+	 * Por eso aqui no se escapa: se filtra. `Sanitizer::inline()`
+	 * aplica la misma lista blanca corta que el guardado, asi que lo
+	 * que no sea una marca de linea se cae, tambien si el texto venia
+	 * de antes o lo escribio otro plugin. Para el texto plano sigue
+	 * estando `esc_html()`.
+	 */
+	public static function prosa( $value ): string {
+		return \Meridian\Security\Sanitizer::inline( (string) $value );
+	}
+
+	/**
+	 * El mismo campo, en texto plano.
+	 *
+	 * Para un atributo —el `alt` de una foto, un `title`— no vale el
+	 * HTML: ahi hay que escribir las palabras y nada mas.
+	 */
+	public static function texto_plano( $value ): string {
+		return trim( html_entity_decode( wp_strip_all_tags( (string) $value ), ENT_QUOTES, 'UTF-8' ) );
+	}
+
+	/** Lo mismo, respetando los saltos de linea manuales. */
+	public static function prosa_br( $value ): string {
+		return nl2br( self::prosa( $value ) );
+	}
+
 	public static function heading( array $node, array $props, string $children, RenderContext $ctx ): string {
 		$tag  = in_array( $props['tag'] ?? '', [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p' ], true ) ? $props['tag'] : 'h2';
-		$text = esc_html( $props['text'] ?? '' );
+		$text = self::prosa( $props['text'] ?? '' );
 		$link = $props['link'] ?? '';
 		if ( $link ) {
 			$text = '<a href="' . esc_url( $link ) . '">' . $text . '</a>';
@@ -461,7 +494,7 @@ class ComponentRenders {
 
 	public static function paragraph( array $node, array $props, string $children, RenderContext $ctx ): string {
 		$align = sanitize_html_class( $props['align'] ?? 'left' );
-		$text  = nl2br( esc_html( $props['text'] ?? '' ) );
+		$text  = nl2br( self::prosa( $props['text'] ?? '' ) );
 		return self::wrap( $node, $ctx, 'p', $text, [ 'class' => 'm-p m-align-' . $align ] );
 	}
 
@@ -474,7 +507,7 @@ class ComponentRenders {
 	}
 
 	public static function quote( array $node, array $props, string $children, RenderContext $ctx ): string {
-		$inner = '<p>' . esc_html( $props['text'] ?? '' ) . '</p>';
+		$inner = '<p>' . self::prosa( $props['text'] ?? '' ) . '</p>';
 		if ( ! empty( $props['cite'] ) ) {
 			$inner .= '<cite>' . esc_html( $props['cite'] ) . '</cite>';
 		}
@@ -487,9 +520,9 @@ class ComponentRenders {
 		if ( ! empty( $props['eyebrow'] ) ) {
 			$copy .= '<p class="m-eyebrow">' . esc_html( $props['eyebrow'] ) . '</p>';
 		}
-		$copy .= '<h1 class="m-hero-title m-role-h1">' . nl2br( esc_html( $props['title'] ?? '' ) ) . '</h1>';
+		$copy .= '<h1 class="m-hero-title m-role-h1">' . nl2br( self::prosa( $props['title'] ?? '' ) ) . '</h1>';
 		if ( ! empty( $props['subtitle'] ) ) {
-			$copy .= '<p class="m-hero-sub">' . nl2br( esc_html( $props['subtitle'] ) ) . '</p>';
+			$copy .= '<p class="m-hero-sub">' . nl2br( self::prosa( $props['subtitle'] ) ) . '</p>';
 		}
 		$btns = $props['buttons'] ?? [];
 		if ( $btns ) {
@@ -762,7 +795,7 @@ class ComponentRenders {
 		}
 		$inner .= '<div class="m-card-body">';
 		$inner .= '<h3 class="m-role-h3">' . esc_html( $props['title'] ?? '' ) . '</h3>';
-		$inner .= '<p>' . esc_html( $props['text'] ?? '' ) . '</p>';
+		$inner .= '<p>' . self::prosa( $props['text'] ?? '' ) . '</p>';
 		$inner .= '</div>';
 		if ( ! empty( $props['url'] ) ) {
 			$inner = '<a class="m-card-link" href="' . esc_url( $props['url'] ) . '">' . $inner . '</a>';
@@ -783,7 +816,7 @@ class ComponentRenders {
 	public static function feature( array $node, array $props, string $children, RenderContext $ctx ): string {
 		$inner  = '<div class="m-feature-icon" aria-hidden="true">' . esc_html( $props['icon'] ?? '' ) . '</div>';
 		$inner .= '<h3 class="m-role-h3">' . esc_html( $props['title'] ?? '' ) . '</h3>';
-		$inner .= '<p>' . esc_html( $props['text'] ?? '' ) . '</p>';
+		$inner .= '<p>' . self::prosa( $props['text'] ?? '' ) . '</p>';
 		return self::wrap( $node, $ctx, 'article', $inner, [ 'class' => 'm-feature' ] );
 	}
 
@@ -792,7 +825,7 @@ class ComponentRenders {
 		foreach ( $props['items'] ?? [] as $item ) {
 			$inner .= '<article class="m-feature"><div class="m-feature-icon" aria-hidden="true">' . esc_html( $item['icon'] ?? '' ) . '</div>';
 			$inner .= '<h3 class="m-role-h3">' . esc_html( $item['title'] ?? '' ) . '</h3>';
-			$inner .= '<p>' . esc_html( $item['text'] ?? '' ) . '</p></article>';
+			$inner .= '<p>' . self::prosa( $item['text'] ?? '' ) . '</p></article>';
 		}
 		$inner .= '</div>';
 		return self::wrap( $node, $ctx, 'div', $inner );
@@ -801,7 +834,7 @@ class ComponentRenders {
 	public static function testimonials( array $node, array $props, string $children, RenderContext $ctx ): string {
 		$inner = '<div class="m-grid">';
 		foreach ( $props['items'] ?? [] as $item ) {
-			$inner .= '<blockquote class="m-quote m-card"><p>' . esc_html( $item['text'] ?? '' ) . '</p>';
+			$inner .= '<blockquote class="m-quote m-card"><p>' . self::prosa( $item['text'] ?? '' ) . '</p>';
 			if ( ! empty( $item['cite'] ) ) {
 				$inner .= '<cite>' . esc_html( $item['cite'] ) . '</cite>';
 			}
@@ -822,7 +855,7 @@ class ComponentRenders {
 			++$i;
 			$id = sanitize_html_class( ( $node['id'] ?? 'acc' ) . '-' . $i );
 			$inner .= '<details class="m-acc"><summary>' . esc_html( $item['q'] ?? '' ) . '</summary>';
-			$inner .= '<div class="m-acc-body">' . nl2br( esc_html( $item['a'] ?? '' ) ) . '</div></details>';
+			$inner .= '<div class="m-acc-body">' . self::prosa_br( $item['a'] ?? '' ) . '</div></details>';
 		}
 		return self::wrap( $node, $ctx, 'div', $inner, [ 'class' => 'm-accordion' ] );
 	}
@@ -837,7 +870,7 @@ class ComponentRenders {
 			$selected = 1 === $i ? 'true' : 'false';
 			$hidden   = 1 === $i ? '' : ' hidden';
 			$tabs    .= '<button type="button" class="m-tab" role="tab" aria-selected="' . $selected . '" aria-controls="' . $id . '" id="' . $id . '-tab">' . esc_html( $item['q'] ?? '' ) . '</button>';
-			$pans    .= '<div class="m-tab-panel" role="tabpanel" id="' . $id . '"' . $hidden . '>' . nl2br( esc_html( $item['a'] ?? '' ) ) . '</div>';
+			$pans    .= '<div class="m-tab-panel" role="tabpanel" id="' . $id . '"' . $hidden . '>' . self::prosa_br( $item['a'] ?? '' ) . '</div>';
 		}
 		$inner = '<div class="m-tablist" role="tablist">' . $tabs . '</div>' . $pans;
 		return self::wrap( $node, $ctx, 'div', $inner, [ 'class' => 'm-tabs' ] );
@@ -856,7 +889,7 @@ class ComponentRenders {
 	public static function timeline( array $node, array $props, string $children, RenderContext $ctx ): string {
 		$inner = '<ol class="m-timeline">';
 		foreach ( $props['items'] ?? [] as $item ) {
-			$inner .= '<li><strong>' . esc_html( $item['q'] ?? '' ) . '</strong><p>' . esc_html( $item['a'] ?? '' ) . '</p></li>';
+			$inner .= '<li><strong>' . esc_html( $item['q'] ?? '' ) . '</strong><p>' . self::prosa( $item['a'] ?? '' ) . '</p></li>';
 		}
 		$inner .= '</ol>';
 		return self::wrap( $node, $ctx, 'div', $inner );
@@ -864,7 +897,7 @@ class ComponentRenders {
 
 	public static function cta( array $node, array $props, string $children, RenderContext $ctx ): string {
 		$inner  = '<h2 class="m-role-h2">' . esc_html( $props['title'] ?? '' ) . '</h2>';
-		$inner .= '<p>' . esc_html( $props['subtitle'] ?? '' ) . '</p>';
+		$inner .= '<p>' . self::prosa( $props['subtitle'] ?? '' ) . '</p>';
 		$inner .= self::btn(
 			[
 				'text'    => $props['text'] ?? __( 'Contactar', 'meridian' ),
@@ -1055,7 +1088,7 @@ class ComponentRenders {
 		$html .= '<p class="m-form-msg" hidden data-success="' . esc_attr( $props['success'] ?? '' ) . '"></p>';
 		$consent = trim( (string) ( $props['consent'] ?? '' ) );
 		if ( '' !== $consent ) {
-			$html .= '<p class="m-form-consent">' . esc_html( $consent ) . '</p>';
+			$html .= '<p class="m-form-consent">' . self::prosa( $consent ) . '</p>';
 		}
 		$html .= '</form>';
 		return self::wrap( $node, $ctx, 'div', $html );

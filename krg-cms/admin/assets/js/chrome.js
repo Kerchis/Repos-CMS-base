@@ -422,6 +422,18 @@
       + `@media(max-width:1023px){.m-site-header .m-logo img{width:var(--m-logo-w-tablet,var(--m-logo-w,140px))!important}}`
       + `@media(max-width:767px){.m-site-header .m-logo img{width:var(--m-logo-w-mobile,var(--m-logo-w-tablet,120px))!important}}`
       + `.m-site-header .m-nav-list a:hover,.m-site-header .m-nav-list .is-current > a{color:var(--m-nav-hover-fg,var(--color-primary))!important;background:var(--m-nav-hover-bg,transparent)}`
+      + (() => {
+        // Tipografía del menú: lo mismo que escribe el servidor en
+        // Chrome::css(), para que el lienzo enseñe ya el cambio.
+        const t = [];
+        if (h.navFont) t.push(`font-family:${h.navFont}`);
+        if (h.navWeight) t.push(`font-weight:${String(h.navWeight).replace(/[^0-9]/g, "")}`);
+        if (h.navStyle && h.navStyle !== "normal") t.push(`font-style:${h.navStyle}`);
+        if (Number(h.navSize)) t.push(`font-size:${Math.max(8, Math.min(48, Number(h.navSize)))}px`);
+        if (h.navTransform && h.navTransform !== "none") t.push(`text-transform:${h.navTransform}`);
+        if (Number(h.navTracking)) t.push(`letter-spacing:${Number(h.navTracking) / 100}em`);
+        return t.length ? `.m-site-header .m-nav-list a,.m-site-header .m-nav-toggle{${t.join(";")}}` : "";
+      })()
       + `.m-site-footer a:not(.m-btn),.m-site-footer .m-logo-text{color:${f.linkColor || f.color || "inherit"}!important}`
       + `.m-site-footer h1,.m-site-footer h2,.m-site-footer h3,.m-site-footer h4,.m-site-footer strong{color:${f.headingColor || f.color || "inherit"}!important}`
       + `.m-site-footer .m-copyright{color:${f.copyrightColor || f.color || "inherit"}!important;text-align:${f.copyrightAlign || "left"};font-size:${Number(f.copyrightSize || 13)}px${f.copyrightFont ? `;font-family:${f.copyrightFont}` : ""}${f.copyrightWeight ? `;font-weight:${f.copyrightWeight}` : ""}${f.copyrightStyle && f.copyrightStyle !== "normal" ? `;font-style:${f.copyrightStyle}` : ""}${f.copyrightBg ? `;background:${f.copyrightBg}` : ""}!important}`
@@ -520,6 +532,36 @@
         ${abtn("distribute", "x", dist, "distX", "Distribuir horizontal")}
         ${abtn("distribute", "y", dist, "distY", "Distribuir vertical")}
       </div>`;
+  }
+
+  /**
+   * Tipografía del menú de la cabecera.
+   *
+   * Hasta ahora los enlaces del menú se quedaban con la familia de
+   * títulos del tema y no había forma de cambiarlos desde el panel. Son
+   * los mismos campos que ya tenía el copyright del pie: familia, peso,
+   * estilo, tamaño, caja y espaciado entre letras. Todo vacío o en cero
+   * significa «como está»: una cabecera que nadie toque no cambia.
+   */
+  function hBodyNavType() {
+    const h = state.header || {};
+    const w = String(h.navWeight || "");
+    const sty = h.navStyle || "normal";
+    const tr = h.navTransform || "none";
+    return `${window.KrgUi.fontFamilyField("Familia", h.navFont || "", 'data-h="navFont"')}
+      ${field("Peso", `<select data-h="navWeight">
+        ${[["", "Heredar"], ["300", "Light"], ["400", "Regular"], ["500", "Medium"], ["600", "Semibold"], ["700", "Bold"], ["800", "Extrabold"]].map(([v, l]) => `<option value="${v}" ${w === v ? "selected" : ""}>${l}</option>`).join("")}
+      </select>`)}
+      ${field("Estilo", `<select data-h="navStyle">
+        <option value="normal" ${sty === "normal" ? "selected" : ""}>Normal</option>
+        <option value="italic" ${sty === "italic" ? "selected" : ""}>Cursiva</option>
+      </select>`)}
+      ${field("Tamaño (px)", `<input type="number" min="0" max="48" data-h-num="navSize" value="${Number(h.navSize || 0)}" placeholder="auto">`)}
+      ${field("Caja", `<select data-h="navTransform">
+        ${[["none", "Como se escribe"], ["uppercase", "MAYÚSCULAS"], ["lowercase", "minúsculas"], ["capitalize", "Primera En Mayúscula"]].map(([v, l]) => `<option value="${v}" ${tr === v ? "selected" : ""}>${l}</option>`).join("")}
+      </select>`)}
+      ${field("Espaciado entre letras (centésimas de em)", `<input type="number" min="-10" max="100" data-h-num="navTracking" value="${Number(h.navTracking || 0)}">`)}
+      <p class="m-muted">Con 0 y «auto» manda la tipografía del tema. Afecta a los enlaces del menú y al botón de menú.</p>`;
   }
 
   function hBodyNavMode() {
@@ -713,6 +755,7 @@
 
     R("h.content", "Contenido", hBodyContent);
     R("h.align", "Alinear", hBodyAlign);
+    R("h.navType", "Tipografía del menú", hBodyNavType, "Familia, peso, tamaño y caja de los enlaces de navegación.");
     R("h.navMode", "Tipo de menú", hBodyNavMode, "Barra horizontal o botón Menú (hamburguesa), independiente en cada tamaño.");
     R("h.colors", "Colores", hBodyColors);
     R("h.logo", "Escala del logo", hBodyLogo, "Una medida por cada vista del preview.");
@@ -732,7 +775,7 @@
 
     CORE.setSchema("chrome-header", {
       content: ["h.content"],
-      design: ["h.align", "h.navMode", "h.colors", "h.logo", "h.size", "h.glass", "h.anim"],
+      design: ["h.align", "h.navType", "h.navMode", "h.colors", "h.logo", "h.size", "h.glass", "h.anim"],
       advanced: ["h.adaptive", "h.advanced"],
     });
     CORE.setSchema("chrome-footer", {

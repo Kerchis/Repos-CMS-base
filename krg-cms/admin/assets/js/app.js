@@ -783,8 +783,41 @@
     vsel.innerHTML = variantOptionsHtml(list, prevW, prevS);
   }
 
+  /**
+   * Las familias del panel, con la cuarta siempre presente.
+   *
+   * «Títulos», «Cuerpo» y «Display» mandan en los titulares, el texto
+   * corrido y los rótulos grandes. Todo lo demás —menús, botones,
+   * antetítulos, etiquetas, precios, pestañas, letra pequeña— se queda
+   * con la familia de títulos si nadie dice otra cosa, y hasta ahora no
+   * había dónde decirlo. Esa cuarta fila es «Texto general».
+   *
+   * Si la instalación todavía no la tiene guardada se muestra vacía: no
+   * cambia nada hasta que se elija una familia.
+   */
+  function familiasConUi(font) {
+    const out = Object.entries(font || {});
+    if (!out.some(([k]) => k === "ui")) {
+      out.push(["ui", { value: "", label: "Texto general", weight: "", style: "normal" }]);
+    }
+    const etiquetas = {
+      heading: "Títulos",
+      body: "Cuerpo",
+      display: "Display",
+      ui: "Texto general (menús, botones, etiquetas…)",
+    };
+    return out.map(([k, v]) => {
+      const item = (v && typeof v === "object") ? { ...v } : { value: String(v || "") };
+      item.label = etiquetas[k] || item.label || k;
+      return [k, item];
+    });
+  }
+
   function fontFamilyRow(key, item, catalog) {
-    const current = String(item.value || item || "");
+    // Ojo con la familia vacía: `item.value || item` convertía el
+    // objeto entero en texto («[object Object]») y la fila aparecía
+    // como «Personalizada…» sin que nadie hubiera elegido nada.
+    const current = String((item && typeof item === "object") ? (item.value || "") : (item || ""));
     const weight = String(item.weight || "400");
     const style = String(item.style || "normal");
     const groups = [
@@ -793,7 +826,11 @@
       { id: "system", label: "Sistema" },
     ];
     const norm = (s) => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
-    const matched = catalog.find((f) => norm(f.css) === norm(current) || (f.name && current.includes(f.name)));
+    // Primero la coincidencia exacta. Buscando por nombre suelto,
+    // «Inter Tight» caía en «Inter» —que aparece antes en el catálogo y
+    // está contenido en el otro— y la fila volvía cambiada.
+    const matched = catalog.find((f) => norm(f.css) === norm(current))
+      || catalog.filter((f) => f.name && current.includes(f.name)).sort((a, b) => b.name.length - a.name.length)[0];
     const isCustom = current && !matched;
     const opts = groups.map((g) => {
       const list = catalog.filter((f) => f.group === g.id);
@@ -806,6 +843,7 @@
     return `<div class="m-font-row" data-font-wrap="${esc(key)}">
       <span>${esc(item.label || key)}</span>
       <select data-font="${esc(key)}">
+        <option value="" ${current ? "" : "selected"}>— Sin elegir —</option>
         ${opts}
         <option value="__custom__" ${isCustom ? "selected" : ""}>Personalizada…</option>
       </select>
@@ -1053,7 +1091,7 @@
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Familias tipográficas</h3>
         <p class="m-muted">Elige la familia y su variante (Regular, Bold, Italic…). En fuentes de WordPress aparecen las caras instaladas. Luego pulsa Guardar familias.</p>
-        ${Object.entries(tokens.font || {}).map(([k, v]) => fontFamilyRow(k, v, fontCatalog)).join("")}
+        ${familiasConUi(tokens.font).map(([k, v]) => fontFamilyRow(k, v, fontCatalog)).join("")}
         <div class="m-section-save"><button type="button" class="m-btn" data-save-section="familias">Guardar familias</button></div>
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">

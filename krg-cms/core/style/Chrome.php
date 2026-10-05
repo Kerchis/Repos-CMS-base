@@ -56,6 +56,36 @@ class Chrome {
 			'.m-site-footer .m-copyright{color:' . $fcop . ';}',
 			'.m-footer-grid{grid-template-columns:repeat(' . $cols . ',minmax(0,1fr));}',
 		];
+		// Tipografía del menú de la cabecera. Sólo se escribe lo que se
+		// haya elegido: si no hay nada, manda el tema y la cabecera se ve
+		// como siempre.
+		$nav = [];
+		$nfam = \Meridian\Design\TokenCompiler::safe_css( (string) ( $h['navFont'] ?? '' ) );
+		if ( $nfam ) {
+			$nav[] = 'font-family:' . $nfam;
+		}
+		$nw = preg_replace( '/[^0-9]/', '', (string) ( $h['navWeight'] ?? '' ) );
+		if ( $nw ) {
+			$nav[] = 'font-weight:' . $nw;
+		}
+		if ( in_array( ( $h['navStyle'] ?? '' ), [ 'italic', 'oblique' ], true ) ) {
+			$nav[] = 'font-style:' . $h['navStyle'];
+		}
+		$nz = absint( $h['navSize'] ?? 0 );
+		if ( $nz ) {
+			$nav[] = 'font-size:' . max( 8, min( 48, $nz ) ) . 'px';
+		}
+		if ( in_array( ( $h['navTransform'] ?? '' ), [ 'uppercase', 'lowercase', 'capitalize' ], true ) ) {
+			$nav[] = 'text-transform:' . $h['navTransform'];
+		}
+		$ntr = (int) ( $h['navTracking'] ?? 0 );
+		if ( $ntr ) {
+			$nav[] = 'letter-spacing:' . ( max( -10, min( 100, $ntr ) ) / 100 ) . 'em';
+		}
+		if ( $nav ) {
+			$lines[] = '.m-site-header .m-nav-list a,.m-site-header .m-nav-toggle{' . implode( ';', $nav ) . ';}';
+		}
+
 		$fa = $f['align'] ?? 'left';
 		if ( 'center' === $fa ) {
 			$lines[] = '.m-site-footer .m-footer-grid,.m-site-footer .m-footer-sections{text-align:center;justify-items:center;}';

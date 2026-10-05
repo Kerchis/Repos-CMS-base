@@ -207,7 +207,10 @@ class Sanitizer {
 			case 'image':
 				return absint( $value );
 			case 'textarea':
-				return sanitize_textarea_field( (string) $value );
+				// Campos de prosa: el editor visual del panel deja
+				// marcas dentro de la linea (negrita, cursiva, un
+				// enlace). El resto se cae en `inline()`.
+				return self::inline( (string) $value );
 			case 'richtext':
 				return self::richtext( (string) $value );
 			case 'color':
@@ -449,6 +452,47 @@ class Sanitizer {
 	}
 
 	/**
+	 * Texto corrido con formato ligero.
+	 *
+	 * Es lo que escribe el editor visual en los campos de prosa de los
+	 * modulos: un titular, un parrafo, la descripcion de una tarjeta.
+	 * Ahi no cabe una estructura —ni encabezados ni listas: el titular
+	 * ya es un `h2` y el parrafo ya es un `p`—, pero si hace falta
+	 * poder resaltar una palabra, poner una cursiva o enlazar.
+	 *
+	 * Por eso la lista admite solo marcas dentro de la linea. Lo que
+	 * no entra se cae: `script`, `style`, `iframe`, cualquier `on*` y
+	 * cualquier etiqueta de bloque. El filtro de fondo es `wp_kses`,
+	 * que ademas limpia los protocolos peligrosos de los enlaces.
+	 */
+	public static function inline( string $html ): string {
+		$allowed = [
+			'strong' => [],
+			'b'      => [],
+			'em'     => [],
+			'i'      => [],
+			'u'      => [],
+			's'      => [],
+			'del'    => [],
+			'ins'    => [],
+			'mark'   => [],
+			'small'  => [],
+			'sub'    => [],
+			'sup'    => [],
+			'code'   => [],
+			'br'     => [],
+			'span'   => [ 'class' => true ],
+			'a'      => [
+				'href'   => true,
+				'rel'    => true,
+				'target' => true,
+				'title'  => true,
+			],
+		];
+		return self::safe_hrefs( wp_kses( $html, $allowed ) );
+	}
+
+	/**
 	 * Texto con formato de un campo del panel (modulos).
 	 *
 	 * Lista corta a proposito: lo que cabe en un parrafo de un modulo.
@@ -466,6 +510,16 @@ class Sanitizer {
 			'ul'         => [],
 			'ol'         => [],
 			'li'         => [],
+			'u'          => [],
+			's'          => [],
+			'del'        => [],
+			'ins'        => [],
+			'mark'       => [],
+			'small'      => [],
+			'sub'        => [],
+			'sup'        => [],
+			'code'       => [],
+			'span'       => [ 'class' => true ],
 			'blockquote' => [],
 			'h2'         => [],
 			'h3'         => [],

@@ -209,6 +209,11 @@ if ( ! function_exists( 'get_option' ) ) {
 		return array_key_exists( $k, $GLOBALS['krg_options'] ?? [] ) ? $GLOBALS['krg_options'][ $k ] : $d;
 	}
 }
+if ( ! function_exists( 'get_bloginfo' ) ) {
+	function get_bloginfo( $campo = 'name' ) {
+		return 'name' === $campo ? 'Sitio de prueba' : '';
+	}
+}
 if ( ! function_exists( 'home_url' ) ) {
 	function home_url( $p = '/' ) { return 'https://ejemplo.test' . $p; }
 }
