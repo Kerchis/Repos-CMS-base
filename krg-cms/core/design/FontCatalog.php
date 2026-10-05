@@ -122,15 +122,7 @@ class FontCatalog {
 			);
 		}
 		if ( $faces ) {
-			$css = '';
-			foreach ( $faces as $face ) {
-				$src = esc_url( $face['src'] ?? '' );
-				if ( ! $src ) {
-					continue;
-				}
-				$fam  = $face['family'] ?? '';
-				$css .= '@font-face{font-family:' . $fam . ';src:url(' . $src . ') format("woff2");font-weight:' . ( $face['weight'] ?? '400' ) . ';font-style:' . ( $face['style'] ?? 'normal' ) . ';font-display:swap;}';
-			}
+			$css = self::faces_css( $faces );
 			if ( $css ) {
 				if ( ! wp_style_is( $handle, 'registered' ) && ! wp_style_is( $handle, 'enqueued' ) ) {
 					$handle = 'krg-font-faces';
@@ -140,6 +132,236 @@ class FontCatalog {
 				wp_add_inline_style( $handle, $css );
 			}
 		}
+	}
+
+	/**
+	 * Las reglas `@font-face` de las fuentes instaladas en WordPress.
+	 *
+	 * Este trozo tambien estaba roto, y de dos formas distintas que se
+	 * veian igual —la letra no cambiaba:
+	 *
+	 *   1. La direccion del archivo se escribia tal cual estaba
+	 *      guardada. WordPress la guarda entera —con `http://`— el dia
+	 *      que se sube la fuente; si el sitio pasa despues a `https://`
+	 *      esa direccion se queda en `http://` para siempre y el
+	 *      navegador la bloquea entera por «contenido mixto». Ni
+	 *      siquiera llega a pedirla.
+	 *   2. Se declaraba `format("woff2")` para todos los archivos,
+	 *      incluidos los `.ttf`. El navegador se fia de esa etiqueta:
+	 *      si dice woff2 y el archivo es otra cosa, descarta la fuente
+	 *      sin intentarlo.
+	 *
+	 * Asi que aqui: la direccion se resuelve y se asegura, el formato
+	 * sale de la extension real y no se repite dos veces la misma cara.
+	 */
+	public static function faces_css( array $faces ): string {
+		$css   = '';
+		$visto = [];
+		foreach ( $faces as $face ) {
+			$brutas = $face['srcs'] ?? [ $face['src'] ?? '' ];
+			$partes = [];
+			foreach ( (array) $brutas as $bruta ) {
+				$url = self::css_url( self::face_src( (string) $bruta ) );
+				if ( '' === $url ) {
+					continue;
+				}
+				$partes[] = 'url("' . $url . '") format("' . self::src_format( $url ) . '")';
+			}
+			$familia = self::css_family( (string) ( $face['family'] ?? '' ) );
+			if ( ! $partes || '' === $familia ) {
+				continue;
+			}
+			$peso   = self::css_token( (string) ( $face['weight'] ?? '400' ) ) ?: '400';
+			$estilo = self::css_token( (string) ( $face['style'] ?? 'normal' ) ) ?: 'normal';
+			$clave  = strtolower( $familia . '|' . $peso . '|' . $estilo . '|' . implode( ',', $partes ) );
+			if ( isset( $visto[ $clave ] ) ) {
+				continue;
+			}
+			$visto[ $clave ] = true;
+			$css            .= '@font-face{font-family:' . $familia . ';src:' . implode( ',', $partes )
+				. ';font-weight:' . $peso . ';font-style:' . $estilo . ';font-display:swap;}';
+		}
+		return $css;
+	}
+
+	/**
+	 * La direccion de un archivo de fuente, lista para meter en el CSS.
+	 *
+	 * Admite las dos formas que usa WordPress: la direccion completa
+	 * que guarda la Biblioteca de fuentes y el atajo `file:./…` de los
+	 * `theme.json`, que va relativo a la carpeta del tema.
+	 */
+	public static function face_src( string $src ): string {
+		$src = trim( $src );
+		if ( '' === $src ) {
+			return '';
+		}
+		if ( 0 === stripos( $src, 'file:' ) ) {
+			$rel  = (string) preg_replace( '#^file:/*(\./)*#i', '', $src );
+			$base = '';
+			if ( function_exists( 'get_theme_file_uri' ) ) {
+				$base = (string) get_theme_file_uri();
+			} elseif ( function_exists( 'get_template_directory_uri' ) ) {
+				$base = (string) get_template_directory_uri();
+			}
+			$src = $base ? rtrim( $base, '/' ) . '/' . ltrim( $rel, '/' ) : $rel;
+		}
+		return self::secure_url( $src );
+	}
+
+	/**
+	 * Sube a `https://` una direccion guardada en `http://`.
+	 *
+	 * Solo cuando el sitio se sirve por https, que es cuando el
+	 * navegador bloquea lo demas. En un sitio por http se deja igual:
+	 * ahi `http://` es lo correcto.
+	 *
+	 * No vale con mirar `is_ssl()`: detras de un proxy o de un CDN
+	 * —LiteSpeed, Cloudflare— puede decir que no aunque el visitante
+	 * este en https. Si la direccion del sitio empieza por `https://`,
+	 * la pagina es https.
+	 */
+	public static function secure_url( string $url ): string {
+		if ( 0 !== stripos( $url, 'http://' ) || ! self::site_is_https() ) {
+			return $url;
+		}
+		return 'https://' . substr( $url, 7 );
+	}
+
+	private static function site_is_https(): bool {
+		if ( function_exists( 'is_ssl' ) && is_ssl() ) {
+			return true;
+		}
+		foreach ( [ 'home_url', 'site_url' ] as $fn ) {
+			if ( function_exists( $fn ) && 0 === stripos( (string) $fn( '/' ), 'https://' ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** El `format(…)` que toca, sacado de la extension del archivo. */
+	private static function src_format( string $url ): string {
+		$ruta = (string) parse_url( $url, PHP_URL_PATH );
+		$ext  = strtolower( (string) pathinfo( $ruta, PATHINFO_EXTENSION ) );
+		$mapa = [
+			'woff2' => 'woff2',
+			'woff'  => 'woff',
+			'ttf'   => 'truetype',
+			'otf'   => 'opentype',
+			'eot'   => 'embedded-opentype',
+			'svg'   => 'svg',
+		];
+		return $mapa[ $ext ] ?? 'woff2';
+	}
+
+	/**
+	 * La direccion, sin ningun caracter que pueda cerrar el `url("…")`
+	 * y colarse en la hoja. No se descarta nada: se codifica, que en
+	 * una direccion es lo mismo y la fuente sigue cargando.
+	 */
+	private static function css_url( string $url ): string {
+		return strtr(
+			trim( $url ),
+			[
+				' '  => '%20',
+				'"'  => '%22',
+				"'"  => '%27',
+				'('  => '%28',
+				')'  => '%29',
+				'\\' => '%5C',
+				'<'  => '%3C',
+				'>'  => '%3E',
+				"\n" => '',
+				"\r" => '',
+				"\t" => '',
+			]
+		);
+	}
+
+	/** Nada que pueda cerrar la regla y colarse en la hoja. */
+	private static function css_token( string $v ): string {
+		return trim( (string) preg_replace( '/[^0-9A-Za-z .%-]/', '', $v ) );
+	}
+
+	private static function css_family( string $v ): string {
+		$v = self::css_token( str_replace( [ '"', "'" ], '', $v ) );
+		return '' === $v ? '' : '"' . $v . '"';
+	}
+
+	/**
+	 * Arregla las direcciones de las fuentes que WordPress declara por
+	 * su cuenta.
+	 *
+	 * El tema no es el unico que pinta `@font-face`: las fuentes que
+	 * esten activadas en los estilos globales las imprime el propio
+	 * WordPress, con las mismas direcciones `http://` guardadas. Si
+	 * solo arreglasemos las nuestras, esas seguirian bloqueadas y la
+	 * letra seguiria sin cambiar. Esto se engancha donde WordPress
+	 * resuelve su `theme.json` —antes de imprimir nada— y le corrige
+	 * el esquema. No toca la base de datos: es solo de lectura.
+	 */
+	public static function secure_theme_json( $data ) {
+		if ( ! is_object( $data ) || ! method_exists( $data, 'get_data' ) || ! method_exists( $data, 'update_with' ) ) {
+			return $data;
+		}
+		if ( ! self::site_is_https() ) {
+			return $data;
+		}
+		$raw      = $data->get_data();
+		$familias = $raw['settings']['typography']['fontFamilies'] ?? null;
+		if ( ! is_array( $familias ) ) {
+			return $data;
+		}
+		$tocado   = false;
+		$familias = self::secure_font_families( $familias, $tocado );
+		if ( ! $tocado ) {
+			return $data;
+		}
+		$data->update_with(
+			[
+				'version'  => $raw['version'] ?? 2,
+				'settings' => [ 'typography' => [ 'fontFamilies' => $familias ] ],
+			]
+		);
+		return $data;
+	}
+
+	/**
+	 * Recorre la lista de familias —venga por origen (`theme`,
+	 * `custom`…) o en plano— y asegura cada `src`.
+	 */
+	private static function secure_font_families( array $familias, bool &$tocado ): array {
+		foreach ( $familias as $clave => $valor ) {
+			if ( ! is_array( $valor ) ) {
+				continue;
+			}
+			if ( ! isset( $valor['fontFamily'] ) && ! isset( $valor['fontFace'] ) ) {
+				$familias[ $clave ] = self::secure_font_families( $valor, $tocado );
+				continue;
+			}
+			if ( ! isset( $valor['fontFace'] ) || ! is_array( $valor['fontFace'] ) ) {
+				continue;
+			}
+			foreach ( $valor['fontFace'] as $i => $cara ) {
+				if ( ! is_array( $cara ) || ! isset( $cara['src'] ) ) {
+					continue;
+				}
+				$antes = $cara['src'];
+				if ( is_array( $antes ) ) {
+					$despues = array_map( static fn( $s ) => is_string( $s ) ? self::secure_url( $s ) : $s, $antes );
+				} elseif ( is_string( $antes ) ) {
+					$despues = self::secure_url( $antes );
+				} else {
+					continue;
+				}
+				if ( $despues !== $antes ) {
+					$familias[ $clave ]['fontFace'][ $i ]['src'] = $despues;
+					$tocado = true;
+				}
+			}
+		}
+		return $familias;
 	}
 
 	/**
@@ -504,16 +726,21 @@ class FontCatalog {
 					if ( ! is_array( $face ) ) {
 						continue;
 					}
-					$src = '';
-					if ( ! empty( $face['src'] ) && is_array( $face['src'] ) ) {
-						$src = (string) $face['src'][0];
-					} elseif ( ! empty( $face['src'] ) ) {
-						$src = (string) $face['src'];
+					// Una cara puede traer varios archivos (woff2 y ttf,
+					// por ejemplo). Antes se cogia solo el primero; ahora
+					// van todos, y el navegador elige el que entienda.
+					$srcs = [];
+					foreach ( (array) ( $face['src'] ?? [] ) as $uno ) {
+						$uno = self::face_src( (string) $uno );
+						if ( '' !== $uno ) {
+							$srcs[] = $uno;
+						}
 					}
-					if ( $src ) {
+					if ( $srcs ) {
 						$faces[] = [
 							'family' => '"' . $family . '"',
-							'src'    => $src,
+							'src'    => $srcs[0],
+							'srcs'   => $srcs,
 							'weight' => (string) ( $face['fontWeight'] ?? '400' ),
 							'style'  => (string) ( $face['fontStyle'] ?? 'normal' ),
 						];

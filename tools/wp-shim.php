@@ -248,10 +248,11 @@ if ( ! function_exists( 'get_bloginfo' ) ) {
 	}
 }
 if ( ! function_exists( 'home_url' ) ) {
-	function home_url( $p = '/' ) { return 'https://ejemplo.test' . $p; }
+	/** `$GLOBALS['krg_home']` permite montar un sitio por http. */
+	function home_url( $p = '/' ) { return ( $GLOBALS['krg_home'] ?? 'https://ejemplo.test' ) . $p; }
 }
 if ( ! function_exists( 'site_url' ) ) {
-	function site_url( $p = '/' ) { return 'https://ejemplo.test' . $p; }
+	function site_url( $p = '/' ) { return home_url( $p ); }
 }
 if ( ! function_exists( 'wp_parse_url' ) ) {
 	function wp_parse_url( $u, $c = -1 ) { return parse_url( (string) $u, $c ); }
@@ -259,14 +260,42 @@ if ( ! function_exists( 'wp_parse_url' ) ) {
 if ( ! function_exists( 'wp_allowed_protocols' ) ) {
 	function wp_allowed_protocols() { return [ 'http', 'https', 'mailto', 'tel' ]; }
 }
+/*
+ * Entradas simuladas.
+ *
+ * `$GLOBALS['krg_posts']` es una lista de objetos con ID, post_type,
+ * post_parent, post_title y post_content. Sin ella todo esto responde
+ * como antes —vacio—, asi que ningun banco cambia de resultado; con
+ * ella se puede montar «esta instalacion tiene estas fuentes subidas a
+ * la Biblioteca», que es lo que hacia falta para probar los
+ * `@font-face`.
+ */
+if ( ! function_exists( 'krg_posts_de' ) ) {
+	function krg_posts_de( $tipo, $padre = null ) {
+		$out = [];
+		foreach ( $GLOBALS['krg_posts'] ?? [] as $p ) {
+			if ( $tipo && ( $p->post_type ?? '' ) !== $tipo ) {
+				continue;
+			}
+			if ( null !== $padre && (int) ( $p->post_parent ?? 0 ) !== (int) $padre ) {
+				continue;
+			}
+			$out[] = $p;
+		}
+		return $out;
+	}
+}
 if ( ! function_exists( 'post_type_exists' ) ) {
-	function post_type_exists( $t ) { return false; }
+	function post_type_exists( $t ) { return (bool) krg_posts_de( $t ); }
 }
 if ( ! function_exists( 'shortcode_exists' ) ) {
 	function shortcode_exists( $t ) { return false; }
 }
 if ( ! function_exists( 'get_posts' ) ) {
-	function get_posts( $a = [] ) { return []; }
+	function get_posts( $a = [] ) { return krg_posts_de( $a['post_type'] ?? '' ); }
+}
+if ( ! function_exists( 'get_children' ) ) {
+	function get_children( $a = [] ) { return krg_posts_de( $a['post_type'] ?? '', $a['post_parent'] ?? 0 ); }
 }
 if ( ! function_exists( 'get_pages' ) ) {
 	function get_pages( $a = [] ) { return []; }

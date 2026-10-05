@@ -61,6 +61,15 @@ add_action( 'admin_menu', [ \Meridian\Admin\Menu::class, 'register' ] );
 add_action( 'admin_init', [ \Meridian\Admin\Menu::class, 'redirect_legacy' ] );
 add_action( 'admin_enqueue_scripts', [ \Meridian\Admin\Assets::class, 'enqueue' ] );
 add_action( 'wp_enqueue_scripts', [ \Meridian\PublicAssets::class, 'enqueue' ] );
+/*
+ * Las fuentes subidas a la Biblioteca de WordPress guardan su direccion
+ * entera el dia que se suben. Si el sitio pasa despues a https, esa
+ * direccion se queda en http y el navegador bloquea el archivo por
+ * contenido mixto: la familia se declara y nunca llega. Esto corrige el
+ * esquema al vuelo, tambien en lo que imprime WordPress por su cuenta.
+ */
+add_filter( 'wp_theme_json_data_user', [ \Meridian\Design\FontCatalog::class, 'secure_theme_json' ] );
+add_filter( 'wp_theme_json_data_theme', [ \Meridian\Design\FontCatalog::class, 'secure_theme_json' ] );
 add_action( 'wp_head', [ \Meridian\Seo\Head::class, 'output' ], 1 );
 add_action( 'admin_init', [ \Meridian\Admin\Capabilities::class, 'maybe_install_caps' ] );
 add_filter( 'use_block_editor_for_post_type', [ \Meridian\Admin\Gutenberg::class, 'disable_for_pages' ], 10, 2 );

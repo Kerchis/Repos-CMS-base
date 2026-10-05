@@ -187,6 +187,136 @@ foreach ( $declaradas as $decl ) {
 }
 comprueba( ! $faltan, $faltan ? 'se declaran sin descargarse: ' . implode( ', ', $faltan ) : 'y ninguna se queda sin descargar' );
 
+echo "\nPRUEBA 9 — una fuente subida a la Biblioteca de WordPress\n";
+
+/** Deja una familia instalada en la Biblioteca, con sus caras. */
+function instala_fuente( string $familia, array $caras, int $id = 900 ): void {
+	$GLOBALS['krg_posts'][] = (object) [
+		'ID'           => $id,
+		'post_type'    => 'wp_font_family',
+		'post_parent'  => 0,
+		'post_title'   => $familia,
+		'post_content' => wp_json_encode( [ 'fontFamily' => '"' . $familia . '", serif' ] ),
+	];
+	$n = $id * 10;
+	foreach ( $caras as $cara ) {
+		$GLOBALS['krg_posts'][] = (object) [
+			'ID'           => ++$n,
+			'post_type'    => 'wp_font_face',
+			'post_parent'  => $id,
+			'post_title'   => $familia,
+			'post_content' => wp_json_encode( $cara ),
+		];
+	}
+}
+
+/** El CSS en linea de todas las hojas, junto. */
+function css_de( array $hojas ): string {
+	return implode( '', array_map( static fn( $h ) => (string) ( $h['inline'] ?? '' ), $hojas ) );
+}
+
+$subida = 'http://ejemplo.test/wp-content/uploads/fonts/Baskervville-Bold.ttf';
+$GLOBALS['krg_posts'] = [];
+instala_fuente(
+	'Baskervville',
+	[
+		[ 'fontFamily' => 'Baskervville', 'fontWeight' => '700', 'fontStyle' => 'normal', 'src' => [ $subida ] ],
+		// La misma cara repetida: WordPress a veces la guarda dos veces.
+		[ 'fontFamily' => 'Baskervville', 'fontWeight' => '700', 'fontStyle' => 'normal', 'src' => [ $subida ] ],
+		[ 'fontFamily' => 'Baskervville', 'fontWeight' => '400', 'fontStyle' => 'italic', 'src' => [ 'http://ejemplo.test/wp-content/uploads/fonts/Baskervville-Italic.woff2' ] ],
+	]
+);
+
+$hojas = monta( [ 'heading' => [ 'value' => '"Baskervville", serif', 'weight' => '700' ] ] );
+$css   = css_de( $hojas );
+
+comprueba( str_contains( $css, '@font-face' ), 'se declara la fuente instalada' );
+comprueba(
+	! str_contains( $css, 'http://ejemplo.test' ),
+	'y ninguna dirección se queda en http: el navegador las bloquearía por contenido mixto'
+);
+comprueba( str_contains( $css, 'https://ejemplo.test/wp-content/uploads/fonts/Baskervville-Bold.ttf' ), 'la dirección guardada sube a https' );
+comprueba( str_contains( $css, 'Baskervville-Bold.ttf") format("truetype")' ), 'un .ttf se declara como truetype, no como woff2' );
+comprueba( str_contains( $css, 'Baskervville-Italic.woff2") format("woff2")' ), 'y un .woff2 como woff2' );
+comprueba( 2 === substr_count( $css, '@font-face' ), 'la cara repetida se declara una sola vez (' . substr_count( $css, '@font-face' ) . ')' );
+comprueba( str_contains( $css, 'font-weight:700' ) && str_contains( $css, 'font-style:italic' ), 'con el peso y el estilo de cada cara' );
+comprueba( str_contains( $css, 'font-display:swap' ), 'y con «display:swap»' );
+
+$hojas = monta( [ 'heading' => [ 'value' => 'Georgia, serif' ] ] );
+comprueba( '' === css_de( $hojas ), 'si no se usa, no se declara: no se bajan fuentes que nadie pide' );
+
+$GLOBALS['krg_posts'] = [];
+instala_fuente(
+	'Fuente Del Tema',
+	[ [ 'fontWeight' => '400', 'fontStyle' => 'normal', 'src' => [ 'file:./assets/fonts/tema.woff2' ] ] ],
+	901
+);
+$css = css_de( monta( [ 'body' => [ 'value' => '"Fuente Del Tema", sans-serif' ] ] ) );
+comprueba( str_contains( $css, 'themes/krg-cms/assets/fonts/tema.woff2' ), 'el atajo «file:./» del theme.json se resuelve contra la carpeta del tema' );
+
+$GLOBALS['krg_posts'] = [];
+instala_fuente(
+	'Dos Archivos',
+	[ [ 'fontWeight' => '400', 'fontStyle' => 'normal', 'src' => [ 'https://ejemplo.test/f/a.woff2', 'https://ejemplo.test/f/a.ttf' ] ] ],
+	902
+);
+$css = css_de( monta( [ 'body' => [ 'value' => '"Dos Archivos", sans-serif' ] ] ) );
+comprueba(
+	str_contains( $css, 'a.woff2") format("woff2"),url("https://ejemplo.test/f/a.ttf") format("truetype")' ),
+	'una cara con dos archivos los declara los dos, por orden'
+);
+$GLOBALS['krg_posts'] = [];
+
+echo "\nPRUEBA 10 — un sitio que de verdad va por http se queda como está\n";
+
+$GLOBALS['krg_home'] = 'http://ejemplo.test';
+comprueba( 'http://ejemplo.test/f/a.ttf' === FontCatalog::secure_url( 'http://ejemplo.test/f/a.ttf' ), 'ahí http es lo correcto y no se toca' );
+$GLOBALS['krg_home'] = 'https://ejemplo.test';
+comprueba( 'https://ejemplo.test/f/a.ttf' === FontCatalog::secure_url( 'http://ejemplo.test/f/a.ttf' ), 'y en uno por https, sube' );
+comprueba( '//cdn.test/a.ttf' === FontCatalog::secure_url( '//cdn.test/a.ttf' ), 'una dirección sin esquema ya vale para las dos' );
+
+echo "\nPRUEBA 11 — las fuentes que imprime el propio WordPress\n";
+
+/** Un remedo del objeto que WordPress pasa por «wp_theme_json_data_user». */
+class DatosTemaJson {
+	public array $datos;
+	public function __construct( array $datos ) {
+		$this->datos = $datos;
+	}
+	public function get_data(): array {
+		return $this->datos;
+	}
+	public function update_with( array $nuevo ): void {
+		$this->datos = array_replace_recursive( $this->datos, $nuevo );
+	}
+}
+
+$entrada = new DatosTemaJson(
+	[
+		'version'  => 3,
+		'settings' => [
+			'typography' => [
+				'fontFamilies' => [
+					'custom' => [
+						[
+							'fontFamily' => '"Outfit", sans-serif',
+							'slug'       => 'outfit',
+							'fontFace'   => [
+								[ 'fontWeight' => '100 900', 'src' => [ 'http://ejemplo.test/wp-content/uploads/fonts/Outfit-VariableFont_wght.ttf' ] ],
+							],
+						],
+					],
+				],
+			],
+		],
+	]
+);
+$salida = FontCatalog::secure_theme_json( $entrada );
+$cara   = $salida->get_data()['settings']['typography']['fontFamilies']['custom'][0]['fontFace'][0]['src'][0];
+comprueba( 'https://ejemplo.test/wp-content/uploads/fonts/Outfit-VariableFont_wght.ttf' === $cara, 'también se les corrige el esquema a las de los estilos globales' );
+comprueba( 3 === $salida->get_data()['version'], 'sin tocar el resto del theme.json' );
+comprueba( FontCatalog::secure_theme_json( 'no es un objeto' ) === 'no es un objeto', 'y si llega algo que no es lo esperado, se devuelve tal cual' );
+
 echo "\n";
 if ( $fallos ) {
 	echo "HAY $fallos FALLOS ($ok comprobaciones correctas)\n";
