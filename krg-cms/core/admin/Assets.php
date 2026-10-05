@@ -34,9 +34,15 @@ class Assets {
 		// piezas, con bloques que ya existen en el registro. Va antes que
 		// los campos porque es quien pinta la paleta.
 		wp_enqueue_script( 'krg-builder-v2', MERIDIAN_URI . '/admin/assets/js/builder-v2.js', [ 'krg-builder-core' ], meridian_ver( '/admin/assets/js/builder-v2.js' ), true );
+		// Plantillas de paginas enteras: listas ordenadas de fichas V.2.
+		// Va despues del catalogo porque lo usa para montar, y antes de
+		// los campos porque el constructor ofrece las plantillas desde la
+		// misma columna de la paleta. La pantalla de «Nueva pagina» solo
+		// lee los nombres, asi que se carga en todas.
+		wp_enqueue_script( 'krg-builder-paginas', MERIDIAN_URI . '/admin/assets/js/builder-paginas.js', [ 'krg-builder-v2' ], meridian_ver( '/admin/assets/js/builder-paginas.js' ), true );
 		// Los campos del inspector, tambien compartidos: paginas y
 		// navegacion montan el mismo, cada una con su documento.
-		wp_enqueue_script( 'krg-builder-fields', MERIDIAN_URI . '/admin/assets/js/builder-fields.js', [ 'krg-builder-core', 'krg-builder-v2' ], meridian_ver( '/admin/assets/js/builder-fields.js' ), true );
+		wp_enqueue_script( 'krg-builder-fields', MERIDIAN_URI . '/admin/assets/js/builder-fields.js', [ 'krg-builder-core', 'krg-builder-v2', 'krg-builder-paginas' ], meridian_ver( '/admin/assets/js/builder-fields.js' ), true );
 		$skin_css = \Meridian\Admin\Skin::css();
 		if ( $skin_css ) {
 			wp_add_inline_style( 'krg-admin', $skin_css );
@@ -55,6 +61,9 @@ class Assets {
 			'page'         => $page,
 			'pageId'       => absint( $_GET['id'] ?? 0 ), // phpcs:ignore
 			'chrome'       => sanitize_key( wp_unslash( $_GET['chrome'] ?? '' ) ), // phpcs:ignore
+			// Plantilla de pagina elegida al crearla: el constructor la
+			// aplica al abrir, y solo si la pagina esta vacia.
+			'tpl'          => sanitize_key( wp_unslash( $_GET['tpl'] ?? '' ) ), // phpcs:ignore
 			'preview'      => \Meridian\Render\Preview::home_url(),
 			'canManage'    => current_user_can( 'meridian_manage' ),
 			'canPublish'   => current_user_can( 'meridian_publish_pages' ),

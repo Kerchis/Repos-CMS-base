@@ -989,6 +989,14 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .b-rev li { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
 .b-rev h4, .box h4 { margin: 16px 0 8px; font-size: 13px; }
 
+/* Plantillas de página: el nombre y lo que trae a la izquierda, los dos
+   botones a la derecha, y en pantalla estrecha uno debajo del otro. */
+.b-pagtpl .b-rev li { align-items: flex-start; flex-wrap: wrap; }
+.b-pagtpl .b-rev li > span:first-child { flex: 1 1 260px; min-width: 0; }
+.b-pagtpl .b-rev small { display: block; margin-top: 2px; font-size: 11px; }
+.b-pagtpl-acc { display: flex; gap: 6px; flex: 0 0 auto; }
+.b-pagtpl-acc .m-btn { font-size: 11px; padding: 4px 8px; }
+
 /* Historial: cada versión en dos líneas —cuándo fue y de dónde salió—
    con los botones a la derecha y el «qué cambiaría» desplegable. */
 .b-hist .b-rev li { flex-wrap: wrap; align-items: flex-start; }

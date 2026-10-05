@@ -407,6 +407,29 @@
    * Al abrir: si hay una copia local que no coincide con lo que manda
    * el servidor, se pregunta. Nunca se pisa nada sin preguntar.
    */
+  /**
+   * La plantilla elegida en «Nueva página».
+   *
+   * La pantalla de páginas no monta bloques —no tiene el registro
+   * cargado—, así que pasa el slug en la dirección y la página se monta
+   * aquí, donde sí está todo. Sólo si la página está vacía: una
+   * dirección con `tpl` que se recargue no puede sumar la plantilla dos
+   * veces ni pisar lo que ya haya escrito nadie.
+   */
+  function plantillaDeArranque() {
+    const slug = String(cfg.tpl || "");
+    if (!slug) return;
+    try {
+      const url = new URL(location.href);
+      url.searchParams.delete("tpl");
+      history.replaceState(null, "", url.toString());
+    } catch (e) { /* una dirección rara no debe impedir montar */ }
+    if ((state.doc.sections || []).length) return;
+    const ficha = window.KrgPaginas ? window.KrgPaginas.get(slug) : null;
+    if (!ficha) return;
+    aplicarPlantilla(montarPlantilla(slug), "reemplazo", ficha.name);
+  }
+
   function ofrecerRecuperacion() {
     const copia = copiaLeer();
     if (!copia) return;
@@ -606,6 +629,7 @@
       <div class="b-sec"><h4>Agregar</h4>
         <div class="b-palette">
           <button data-add="section">+ Sección</button>
+          <button type="button" id="open-pagtpl">Plantillas de página</button>
           <button type="button" id="open-lib">Biblioteca</button>
         </div>
       </div>
@@ -619,6 +643,8 @@
     FIELDS.bindLeft();
     const lib = root.querySelector("#open-lib");
     if (lib) lib.onclick = openLibrary;
+    const pag = root.querySelector("#open-pagtpl");
+    if (pag) pag.onclick = openPageTemplates;
   }
   // Los paneles plegables (tiradores, botones «Estructura» y «Ajustes»,
   // raíles para volver a abrirlos) y el recuerdo de dónde estabas al
@@ -867,16 +893,177 @@
     });
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Plantillas de página enteras                                        */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Mete las secciones de una plantilla en el documento.
+   *
+   * `modo` es «final» —se añaden detrás de lo que ya hay— o «reemplazo»
+   * —se quedan ellas solas—. En los dos casos entra por `snapshot()`,
+   * así que Ctrl+Z devuelve la página a como estaba, y por `markDirty()`,
+   * así que se guarda y el lienzo se recarga como con cualquier otro
+   * cambio. Lo que entra son bloques normales: en cuanto están puestos,
+   * no queda ningún vínculo con la plantilla.
+   */
+  function aplicarPlantilla(secciones, modo, nombre) {
+    const secs = (secciones || []).filter((x) => x && x.type);
+    if (!secs.length) {
+      toast("Esa plantilla no tiene secciones que poner.");
+      return;
+    }
+    snapshot();
+    if (!Array.isArray(state.doc.sections)) state.doc.sections = [];
+    if (modo === "reemplazo") state.doc.sections = secs;
+    else state.doc.sections = state.doc.sections.concat(secs);
+    state.selected = secs[0].id;
+    markDirty();
+    render();
+    toast(`${nombre || "Plantilla"}: ${plural(secs.length, "sección puesta", "secciones puestas")}. `
+      + "Cada pieza se edita por separado.");
+  }
+
+  /** Monta una plantilla del catálogo con los bloques del registro. */
+  function montarPlantilla(slug) {
+    return window.KrgPaginas ? window.KrgPaginas.build(slug, makeNode) : [];
+  }
+
+  /** Las plantillas guardadas que son páginas enteras, no secciones. */
+  const plantillasDePagina = () =>
+    (state.templates || []).filter((t) => (t.sections || []).length);
+
+  async function guardarPaginaComoPlantilla() {
+    const secs = state.doc.sections || [];
+    if (!secs.length) {
+      toast("Esta página está vacía: no hay nada que guardar como plantilla.");
+      return;
+    }
+    const name = prompt("Nombre de la plantilla", state.doc.title || "Plantilla");
+    if (!name) return;
+    try {
+      await api.post("/templates", { name, sections: secs });
+      state.templates = await api.get("/templates");
+      toast(`Plantilla «${name}» guardada con ${plural(secs.length, "sección", "secciones")}.`);
+      return true;
+    } catch (e) {
+      toast(e.message || "No se pudo guardar la plantilla.");
+      return false;
+    }
+  }
+
+  function openPageTemplates() {
+    const vacia = !(state.doc.sections || []).length;
+    const fichas = window.KrgPaginas ? window.KrgPaginas.list() : [];
+    const guardadas = plantillasDePagina();
+    const linea = (clave, nombre, nota, cuantas) => `<li>
+      <span><strong>${esc(nombre)}</strong>
+        <small class="m-muted">${esc(plural(cuantas, "sección", "secciones"))}${nota ? ` · ${esc(nota)}` : ""}</small>
+      </span>
+      <span class="b-pagtpl-acc">
+        <button class="m-btn" data-ptpl-add="${esc(clave)}">Añadir al final</button>
+        <button class="m-btn ghost" data-ptpl-set="${esc(clave)}">Reemplazar la página</button>
+      </span>
+    </li>`;
+    const wrap = document.createElement("div");
+    wrap.className = "confirm";
+    wrap.innerHTML = `<div class="box b-pagtpl" style="width:min(680px,94vw);max-height:84vh;overflow:auto">
+      <h3>Plantillas de página</h3>
+      <p class="m-muted">Una plantilla pone varias secciones de golpe, en orden. Son bloques normales:
+      se editan, se mueven y se borran uno a uno. ${vacia ? "Esta página está vacía." : "Esta página ya tiene "
+        + esc(plural((state.doc.sections || []).length, "sección", "secciones")) + "."}</p>
+      <h4>Del catálogo</h4>
+      <ul class="b-rev">
+        ${fichas.map((f) => linea("c:" + f.slug, f.name, f.nota, f.secciones.length)).join("")}
+      </ul>
+      <h4>Guardadas</h4>
+      <ul class="b-rev">
+        ${guardadas.length
+          ? guardadas.map((t) => linea("g:" + t.id, t.name, "", (t.sections || []).length)).join("")
+          : "<li><span class=\"m-muted\">Ninguna todavía. Guarda esta página con el botón de abajo.</span></li>"}
+      </ul>
+      <div class="m-row">
+        <button class="m-btn ghost" id="ptpl-save">Guardar esta página como plantilla</button>
+        <button class="m-btn ghost" id="close">Cerrar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(wrap);
+    wrap.querySelector("#close").onclick = () => wrap.remove();
+    wrap.querySelector("#ptpl-save").onclick = async () => {
+      const ok = await guardarPaginaComoPlantilla();
+      wrap.remove();
+      if (ok) openPageTemplates();
+    };
+
+    const resolver = (clave) => {
+      if (clave.startsWith("c:")) {
+        const f = (window.KrgPaginas && window.KrgPaginas.get(clave.slice(2))) || null;
+        return { nombre: f ? f.name : "Plantilla", secciones: montarPlantilla(clave.slice(2)) };
+      }
+      const t = (state.templates || []).find((x) => String(x.id) === clave.slice(2));
+      return {
+        nombre: t ? t.name : "Plantilla",
+        secciones: (t && t.sections ? t.sections : []).map((n) => cloneNode(n)),
+      };
+    };
+
+    wrap.querySelectorAll("[data-ptpl-add]").forEach((b) => {
+      b.onclick = () => {
+        const { nombre, secciones } = resolver(b.dataset.ptplAdd);
+        wrap.remove();
+        aplicarPlantilla(secciones, "final", nombre);
+      };
+    });
+    wrap.querySelectorAll("[data-ptpl-set]").forEach((b) => {
+      b.onclick = () => {
+        const { nombre, secciones } = resolver(b.dataset.ptplSet);
+        const hechas = (state.doc.sections || []).length;
+        wrap.remove();
+        // Reemplazar una página con trabajo dentro se pregunta antes: es
+        // lo único de aquí que borra algo, y Ctrl+Z no es consuelo si
+        // nadie avisa.
+        if (!hechas) {
+          aplicarPlantilla(secciones, "reemplazo", nombre);
+          return;
+        }
+        confirmar(
+          "¿Reemplazar la página?",
+          `Se quitan ${plural(hechas, "la sección que hay", "las " + hechas + " secciones que hay")} `
+          + `y se ponen las de «${nombre}». Se puede deshacer con Ctrl+Z.`,
+          () => aplicarPlantilla(secciones, "reemplazo", nombre)
+        );
+      };
+    });
+  }
+
+  /** Un sí o no de los de esta casa: `.confirm > .box`, sin `window.confirm`. */
+  function confirmar(titulo, texto, alDecirSi) {
+    const wrap = document.createElement("div");
+    wrap.className = "confirm";
+    wrap.innerHTML = `<div class="box">
+      <h3>${esc(titulo)}</h3>
+      <p>${esc(texto)}</p>
+      <div class="m-row">
+        <button class="m-btn" id="si">Sí, adelante</button>
+        <button class="m-btn ghost" id="no">Cancelar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(wrap);
+    wrap.querySelector("#no").onclick = () => wrap.remove();
+    wrap.querySelector("#si").onclick = () => { wrap.remove(); alDecirSi(); };
+  }
+
   function openLibrary() {
     const wrap = document.createElement("div");
     wrap.className = "confirm";
     wrap.innerHTML = `<div class="box" style="width:min(560px,92vw);max-height:80vh;overflow:auto">
       <h3>Biblioteca</h3>
-      <h4>Plantillas</h4>
+      <h4>Plantillas de sección</h4>
       <ul class="b-rev">
-        ${(state.templates || []).map((t) => `<li><span>${esc(t.name)}</span>
+        ${(state.templates || []).filter((t) => t.node).map((t) => `<li><span>${esc(t.name)}</span>
           <button class="m-btn" data-tpl="${t.id}">Insertar</button></li>`).join("") || "<li>Ninguna. Guarda una sección con ☆.</li>"}
       </ul>
+      <p class="m-muted">Las plantillas de página entera están en «Plantillas de página», en la columna de la izquierda.</p>
       <h4>Globales</h4>
       <ul class="b-rev">
         ${(state.globals || []).map((t) => `<li><span>${esc(t.name)}</span>
@@ -1174,6 +1361,7 @@
       window.KrgUi?.setTokens(tokens);
       render();
       ofrecerRecuperacion();
+      plantillaDeArranque();
     })
     .catch((e) => {
       root.innerHTML = `<p style="padding:24px">${esc(e.message)}</p>`;

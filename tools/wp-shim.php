@@ -446,6 +446,13 @@ if ( ! class_exists( 'WP_Post' ) ) {
 		public $post_status   = 'publish';
 		public $post_type     = 'post';
 		public $thumbnail_id  = 0;
+		// Los campos que mira el repositorio de paginas. Declarados, que
+		// crearlos al vuelo esta deprecado desde PHP 8.2 y los avisos
+		// ensucian la salida de los bancos.
+		public $post_parent   = 0;
+		public $post_content  = '';
+		public $post_password = '';
+		public $post_modified = '';
 
 		public function __construct( array $datos = [] ) {
 			foreach ( $datos as $k => $v ) {

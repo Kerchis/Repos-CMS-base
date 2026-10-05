@@ -692,6 +692,7 @@
 
   async function newPage() {
     const pages = await api.get("/pages").catch(() => []);
+    const plantillas = window.KrgPaginas ? window.KrgPaginas.list() : [];
     shell("pages", `
       <div class="m-top"><h1>Nueva página</h1></div>
       <form class="m-form-grid" id="np">
@@ -703,13 +704,35 @@
             ${pages.map((p) => `<option value="${p.id}">${esc(p.title)}</option>`).join("")}
           </select>
         </label>
+        <label class="m-field">Empezar con
+          <select name="tpl" id="np-tpl">
+            <option value="">— Página vacía —</option>
+            ${plantillas.map((t) => `<option value="${esc(t.slug)}">${esc(t.name)}</option>`).join("")}
+          </select>
+          <small class="m-muted" id="np-tpl-nota">La plantilla pone unas cuantas secciones ya montadas; luego se editan, se mueven y se borran una a una.</small>
+        </label>
         <button class="m-btn" type="submit">Crear y abrir constructor</button>
       </form>`);
+    // La nota de debajo del desplegable cuenta qué trae cada plantilla,
+    // que el nombre solo no dice gran cosa.
+    const selTpl = el.querySelector("#np-tpl");
+    const notaTpl = el.querySelector("#np-tpl-nota");
+    if (selTpl && notaTpl) {
+      selTpl.onchange = () => {
+        const f = plantillas.find((x) => x.slug === selTpl.value);
+        notaTpl.textContent = f
+          ? `${f.secciones.length} secciones: ${f.nota}`
+          : "La plantilla pone unas cuantas secciones ya montadas; luego se editan, se mueven y se borran una a una.";
+      };
+    }
     el.querySelector("#np").onsubmit = async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
       const doc = await api.post("/pages", { title: fd.get("title"), slug: fd.get("slug"), parentId: Number(fd.get("parentId") || 0) });
-      location.href = `${cfg.admin}?page=krg-builder&id=${doc.id}`;
+      // La plantilla se monta en el constructor, que es quien tiene el
+      // registro de bloques cargado; aquí sólo viaja el nombre.
+      const tpl = String(fd.get("tpl") || "");
+      location.href = `${cfg.admin}?page=krg-builder&id=${doc.id}${tpl ? `&tpl=${encodeURIComponent(tpl)}` : ""}`;
     };
   }
 
@@ -717,9 +740,15 @@
     const list = await api.get("/templates");
     shell("templates", `
       <div class="m-top"><h1>Plantillas</h1></div>
-      <p class="m-muted">Guarda una sección desde el constructor con “Guardar plantilla”.</p>
+      <p class="m-muted">Una sección suelta se guarda desde el árbol del constructor con ☆.
+      Una página entera, desde «Plantillas de página» → «Guardar esta página como plantilla».
+      Las dos se ponen luego en cualquier página.</p>
       <div class="m-table"><table><tbody>
-        ${list.length ? list.map((t) => `<tr><td>${esc(t.name)}</td><td><button class="m-btn ghost" data-del="${t.id}">Eliminar</button></td></tr>`).join("") : "<tr><td>No hay plantillas todavía.</td></tr>"}
+        ${list.length ? list.map((t) => `<tr><td>${esc(t.name)}</td>
+          <td>${(t.sections || []).length
+            ? `Página entera · ${(t.sections || []).length} secciones`
+            : "Una sección"}</td>
+          <td><button class="m-btn ghost" data-del="${t.id}">Eliminar</button></td></tr>`).join("") : "<tr><td>No hay plantillas todavía.</td></tr>"}
       </tbody></table></div>`);
     el.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
       await api.del(`/templates/${b.dataset.del}`);

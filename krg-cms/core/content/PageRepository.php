@@ -213,8 +213,18 @@ class PageRepository {
 		$doc['title']    = ( $doc['title'] ?? '' ) . ' ' . __( '(copia)', 'meridian' );
 		$doc['slug']     = '';
 		$doc['sections'] = self::regen_ids( $doc['sections'] ?? [] );
+		$parent          = (int) ( $doc['parentId'] ?? 0 );
 		unset( $doc['id'] );
-		return self::create( [ 'title' => $doc['title'], 'document' => $doc ] );
+		// La copia nace donde estaba la original: si la pagina colgaba de
+		// otra, la copia tambien, o se pierde en la raiz y hay que ir a
+		// recolocarla a mano.
+		return self::create(
+			[
+				'title'    => $doc['title'],
+				'parentId' => $parent,
+				'document' => $doc,
+			]
+		);
 	}
 
 	public static function regen_ids( array $nodes ): array {
