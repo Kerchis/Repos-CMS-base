@@ -548,6 +548,279 @@
         ], { width: "padded" }, t.relleno("80px", "24px"));
       },
     },
+    {
+      slug: "cita-v2",
+      name: "Cita V.2",
+      desde: "quote",
+      nota: "Una frase grande con su firma debajo: la cita y quien la dice son bloques distintos.",
+      build: (t) => t.seccion("Cita V.2", [
+        t.fila([
+          t.columnaAlineada(12, "center", [
+            t.nodo("eyebrow", { text: "LO QUE NOS DICEN" }, "Antetítulo"),
+            t.nodo("quote", { text: "Volvimos tres veces en el mismo mes y seguimos pidiendo lo mismo." }, "Cita"),
+            t.nodo("paragraph", { text: "Marta R., clienta desde 2019", align: "center" }, "Firma"),
+          ], "Columna de la cita"),
+        ], 16, "Fila de la cita"),
+      ], { width: "padded" }, t.relleno("80px", "24px")),
+    },
+    {
+      slug: "declaracion-v2",
+      name: "Declaración V.2",
+      desde: "statement-cta",
+      nota: "Una frase grande a todo lo ancho con su botón; el antetítulo, el titular y el texto van sueltos.",
+      build: (t) => t.seccion("Declaración V.2", [
+        t.fila([
+          t.columnaAlineada(12, "center", [
+            t.nodo("eyebrow", { text: "NUESTRO COMPROMISO" }, "Antetítulo"),
+            t.nodo("heading", { text: "Materia prima de aquí, cocinada despacio", tag: "h2", align: "center" }, "Titular"),
+            t.nodo("paragraph", { text: "Sin prisa y sin atajos: así sale todo lo que servimos.", align: "center" }, "Texto"),
+            t.nodo("button", { text: "Conócenos", url: "#", variant: "primary" }, "Botón"),
+          ], "Columna de la declaración"),
+        ], 16, "Fila de la declaración"),
+      ], { width: "full", minHeight: "half", vAlign: "center" }, t.relleno("96px", "32px")),
+    },
+    {
+      slug: "paneles-v2",
+      name: "Paneles V.2",
+      desde: "split-panel",
+      nota: "Dos mitades que se tocan, cada una con su foto, su texto y su botón.",
+      build: (t) => {
+        const panel = (n, antetitulo, titulo, boton) => t.columna(6, [
+          t.nodo("image", { alt: "", fillMode: "fill", objectFit: "cover" }, `Foto del panel ${n}`, { "min-height": "320px" }),
+          t.nodo("eyebrow", { text: antetitulo }, `Antetítulo del panel ${n}`),
+          t.nodo("heading", { text: titulo, tag: "h2" }, `Título del panel ${n}`),
+          t.nodo("paragraph", { text: "Dos líneas para contar qué hay en este lado." }, `Texto del panel ${n}`),
+          t.nodo("button", { text: boton, url: "#", variant: "ghost" }, `Botón del panel ${n}`),
+        ], t.relleno("32px", "28px"), `Panel ${n}`);
+        return t.seccion("Paneles V.2", [
+          t.fila([
+            panel(1, "LA COCINA", "Lo que se hace cada mañana", "Ver la carta"),
+            panel(2, "LA SALA", "Dónde se sienta la gente", "Reservar mesa"),
+          ], 0, "Fila de paneles"),
+        ], { width: "full" });
+      },
+    },
+    {
+      slug: "coleccion-v2",
+      name: "Colección V.2",
+      desde: "collection-grid",
+      nota: "Seis productos en rejilla; foto, nombre, precio y enlace de cada uno se editan por separado.",
+      build: (t) => {
+        const prod = (n, nombre, precio) => t.columna(4, [
+          t.nodo("image", { alt: "", objectFit: "cover" }, `Foto ${n}`, { "min-height": "280px" }),
+          t.nodo("heading", { text: nombre, tag: "h3" }, `Nombre ${n}`),
+          t.nodo("paragraph", { text: precio }, `Precio ${n}`),
+          t.nodo("button", { text: "Ver detalle", url: "#", variant: "ghost" }, `Botón ${n}`),
+        ], null, `Producto ${n}`);
+        return t.seccion("Colección V.2", [
+          t.fila([
+            t.columna(8, [
+              t.nodo("eyebrow", { text: "LA COLECCIÓN" }, "Antetítulo"),
+              t.nodo("heading", { text: "Todo lo que tenemos ahora mismo", tag: "h2" }, "Título"),
+            ], null, "Columna del encabezado"),
+            t.columnaAlineada(4, "end", [
+              t.nodo("button", { text: "Ver todo", url: "#", variant: "ghost" }, "Botón de la cabecera"),
+            ], "Columna del botón"),
+          ], 24, "Fila del encabezado"),
+          t.fila([prod(1, "Tarro de 500 g", "12,00 €"), prod(2, "Tarro de 250 g", "7,50 €"), prod(3, "Pack de tres", "32,00 €")], 24, "Primera fila de productos"),
+          t.fila([prod(4, "Caja regalo", "45,00 €"), prod(5, "Panal entero", "18,00 €"), prod(6, "Cucharilla de madera", "3,00 €")], 24, "Segunda fila de productos"),
+        ], { width: "padded" }, t.relleno("80px", "24px"));
+      },
+    },
+    {
+      slug: "resenas-v2",
+      name: "Reseñas V.2",
+      desde: "review-slider",
+      nota: "Tres reseñas una al lado de otra: estrellas, texto y firma, cada cosa por su cuenta.",
+      build: (t) => {
+        const resena = (n, texto, quien) => t.columna(4, [
+          t.nodo("eyebrow", { text: "★★★★★" }, `Estrellas ${n}`),
+          t.nodo("paragraph", { text: texto }, `Texto de la reseña ${n}`),
+          t.nodo("heading", { text: quien, tag: "h4" }, `Firma ${n}`),
+        ], t.relleno("28px", "24px"), `Reseña ${n}`);
+        return t.seccion("Reseñas V.2", [
+          t.fila([
+            t.columna(12, [
+              t.nodo("eyebrow", { text: "OPINIONES" }, "Antetítulo"),
+              t.nodo("heading", { text: "Lo que cuentan los que ya han venido", tag: "h2", align: "center" }, "Título"),
+            ], null, "Columna del encabezado"),
+          ], 20, "Fila del encabezado"),
+          t.fila([
+            resena(1, "Se come muy bien y el trato es cercano. Repetiremos seguro.", "Ana G."),
+            resena(2, "Pedimos para llevar y llegó caliente y bien puesto. Un acierto.", "Luis M."),
+            resena(3, "El sitio es pequeño pero muy cuidado. Reservad con tiempo.", "Carmen P."),
+          ], 24, "Fila de reseñas"),
+        ], { width: "padded" }, t.relleno("80px", "24px"));
+      },
+    },
+    {
+      slug: "hitos-v2",
+      name: "Hitos V.2",
+      desde: "statement-list",
+      nota: "Afirmaciones en lista, una debajo de otra, con su antetítulo y su raya.",
+      build: (t) => {
+        const hito = (n, etiqueta, frase) => t.fila([
+          t.columna(4, [
+            t.nodo("eyebrow", { text: etiqueta }, `Antetítulo del hito ${n}`),
+          ], null, `Columna del antetítulo ${n}`),
+          t.columna(8, [
+            t.nodo("heading", { text: frase, tag: "h3" }, `Afirmación ${n}`),
+          ], null, `Columna de la afirmación ${n}`),
+        ], 20, `Hito ${n}`);
+        return t.seccion("Hitos V.2", [
+          t.fila([
+            t.columna(12, [
+              t.nodo("heading", { text: "Lo primero que hicimos", tag: "h2" }, "Título"),
+            ], null, "Columna del título"),
+          ], 20, "Fila del título"),
+          hito(1, "EL PRIMERO", "El primer obrador del barrio con horno de leña"),
+          t.nodo("divider", {}, "Raya 1"),
+          hito(2, "EL ÚNICO", "La única carta que cambia entera cada temporada"),
+          t.nodo("divider", {}, "Raya 2"),
+          hito(3, "DESDE SIEMPRE", "Veinte años con los mismos proveedores"),
+        ], { width: "padded" }, t.relleno("76px", "24px"));
+      },
+    },
+    {
+      slug: "tiendas-v2",
+      name: "Dónde encontrarnos V.2",
+      desde: "retail-strip",
+      nota: "Los sitios que te venden: el logotipo, el nombre y el enlace de cada uno son bloques sueltos.",
+      build: (t) => {
+        // El ancho del logotipo se fija: en una columna centrada una
+        // imagen sin tamaño se encoge a lo que ocupe su contenido, y
+        // los cuatro sellos salían de distinto tamaño y a distinta
+        // altura. Con el ancho puesto, los cuatro quedan alineados.
+        const tienda = (n, nombre) => t.columnaAlineada(3, "center", [
+          t.nodo("image", { alt: nombre, objectFit: "contain" }, `Logotipo ${n}`, { "min-height": "90px", width: "100%", "max-width": "180px" }),
+          t.nodo("heading", { text: nombre, tag: "h3", align: "center" }, `Nombre ${n}`),
+          t.nodo("button", { text: "Ir a la tienda", url: "#", variant: "ghost" }, `Enlace ${n}`),
+        ], `Punto de venta ${n}`);
+        return t.seccion("Dónde encontrarnos V.2", [
+          t.fila([
+            t.columna(12, [
+              t.nodo("eyebrow", { text: "PUNTOS DE VENTA" }, "Antetítulo"),
+              t.nodo("heading", { text: "También nos encuentras aquí", tag: "h2", align: "center" }, "Título"),
+            ], null, "Columna del encabezado"),
+          ], 20, "Fila del encabezado"),
+          t.fila([tienda(1, "Mercado Central"), tienda(2, "La Despensa"), tienda(3, "Casa Pepe"), tienda(4, "Tienda online")], 24, "Fila de puntos de venta"),
+        ], { width: "padded" }, t.relleno("72px", "24px"));
+      },
+    },
+    {
+      slug: "contacto-v2",
+      name: "Contacto V.2",
+      desde: "contact-form",
+      nota: "El formulario a un lado y los datos al otro: dirección, teléfono y redes, cada cosa aparte.",
+      build: (t) => t.seccion("Contacto V.2", [
+        t.fila([
+          t.columna(5, [
+            t.nodo("eyebrow", { text: "HABLAMOS" }, "Antetítulo"),
+            t.nodo("heading", { text: "Escríbenos y te contestamos", tag: "h2" }, "Título"),
+            t.nodo("paragraph", { text: "Contestamos de lunes a viernes, por la mañana." }, "Texto"),
+            t.nodo("paragraph", { text: "Calle Mayor 12, 28013 Madrid" }, "Dirección"),
+            t.nodo("paragraph", { text: "910 000 000 · hola@ejemplo.com" }, "Teléfono y correo"),
+            t.nodo("social-links", {}, "Redes"),
+          ], t.relleno("8px", "0px"), "Columna de los datos"),
+          t.columna(7, [
+            t.nodo("contact-form", { submit: "Enviar mensaje" }, "Formulario"),
+          ], null, "Columna del formulario"),
+        ], 24, "Fila del contacto"),
+      ], { width: "padded" }, t.relleno("80px", "24px")),
+    },
+    {
+      slug: "mapa-v2",
+      name: "Ubicación V.2",
+      desde: "map",
+      nota: "El mapa a un lado y cómo llegar al otro; el alto del mapa se cambia en su inspector.",
+      build: (t) => t.seccion("Ubicación V.2", [
+        t.fila([
+          t.columna(12, [
+            t.nodo("eyebrow", { text: "DÓNDE ESTAMOS" }, "Antetítulo"),
+            t.nodo("heading", { text: "Cómo llegar hasta la puerta", tag: "h2" }, "Título"),
+          ], null, "Columna del encabezado"),
+        ], 20, "Fila del encabezado"),
+        t.fila([
+          t.columna(7, [
+            t.nodo("map", {}, "Mapa"),
+          ], null, "Columna del mapa"),
+          t.columna(5, [
+            t.nodo("heading", { text: "Calle Mayor 12", tag: "h3" }, "Dirección"),
+            t.nodo("paragraph", { text: "A dos minutos de la parada de metro, con aparcamiento en la plaza." }, "Cómo llegar"),
+            t.nodo("paragraph", { text: "De martes a domingo, de 13:00 a 16:30 y de 20:00 a 23:30." }, "Horario"),
+            t.nodo("button", { text: "Abrir en Google Maps", url: "#", variant: "primary" }, "Botón"),
+          ], t.relleno("8px", "24px"), "Columna de los datos"),
+        ], 24, "Fila del mapa"),
+      ], { width: "padded" }, t.relleno("76px", "24px")),
+    },
+    {
+      slug: "video-v2",
+      name: "Vídeo V.2",
+      desde: "video",
+      nota: "Un vídeo con su encabezado y su pie; el vídeo se pega en su inspector como siempre.",
+      build: (t) => t.seccion("Vídeo V.2", [
+        t.fila([
+          t.columnaAlineada(12, "center", [
+            t.nodo("eyebrow", { text: "EN MOVIMIENTO" }, "Antetítulo"),
+            t.nodo("heading", { text: "Un minuto dentro de la cocina", tag: "h2", align: "center" }, "Título"),
+          ], "Columna del encabezado"),
+        ], 20, "Fila del encabezado"),
+        t.fila([
+          t.columna(12, [
+            t.nodo("video", {}, "Vídeo"),
+            t.nodo("paragraph", { text: "Grabado un martes cualquiera, sin ensayo.", align: "center" }, "Pie del vídeo"),
+          ], null, "Columna del vídeo"),
+        ], 16, "Fila del vídeo"),
+      ], { width: "padded" }, t.relleno("76px", "24px")),
+    },
+    {
+      slug: "blog-v2",
+      name: "Entradas V.2",
+      desde: "blog-grid",
+      nota: "Las últimas entradas del blog con el encabezado por piezas y su botón de «ver todas».",
+      build: (t) => t.seccion("Entradas V.2", [
+        t.fila([
+          t.columna(8, [
+            t.nodo("eyebrow", { text: "EL CUADERNO" }, "Antetítulo"),
+            t.nodo("heading", { text: "Lo último que hemos escrito", tag: "h2" }, "Título"),
+          ], null, "Columna del encabezado"),
+          t.columnaAlineada(4, "end", [
+            t.nodo("button", { text: "Ver todas", url: "#", variant: "ghost" }, "Botón de la cabecera"),
+          ], "Columna del botón"),
+        ], 24, "Fila del encabezado"),
+        t.fila([
+          t.columna(12, [
+            t.nodo("blog-grid", { count: 3, desktop: 3 }, "Rejilla de entradas"),
+          ], null, "Columna de la rejilla"),
+        ], 24, "Fila de la rejilla"),
+      ], { width: "padded" }, t.relleno("80px", "24px")),
+    },
+    {
+      slug: "horario-v2",
+      name: "Horario y contacto V.2",
+      desde: "info-table",
+      nota: "Horario, dirección y teléfono en tres columnas, cada dato como un bloque que se edita solo.",
+      build: (t) => {
+        const dato = (n, etiqueta, titulo, linea1, linea2) => t.columna(4, [
+          t.nodo("eyebrow", { text: etiqueta }, `Antetítulo ${n}`),
+          t.nodo("heading", { text: titulo, tag: "h3" }, `Título ${n}`),
+          t.nodo("paragraph", { text: linea1 }, `Primera línea ${n}`),
+          t.nodo("paragraph", { text: linea2 }, `Segunda línea ${n}`),
+        ], null, `Bloque ${n}`);
+        return t.seccion("Horario y contacto V.2", [
+          t.fila([
+            t.columna(12, [
+              t.nodo("heading", { text: "Antes de venir", tag: "h2" }, "Título"),
+            ], null, "Columna del título"),
+          ], 16, "Fila del título"),
+          t.fila([
+            dato(1, "HORARIO", "Cuándo abrimos", "De martes a domingo, 13:00 a 16:30.", "Cenas de jueves a sábado, 20:00 a 23:30."),
+            dato(2, "DIRECCIÓN", "Dónde estamos", "Calle Mayor 12, 28013 Madrid.", "Entrada por la plaza, planta baja."),
+            dato(3, "RESERVAS", "Cómo avisarnos", "Por teléfono en el 910 000 000.", "O por correo en hola@ejemplo.com."),
+          ], 24, "Fila de los datos"),
+        ], { width: "padded" }, t.relleno("72px", "24px"));
+      },
+    },
   ];
 
   window.KrgV2 = {
