@@ -295,5 +295,22 @@ class Routes {
 			'permission_callback' => $manage,
 			'callback' => [ Controller::class, 'import' ],
 		] );
+		// Exportar e importar eligiendo que parte y que hacer con lo que
+		// ya hay. `/export` y `/import` siguen funcionando igual.
+		register_rest_route( $ns, '/kit/export', [
+			'methods' => 'POST',
+			'permission_callback' => $manage,
+			'callback' => [ Controller::class, 'kit_export' ],
+		] );
+		register_rest_route( $ns, '/kit/inspect', [
+			'methods' => 'POST',
+			'permission_callback' => $manage,
+			'callback' => [ Controller::class, 'kit_inspect' ],
+		] );
+		register_rest_route( $ns, '/kit/import', [
+			'methods' => 'POST',
+			'permission_callback' => $manage,
+			'callback' => [ Controller::class, 'kit_import' ],
+		] );
 	}
 }

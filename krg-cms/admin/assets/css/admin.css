@@ -511,3 +511,18 @@ select.m-mini {
   padding-top: 14px;
   border-top: 1px solid var(--m-line);
 }
+
+/* Exportar e importar: las partes del paquete, una por línea, con su
+   explicación debajo del título para que nadie marque a ciegas. */
+.m-kit-grid { display: grid; gap: 10px; margin-top: 12px; }
+.m-kit-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; font-weight: 600; }
+.m-kit-check input { margin-top: 3px; }
+.m-kit-check small { display: block; font-weight: 400; margin-top: 2px; }
+.m-kit-med { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 12px; }
+.m-kit-med h4 { margin: 0 0 6px; }
+.m-kit-med textarea { width: 100%; font: 11px/1.4 ui-monospace, monospace; }
+#med-marcador { cursor: grab; }
+.m-kit-swatches { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.m-kit-swatch { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.m-kit-swatch span { width: 72px; height: 48px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, .18); display: block; }
+.m-kit-swatch code { font-size: 11px; opacity: .7; }

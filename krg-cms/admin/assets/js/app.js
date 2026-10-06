@@ -245,6 +245,8 @@
     // not tagged; we use html() below
   };
   const html = (s) => s;
+  // «1 página» / «3 páginas», sin el «(s)» de los formularios feos.
+  const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 
   const nav = (active) => `
     <aside class="m-aside">
@@ -270,6 +272,7 @@
         <div class="grp">Sistema</div>
         <a class="${active==="seo"?"is-active":""}" href="${cfg.admin}?page=krg-seo">SEO</a>
         <a class="${active==="users"?"is-active":""}" href="${cfg.admin}?page=krg-users">Usuarios</a>
+        <a class="${active==="kit"?"is-active":""}" href="${cfg.admin}?page=krg-kit">Exportar e importar</a>
         <a class="${active==="settings"?"is-active":""}" href="${cfg.admin}?page=krg-settings">Configuración</a>` : ""}
         <a href="${cfg.home}" target="_blank" rel="noopener">Ver sitio</a>
       </nav>
@@ -557,8 +560,7 @@
       <div class="m-top"><h1>Páginas</h1>
         <div class="m-row">
           <a class="m-btn" href="${cfg.admin}?page=krg-pages&view=new">Nueva página</a>
-          <button class="m-btn ghost" id="exp-pages">Exportar JSON</button>
-          <label class="m-btn ghost">Importar JSON <input type="file" id="imp-pages" accept="application/json" hidden></label>
+          ${cfg.canManage ? `<a class="m-btn ghost" href="${cfg.admin}?page=krg-kit">Exportar e importar</a>` : ""}
         </div>
       </div>
       <div class="m-panel m-front-bar">
@@ -668,26 +670,7 @@
       toast("Página eliminada");
       pages();
     });
-    el.querySelector("#exp-pages").onclick = async () => {
-      const pack = await api.post("/export", {});
-      const blob = new Blob([JSON.stringify(pack, null, 2)], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "krg-export.json";
-      a.click();
-    };
-    el.querySelector("#imp-pages").onchange = async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      try {
-        const pack = JSON.parse(await file.text());
-        const r = await api.post("/import", pack);
-        toast("Importado. Páginas nuevas: " + (r.pages ?? 0));
-        pages();
-      } catch (err) {
-        toast(err.message);
-      }
-    };
+
   }
 
   async function newPage() {
@@ -2349,6 +2332,320 @@
     paint(list);
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Exportar e importar el diseño                                        */
+  /* ------------------------------------------------------------------ */
+
+  const KIT_PARTES = [
+    ["tokens", "La paleta, las tipografías y las medidas", "Los colores, las familias y los espacios de la marca."],
+    ["chrome", "La cabecera, el pie y los menús", "Lo que se repite en todas las páginas."],
+    ["biblioteca", "Plantillas y componentes globales", "Lo que está guardado para reutilizar."],
+    ["paginas", "Las páginas", "Cada página entera, con sus secciones y su SEO."],
+  ];
+
+  async function kit() {
+    const pages = await api.get("/pages").catch(() => []);
+    const casillas = (prefijo) => KIT_PARTES.map(([id, titulo, nota]) => `
+      <label class="m-kit-check">
+        <input type="checkbox" data-${prefijo}="${id}" checked>
+        <span><strong>${esc(titulo)}</strong><small class="m-muted">${esc(nota)}</small></span>
+      </label>`).join("");
+
+    shell("kit", `
+      <div class="m-top"><h1>Exportar e importar</h1></div>
+      <p class="m-muted">Un paquete es un archivo JSON con el diseño de este sitio. Sirve para montar otro
+      sitio con la misma pinta, para pasar una página de pruebas a producción o para guardar una copia
+      antes de tocar algo gordo. Las fotos y las fuentes subidas no viajan dentro: se vuelven a elegir allí.</p>
+
+      <div class="m-panel" style="padding:16px 20px;margin-top:20px">
+        <h3>Llevarse este sitio</h3>
+        <div class="m-kit-grid">${casillas("exp")}</div>
+        <label class="m-field" style="margin-top:12px">Qué páginas
+          <select id="kit-pag">
+            <option value="">Todas (${pages.length})</option>
+            ${pages.map((p) => `<option value="${p.id}">Sólo «${esc(p.title)}»</option>`).join("")}
+          </select>
+        </label>
+        <div class="m-row" style="margin-top:12px">
+          <button class="m-btn" id="kit-exp">Descargar el paquete</button>
+        </div>
+      </div>
+
+      <div class="m-panel" style="padding:16px 20px;margin-top:20px">
+        <h3>Traer un paquete</h3>
+        <p class="m-muted">Primero se mira qué trae, y se importa después. Los enlaces entre páginas se
+        reconectan por su dirección: un botón que apuntaba a <code>/contacto</code> en el otro sitio
+        acabará en la página <code>contacto</code> de éste.</p>
+        <label class="m-btn ghost">Elegir archivo… <input type="file" id="kit-file" accept="application/json" hidden></label>
+        <div id="kit-mirar" hidden></div>
+      </div>
+
+      <div class="m-panel" style="padding:16px 20px;margin-top:20px">
+        <h3>Inspirarse en otra web o en una foto</h3>
+        <p class="m-muted">Esto no copia la web de nadie: mide los colores que más ocupan, el tamaño de
+        sus títulos y el nombre de sus tipografías, y propone una paleta con esos números. Lo que salga
+        es tuyo para retocar. Si la fuente de la referencia no es libre, busca una parecida.</p>
+        <div class="m-kit-med">
+          <div>
+            <h4>Desde otra web</h4>
+            <p class="m-muted">Arrastra este botón a la barra de marcadores del navegador. Luego abre la
+            web que te gusta, púlsalo, copia lo que salga y pégalo aquí.</p>
+            <p><a class="m-btn ghost" id="med-marcador" draggable="true">Medir esta web</a></p>
+            <label class="m-field">Lo que ha salido
+              <textarea id="med-json" rows="3" placeholder="Pega aquí la medida"></textarea>
+            </label>
+            <button class="m-btn ghost" id="med-leer">Ver la propuesta</button>
+          </div>
+          <div>
+            <h4>Desde una foto</h4>
+            <p class="m-muted">Una foto del producto, del local o de un envase. Se sacan los colores que
+            más mandan en la imagen y se ajusta el texto hasta que se lea.</p>
+            <label class="m-btn ghost">Elegir una foto… <input type="file" id="med-foto" accept="image/*" hidden></label>
+            <p class="m-muted" id="med-foto-nom"></p>
+          </div>
+        </div>
+        <div id="med-prop" hidden></div>
+      </div>
+
+      <div class="m-panel" id="kit-informe" style="padding:16px 20px;margin-top:20px" hidden></div>`);
+
+    const leerPartes = (prefijo) => {
+      const out = {};
+      KIT_PARTES.forEach(([id]) => {
+        const c = el.querySelector(`[data-${prefijo}="${id}"]`);
+        out[id] = !c || c.checked;
+      });
+      return out;
+    };
+
+    el.querySelector("#kit-exp").onclick = async () => {
+      const opts = leerPartes("exp");
+      const sola = el.querySelector("#kit-pag").value;
+      if (sola) opts.pageIds = [Number(sola)];
+      try {
+        const pack = await api.post("/kit/export", opts);
+        const hoy = new Date().toISOString().slice(0, 10);
+        const blob = new Blob([JSON.stringify(pack, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `krg-${hoy}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("Paquete descargado");
+      } catch (err) {
+        toast(err.message || "No se pudo exportar");
+      }
+    };
+
+    let paquete = null;
+    el.querySelector("#kit-file").onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const caja = el.querySelector("#kit-mirar");
+      try {
+        paquete = JSON.parse(await file.text());
+      } catch (err) {
+        paquete = null;
+        caja.hidden = false;
+        caja.innerHTML = `<p class="m-form-error">Ese archivo no es un JSON que se pueda leer.</p>`;
+        return;
+      }
+      let resumen;
+      try {
+        resumen = await api.post("/kit/inspect", { pack: paquete });
+      } catch (err) {
+        caja.hidden = false;
+        caja.innerHTML = `<p class="m-form-error">${esc(err.message || "No parece un paquete de KRG CMS.")}</p>`;
+        return;
+      }
+      const trae = [
+        resumen.tokens ? "la paleta" : "",
+        resumen.chrome ? "la cabecera y el pie" : "",
+        resumen.plantillas ? plural(resumen.plantillas, "plantilla", "plantillas") : "",
+        resumen.globales ? plural(resumen.globales, "componente global", "componentes globales") : "",
+        resumen.paginas ? plural(resumen.paginas, "página", "páginas") : "",
+      ].filter(Boolean);
+      caja.hidden = false;
+      caja.innerHTML = `
+        <h4>Este paquete trae ${esc(trae.join(", ") || "nada que se pueda importar")}</h4>
+        <p class="m-muted">Salió de <code>${esc(resumen.origen || "un sitio desconocido")}</code>${
+          resumen.fecha ? ` el ${esc(String(resumen.fecha).slice(0, 10))}` : ""}.
+          ${resumen.titulos && resumen.titulos.length ? `Páginas: ${esc(resumen.titulos.slice(0, 8).join(", "))}${resumen.titulos.length > 8 ? "…" : ""}.` : ""}
+          ${resumen.imagenes ? `Menciona ${esc(plural(resumen.imagenes, "foto", "fotos"))}, que no viajan dentro del archivo.` : ""}</p>
+        <div class="m-kit-grid">${casillas("imp")}</div>
+        <label class="m-field" style="margin-top:12px">Si una página ya existe aquí con la misma dirección
+          <select id="kit-modo">
+            <option value="crear">Dejar la mía y crear otra al lado</option>
+            <option value="reemplazar">Reemplazar la mía por la del paquete</option>
+            <option value="saltar">Saltarla y no tocar nada</option>
+          </select>
+        </label>
+        <div class="m-row" style="margin-top:12px">
+          <button class="m-btn" id="kit-imp">Importar</button>
+        </div>`;
+
+      caja.querySelector("#kit-imp").onclick = async () => {
+        const boton = caja.querySelector("#kit-imp");
+        boton.disabled = true;
+        const opts = leerPartes("imp");
+        opts.modo = caja.querySelector("#kit-modo").value;
+        try {
+          pintarInforme(await api.post("/kit/import", { pack: paquete, opts }));
+          toast("Paquete importado");
+        } catch (err) {
+          toast(err.message || "No se pudo importar");
+        }
+        boton.disabled = false;
+      };
+    };
+
+    /* -----------------------------------------------------------------
+     * Inspirarse en otra web o en una foto
+     * ----------------------------------------------------------------- */
+    const marcador = el.querySelector("#med-marcador");
+    if (marcador && window.KrgEstilo) {
+      // El href se pone a mano y no por HTML: asi no hay forma de que un
+      // saneador del navegador se lleve por delante el `javascript:`.
+      marcador.href = window.KrgEstilo.marcador();
+      marcador.title = "Arrástralo a la barra de marcadores";
+    }
+
+    let propuesta = null;
+
+    function pintarPropuesta(p) {
+      propuesta = p;
+      const caja = el.querySelector("#med-prop");
+      if (!p) {
+        caja.hidden = false;
+        caja.innerHTML = `<p class="m-form-error">De ahí no se ha podido sacar una paleta.</p>`;
+        return;
+      }
+      const nombres = {
+        background: "Fondo", surface: "Superficie", text: "Texto",
+        primary: "Primario", border: "Borde",
+      };
+      const muestras = Object.entries(p.colores).map(([k, v]) => `
+        <div class="m-kit-swatch">
+          <span style="background:${esc(v)}"></span>
+          <strong>${esc(nombres[k] || k)}</strong>
+          <code>${esc(String(v).toUpperCase())}</code>
+        </div>`).join("");
+      caja.hidden = false;
+      caja.innerHTML = `
+        <h4>Lo que se propone</h4>
+        <p class="m-muted">De <code>${esc(p.de || "")}</code>. El texto queda a ${esc(String(p.contraste || "?"))}:1
+        sobre el fondo${p.contraste >= 4.5 ? ", que se lee bien" : ", que es poco: cámbialo luego en Identidad y tokens"}.</p>
+        <div class="m-kit-swatches">${muestras}</div>
+        ${p.tipografias ? `<p>Títulos: <strong>${esc(p.tipografias.heading)}</strong> ·
+          Texto: <strong>${esc(p.tipografias.body)}</strong></p>` : ""}
+        ${p.escala && p.escala.h1 ? `<p class="m-muted">Sus títulos miden ${esc(String(p.escala.h1))} px (H1)
+          y su texto ${esc(String(p.escala.p || "?"))} px.</p>` : ""}
+        ${(p.avisos || []).map((a) => `<p class="m-muted">${esc(a)}</p>`).join("")}
+        <div class="m-row" style="margin-top:12px">
+          <button class="m-btn" id="med-aplicar">Usar esta paleta</button>
+          <button class="m-btn ghost" id="med-bajar">Descargar como paquete</button>
+        </div>
+        <p class="m-muted">«Usar esta paleta» cambia los tokens de este sitio: los colores y, si los hay,
+        las tipografías y las medidas. Las páginas no se tocan.</p>`;
+
+      caja.querySelector("#med-aplicar").onclick = async () => {
+        const boton = caja.querySelector("#med-aplicar");
+        boton.disabled = true;
+        try {
+          const pack = window.KrgEstilo.aPaquete(propuesta);
+          const inf = await api.post("/kit/import", {
+            pack,
+            opts: { tokens: true, chrome: false, biblioteca: false, paginas: false },
+          });
+          pintarInforme(inf);
+          toast("Paleta puesta");
+        } catch (err) {
+          toast(err.message || "No se pudo aplicar");
+        }
+        boton.disabled = false;
+      };
+      caja.querySelector("#med-bajar").onclick = () => {
+        const pack = window.KrgEstilo.aPaquete(propuesta);
+        const blob = new Blob([JSON.stringify(pack, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "krg-estilo.json";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("Paquete descargado");
+      };
+    }
+
+    el.querySelector("#med-leer").onclick = () => {
+      const texto = (el.querySelector("#med-json").value || "").trim();
+      const caja = el.querySelector("#med-prop");
+      if (!texto) {
+        caja.hidden = false;
+        caja.innerHTML = `<p class="m-form-error">Pega antes lo que te ha dado el marcador.</p>`;
+        return;
+      }
+      let dato;
+      try {
+        dato = JSON.parse(texto);
+      } catch (err) {
+        caja.hidden = false;
+        caja.innerHTML = `<p class="m-form-error">Eso no es lo que da el marcador: tiene que ser el texto entero, tal cual.</p>`;
+        return;
+      }
+      if (!dato || !dato.colores || !dato.colores.background) {
+        caja.hidden = false;
+        caja.innerHTML = `<p class="m-form-error">Falta la parte de los colores. Vuelve a medir la web.</p>`;
+        return;
+      }
+      pintarPropuesta(dato);
+    };
+
+    el.querySelector("#med-foto").onchange = (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      el.querySelector("#med-foto-nom").textContent = file.name;
+      const img = new Image();
+      img.onload = () => {
+        try {
+          pintarPropuesta(window.KrgEstilo.desdeFoto(img, { nombre: file.name }));
+        } catch (err) {
+          pintarPropuesta(null);
+        }
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => {
+        pintarPropuesta(null);
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(file);
+    };
+
+    function pintarInforme(inf) {
+      const caja = el.querySelector("#kit-informe");
+      const p = inf.paginas || {};
+      const filas = [
+        ["Paleta", inf.tokens === "puestos" ? "puesta" : "sin tocar"],
+        ["Cabecera, pie y menús", inf.chrome === "puesto" ? "puestos" : "sin tocar"],
+        ["Plantillas", `${inf.plantillas.creadas} nuevas, ${inf.plantillas.actualizadas} actualizadas`],
+        ["Componentes globales", `${inf.globales.creados} nuevos, ${inf.globales.actualizados} actualizados`],
+        ["Páginas", `${p.creadas || 0} creadas, ${p.reemplazadas || 0} reemplazadas, ${p.saltadas || 0} saltadas${p.fallidas ? `, ${p.fallidas} con error` : ""}`],
+        ["Enlaces reconectados", String(inf.enlaces.reconectados || 0)],
+      ];
+      const perdidos = inf.enlaces["sin destino"] || [];
+      caja.hidden = false;
+      caja.innerHTML = `
+        <h3>Qué ha pasado</h3>
+        <div class="m-table"><table><tbody>
+          ${filas.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join("")}
+        </tbody></table></div>
+        ${perdidos.length ? `<h4>Enlaces que se han quedado como estaban</h4>
+          <ul class="m-muted">${perdidos.slice(0, 20).map((u) => `<li><code>${esc(u)}</code></li>`).join("")}</ul>` : ""}
+        ${(inf.avisos || []).map((a) => `<p class="m-muted">${esc(a)}</p>`).join("")}
+        <div class="m-row"><a class="m-btn ghost" href="${cfg.admin}?page=krg-pages">Ver las páginas</a></div>`;
+      caja.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+
   async function settings() {
     const s = await api.get("/settings");
     const rows = (s.caps || []).map((c) => `<tr>
@@ -2364,8 +2661,7 @@
       <p class="m-muted">El debug escribe logs técnicos. Nunca se muestran al visitante.</p>
       <div class="m-row">
         <button class="m-btn" id="sv">Guardar</button>
-        <button class="m-btn ghost" id="exp">Exportar JSON</button>
-        <label class="m-btn ghost">Importar JSON <input type="file" id="imp" accept="application/json" hidden></label>
+        <a class="m-btn ghost" href="${cfg.admin}?page=krg-kit">Exportar e importar</a>
       </div>
       <div class="m-panel" style="padding:16px 20px;margin-top:20px">
         <h3>Caché</h3>
@@ -2400,25 +2696,7 @@
       }
       btn.disabled = false;
     };
-    el.querySelector("#exp").onclick = async () => {
-      const pack = await api.post("/export", {});
-      const blob = new Blob([JSON.stringify(pack, null, 2)], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "krg-export.json";
-      a.click();
-    };
-    el.querySelector("#imp").onchange = async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      try {
-        const pack = JSON.parse(await file.text());
-        const r = await api.post("/import", pack);
-        toast("Paquete importado. Páginas nuevas: " + (r.pages ?? 0));
-      } catch (err) {
-        toast(err.message);
-      }
-    };
+
   }
 
   const routes = {
@@ -2430,6 +2708,7 @@
     "krg-seo": seo,
     "krg-users": users,
     "krg-settings": settings,
+    "krg-kit": kit,
   };
   const run = routes[pageKey];
   if (run) {

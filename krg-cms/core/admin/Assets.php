@@ -43,6 +43,11 @@ class Assets {
 		// Los campos del inspector, tambien compartidos: paginas y
 		// navegacion montan el mismo, cada una con su documento.
 		wp_enqueue_script( 'krg-builder-fields', MERIDIAN_URI . '/admin/assets/js/builder-fields.js', [ 'krg-builder-core', 'krg-builder-v2', 'krg-builder-paginas' ], meridian_ver( '/admin/assets/js/builder-fields.js' ), true );
+		// El medidor de estilo: el marcador que mide otra web y la paleta
+		// que sale de una foto. Solo hace falta en la pantalla del kit.
+		if ( 'krg-kit' === $page ) {
+			wp_enqueue_script( 'krg-estilo', MERIDIAN_URI . '/admin/assets/js/estilo.js', [ 'krg-admin' ], meridian_ver( '/admin/assets/js/estilo.js' ), true );
+		}
 		$skin_css = \Meridian\Admin\Skin::css();
 		if ( $skin_css ) {
 			wp_add_inline_style( 'krg-admin', $skin_css );

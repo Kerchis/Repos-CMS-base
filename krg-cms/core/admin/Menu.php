@@ -29,6 +29,7 @@ class Menu {
 		add_submenu_page( 'krg', __( 'Navegación', 'meridian' ), __( 'Navegación', 'meridian' ), 'meridian_manage', 'krg-nav', [ self::class, 'app' ] );
 		add_submenu_page( 'krg', __( 'SEO', 'meridian' ), __( 'SEO', 'meridian' ), 'meridian_manage', 'krg-seo', [ self::class, 'app' ] );
 		add_submenu_page( 'krg', __( 'Usuarios', 'meridian' ), __( 'Usuarios', 'meridian' ), 'meridian_manage', 'krg-users', [ self::class, 'app' ] );
+		add_submenu_page( 'krg', __( 'Exportar e importar', 'meridian' ), __( 'Exportar e importar', 'meridian' ), 'meridian_manage', 'krg-kit', [ self::class, 'app' ] );
 		add_submenu_page( 'krg', __( 'Configuración', 'meridian' ), __( 'Configuración', 'meridian' ), 'meridian_manage', 'krg-settings', [ self::class, 'app' ] );
 	}
 
@@ -60,7 +61,7 @@ class Menu {
 	public static function app(): void {
 		$page        = sanitize_key( wp_unslash( $_GET['page'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification
 		$need_edit   = [ 'krg', 'krg-pages', 'krg-builder' ];
-		$need_manage = [ 'krg-design', 'krg-nav', 'krg-seo', 'krg-settings', 'krg-users' ];
+		$need_manage = [ 'krg-design', 'krg-nav', 'krg-seo', 'krg-settings', 'krg-users', 'krg-kit' ];
 		if ( in_array( $page, $need_edit, true ) && ! current_user_can( 'meridian_edit_pages' ) ) {
 			wp_safe_redirect( admin_url( 'admin.php?page=krg-blog' ) );
 			exit;

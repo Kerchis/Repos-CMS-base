@@ -945,80 +945,49 @@ class Controller {
 		return $out instanceof WP_Error ? $out : rest_ensure_response( $out );
 	}
 
+	/**
+	 * El paquete entero, como siempre: todas las partes y todas las
+	 * paginas. Quien quiera elegir, que use `/kit/export`.
+	 */
 	public static function export(): WP_REST_Response {
-		$pages = [];
-		foreach ( PageRepository::list() as $p ) {
-			$pages[] = PageRepository::get( $p['id'], 'published' ) ?: PageRepository::get( $p['id'], 'draft' );
-		}
-		return rest_ensure_response(
-			[
-				'krg'        => 1,
-				'exportedAt' => gmdate( 'c' ),
-				'tokens'     => TokenRepository::get(),
-				'pages'      => $pages,
-				'globals'    => GlobalsRepository::list( 'meridian_global' ),
-				'templates'  => GlobalsRepository::list( 'meridian_template' ),
-				'menus'      => Menus::all(),
-				'header'     => Menus::header(),
-				'footer'     => Menus::footer(),
-				'settings'   => get_option( MERIDIAN_OPTION_SETTINGS, [] ),
-			]
-		);
+		return rest_ensure_response( \Meridian\Content\DesignKit::export() );
 	}
 
 	public static function import( WP_REST_Request $req ) {
 		$body = $req->get_json_params() ?: [];
-		if ( empty( $body['krg'] ) && empty( $body['meridian'] ) ) {
-			return self::err( 'meridian_import', __( 'El archivo no es un paquete KRG CMS válido.', 'meridian' ) );
+		try {
+			$informe = \Meridian\Content\DesignKit::import( $body, [] );
+		} catch ( \Throwable $e ) {
+			return self::err( 'meridian_import', $e->getMessage() );
 		}
-		if ( ! empty( $body['tokens'] ) && is_array( $body['tokens'] ) ) {
-			TokenRepository::save( $body['tokens'] );
+		return rest_ensure_response(
+			[
+				'ok'      => true,
+				// Lo que devolvia antes, para quien lo estuviera leyendo.
+				'pages'   => (int) $informe['paginas']['creadas'],
+				'informe' => $informe,
+			]
+		);
+	}
+
+	public static function kit_export( WP_REST_Request $req ): WP_REST_Response {
+		return rest_ensure_response( \Meridian\Content\DesignKit::export( $req->get_json_params() ?: [] ) );
+	}
+
+	public static function kit_inspect( WP_REST_Request $req ): WP_REST_Response {
+		$body = $req->get_json_params() ?: [];
+		$pack = is_array( $body['pack'] ?? null ) ? $body['pack'] : $body;
+		return rest_ensure_response( \Meridian\Content\DesignKit::inspect( $pack ) );
+	}
+
+	public static function kit_import( WP_REST_Request $req ) {
+		$body = $req->get_json_params() ?: [];
+		$pack = is_array( $body['pack'] ?? null ) ? $body['pack'] : $body;
+		$opts = is_array( $body['opts'] ?? null ) ? $body['opts'] : [];
+		try {
+			return rest_ensure_response( \Meridian\Content\DesignKit::import( $pack, $opts ) );
+		} catch ( \Throwable $e ) {
+			return self::err( 'meridian_import', $e->getMessage() );
 		}
-		if ( ! empty( $body['menus'] ) ) {
-			Menus::save( $body['menus'] );
-		}
-		if ( ! empty( $body['header'] ) ) {
-			Menus::save_header( $body['header'] );
-		}
-		if ( ! empty( $body['footer'] ) ) {
-			Menus::save_footer( $body['footer'] );
-		}
-		$created = [];
-		if ( ! empty( $body['pages'] ) && is_array( $body['pages'] ) ) {
-			foreach ( $body['pages'] as $page ) {
-				if ( ! is_array( $page ) ) {
-					continue;
-				}
-				try {
-					if ( ! empty( $page['sections'] ) && is_array( $page['sections'] ) ) {
-						$page['sections'] = PageRepository::regen_ids( $page['sections'] );
-					}
-					$created[] = PageRepository::create(
-						[
-							'title'    => $page['title'] ?? __( 'Importada', 'meridian' ),
-							'slug'     => ( $page['slug'] ?? '' ) ? $page['slug'] . '-import' : '',
-							'document' => $page,
-						]
-					);
-				} catch ( \Throwable $e ) {
-					\Meridian\Log\Logger::error( $e->getMessage() );
-				}
-			}
-		}
-		if ( ! empty( $body['globals'] ) && is_array( $body['globals'] ) ) {
-			foreach ( $body['globals'] as $g ) {
-				if ( is_array( $g ) ) {
-					GlobalsRepository::save( 'meridian_global', $g );
-				}
-			}
-		}
-		if ( ! empty( $body['templates'] ) && is_array( $body['templates'] ) ) {
-			foreach ( $body['templates'] as $t ) {
-				if ( is_array( $t ) ) {
-					GlobalsRepository::save( 'meridian_template', $t );
-				}
-			}
-		}
-		return rest_ensure_response( [ 'ok' => true, 'pages' => count( $created ) ] );
 	}
 }
