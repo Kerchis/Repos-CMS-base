@@ -980,6 +980,40 @@ class Controller {
 		return rest_ensure_response( \Meridian\Content\DesignKit::inspect( $pack ) );
 	}
 
+	/** Buscar por todo el sitio. No cambia nada. */
+	public static function search( WP_REST_Request $req ) {
+		$body = $req->get_json_params() ?: [];
+		$q    = (string) ( $body['q'] ?? '' );
+		$opts = [
+			'sensible' => ! empty( $body['sensible'] ),
+			'entera'   => ! empty( $body['entera'] ),
+			'chrome'   => ! empty( $body['chrome'] ),
+		];
+		try {
+			return rest_ensure_response( \Meridian\Content\Search::buscar( $q, $opts ) );
+		} catch ( \Throwable $e ) {
+			return self::err( 'meridian_search', $e->getMessage() );
+		}
+	}
+
+	/** Reemplazar en las páginas que se digan. Escribe el borrador. */
+	public static function search_replace( WP_REST_Request $req ) {
+		$body = $req->get_json_params() ?: [];
+		$q    = (string) ( $body['q'] ?? '' );
+		$por  = (string) ( $body['por'] ?? '' );
+		$opts = [
+			'sensible' => ! empty( $body['sensible'] ),
+			'entera'   => ! empty( $body['entera'] ),
+			'chrome'   => ! empty( $body['chrome'] ),
+			'paginas'  => (array) ( $body['paginas'] ?? [] ),
+		];
+		try {
+			return rest_ensure_response( \Meridian\Content\Search::reemplazar( $q, $por, $opts ) );
+		} catch ( \Throwable $e ) {
+			return self::err( 'meridian_search', $e->getMessage() );
+		}
+	}
+
 	/** Cuántas fotos están preparadas y cuántas no. */
 	public static function media_formats( WP_REST_Request $req ) {
 		$estado = \Meridian\Media\Formats::estado();

@@ -40,6 +40,9 @@
     // Ramas plegadas del árbol de estructura. Es estado de interfaz, no
     // del documento: no se guarda ni ensucia la página.
     treeClosed: new Set(),
+    // Lo escrito en el buscador del árbol. También es interfaz: filtra
+    // lo que se ve, no toca el documento.
+    treeFiltro: "",
   };
   // Asa de solo lectura sobre el estado. La usan el diagnostico de
   // estilos y los bancos de pruebas para mirar el documento que el

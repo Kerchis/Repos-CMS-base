@@ -312,6 +312,17 @@ class Routes {
 			'permission_callback' => $manage,
 			'callback' => [ Controller::class, 'kit_import' ],
 		] );
+		// Buscar por todo el sitio y reemplazar donde se diga.
+		register_rest_route( $ns, '/search', [
+			'methods' => 'POST',
+			'permission_callback' => $edit,
+			'callback' => [ Controller::class, 'search' ],
+		] );
+		register_rest_route( $ns, '/search/replace', [
+			'methods' => 'POST',
+			'permission_callback' => $edit,
+			'callback' => [ Controller::class, 'search_replace' ],
+		] );
 		// Las versiones modernas de las fotos que ya estaban: cuántas
 		// faltan y una tanda cada vez, para no caducar la peticion.
 		register_rest_route( $ns, '/media/formats', [

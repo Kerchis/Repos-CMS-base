@@ -263,7 +263,8 @@
         <a class="${active==="blog"?"is-active":""}" href="${cfg.admin}?page=krg-blog">Blog</a>
         ${cfg.canEditPages !== false ? `
         <a class="${active==="templates"?"is-active":""}" href="${cfg.admin}?page=krg-pages&view=templates">Plantillas</a>
-        <a class="${active==="globals"?"is-active":""}" href="${cfg.admin}?page=krg-pages&view=globals">Componentes globales</a>` : ""}
+        <a class="${active==="globals"?"is-active":""}" href="${cfg.admin}?page=krg-pages&view=globals">Componentes globales</a>
+        <a class="${active==="buscar"?"is-active":""}" href="${cfg.admin}?page=krg-buscar">Buscar y reemplazar</a>` : ""}
         ${cfg.canManage ? `
         <div class="grp">Apariencia</div>
         <a class="${active==="design"?"is-active":""}" href="${cfg.admin}?page=krg-design">Identidad y tokens</a>
@@ -2343,6 +2344,155 @@
     ["paginas", "Las páginas", "Cada página entera, con sus secciones y su SEO."],
   ];
 
+  async function buscar() {
+    shell("buscar", `
+      <div class="m-top"><h1>Buscar y reemplazar</h1></div>
+      <p class="m-muted">Busca un texto por todas las páginas —también dentro de las listas repetidas, en el
+      título y en los campos de SEO— y cámbialo donde tú digas. No toca colores, ni medidas, ni ajustes:
+      sólo texto y direcciones de enlace. Y nunca cambia la dirección de una página, que rompería los
+      enlaces de fuera.</p>
+
+      <div class="m-panel" style="padding:16px 20px;margin-top:20px">
+        <div class="m-busca-campos">
+          <label class="m-field">Buscar
+            <input type="text" id="bus-q" placeholder="555 12 34 56" autocomplete="off">
+          </label>
+          <label class="m-field">Reemplazar por
+            <input type="text" id="bus-por" placeholder="600 98 76 54" autocomplete="off">
+          </label>
+        </div>
+        <div class="m-kit-grid">
+          <label class="m-kit-check"><input type="checkbox" id="bus-sensible">
+            <span><strong>Distinguir mayúsculas</strong><small class="m-muted">«Miel» y «miel» dejan de ser lo mismo.</small></span></label>
+          <label class="m-kit-check"><input type="checkbox" id="bus-entera">
+            <span><strong>Sólo palabras enteras</strong><small class="m-muted">Buscando «miel» no saldría «mielada».</small></span></label>
+          <label class="m-kit-check"><input type="checkbox" id="bus-chrome">
+            <span><strong>Mirar también la cabecera y el pie</strong><small class="m-muted">Lo que se repite en todas las páginas.</small></span></label>
+        </div>
+        <div class="m-row" style="margin-top:12px">
+          <button class="m-btn" id="bus-ir">Buscar</button>
+        </div>
+      </div>
+
+      <div id="bus-res" hidden></div>`);
+
+    const q = el.querySelector("#bus-q");
+    const campo = (id) => el.querySelector(id).checked;
+    const opciones = () => ({
+      q: q.value.trim(),
+      sensible: campo("#bus-sensible"),
+      entera: campo("#bus-entera"),
+      chrome: campo("#bus-chrome"),
+    });
+    let ultimo = null;
+
+    /** Resalta lo encontrado dentro del trozo de contexto. */
+    const marcar = (texto, aguja, sensible) => {
+      const limpio = esc(texto);
+      const objetivo = esc(aguja);
+      if (!objetivo) return limpio;
+      const re = new RegExp(objetivo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), sensible ? "g" : "gi");
+      return limpio.replace(re, (m) => `<mark>${m}</mark>`);
+    };
+
+    const pintar = (r) => {
+      ultimo = r;
+      const caja = el.querySelector("#bus-res");
+      caja.hidden = false;
+      if (!r.total) {
+        caja.innerHTML = `<div class="m-panel" style="padding:16px 20px;margin-top:20px">
+          <p class="m-muted">No aparece «${esc(r.consulta)}» en ninguna parte.</p></div>`;
+        return;
+      }
+      const paginas = r.paginas.map((p) => `
+        <div class="m-busca-pag">
+          <label class="m-kit-check">
+            <input type="checkbox" data-bus-pag="${p.id}" checked>
+            <span><strong>${esc(p.title)}</strong>
+              <small class="m-muted">${esc(plural(p.hallazgos.length, "sitio", "sitios"))} · /${esc(p.slug)}</small></span>
+          </label>
+          <ul class="m-busca-lista">
+            ${p.hallazgos.map((h) => `<li>
+              <code>${esc(h.tipo)}${h.campo ? ` · ${esc(h.campo)}` : ""}</code>
+              <span>${marcar(h.contexto, r.consulta, campo("#bus-sensible"))}</span>
+              ${h.nodeId ? `<a class="m-busca-ir" href="${cfg.admin}?page=krg-builder&id=${p.id}#${esc(h.nodeId)}">Abrir</a>` : ""}
+            </li>`).join("")}
+          </ul>
+        </div>`).join("");
+      const chrome = r.chrome.length ? `
+        <div class="m-busca-pag">
+          <strong>Cabecera y pie</strong>
+          <ul class="m-busca-lista">
+            ${r.chrome.map((h) => `<li><code>${esc(h.donde)} · ${esc(h.campo)}</code>
+              <span>${marcar(h.contexto, r.consulta, campo("#bus-sensible"))}</span></li>`).join("")}
+          </ul>
+        </div>` : "";
+      caja.innerHTML = `
+        <div class="m-panel" style="padding:16px 20px;margin-top:20px">
+          <h3>${esc(plural(r.total, "sitio", "sitios"))} en ${esc(plural(r.paginas.length, "página", "páginas"))}</h3>
+          <p class="m-muted">Desmarca las páginas que no quieras tocar. El cambio se escribe en el borrador:
+          cada página queda pendiente de publicar, y en su historial queda la versión de antes por si hay que volver.</p>
+          ${paginas}
+          ${chrome}
+          <div class="m-row" style="margin-top:12px">
+            <button class="m-btn" id="bus-cambiar">Reemplazar en lo marcado</button>
+          </div>
+        </div>
+        <div class="m-panel" id="bus-informe" style="padding:16px 20px;margin-top:20px" hidden></div>`;
+
+      caja.querySelector("#bus-cambiar").onclick = async () => {
+        const por = el.querySelector("#bus-por").value;
+        const marcadas = [...caja.querySelectorAll("[data-bus-pag]")]
+          .filter((c) => c.checked).map((c) => Number(c.getAttribute("data-bus-pag")));
+        if (!marcadas.length && !campo("#bus-chrome")) {
+          toast("No hay nada marcado");
+          return;
+        }
+        const boton = caja.querySelector("#bus-cambiar");
+        boton.disabled = true;
+        try {
+          const inf = await api.post("/search/replace", { ...opciones(), por, paginas: marcadas });
+          const caja2 = caja.querySelector("#bus-informe");
+          caja2.hidden = false;
+          caja2.innerHTML = `
+            <h3>Qué se ha cambiado</h3>
+            <p>${esc(plural(inf.cambios, "cambio", "cambios"))} en ${esc(plural(inf.paginas, "página", "páginas"))}${
+              inf.chrome ? ` y ${esc(plural(inf.chrome, "sitio", "sitios"))} de la cabecera o el pie` : ""}.</p>
+            ${inf.detalle.length ? `<ul class="m-muted">${inf.detalle.map((d) =>
+              `<li>${esc(d.title)} — ${esc(plural(d.cambios, "cambio", "cambios"))}</li>`).join("")}</ul>` : ""}
+            ${(inf.avisos || []).map((a) => `<p class="m-muted">${esc(a)}</p>`).join("")}
+            <div class="m-row"><a class="m-btn ghost" href="${cfg.admin}?page=krg-pages">Ver las páginas</a></div>`;
+          caja2.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          toast("Reemplazado");
+        } catch (err) {
+          toast(err.message || "No se pudo reemplazar");
+        }
+        boton.disabled = false;
+      };
+    };
+
+    const lanzar = async () => {
+      const o = opciones();
+      if (!o.q) {
+        toast("Escribe qué buscar");
+        return;
+      }
+      const boton = el.querySelector("#bus-ir");
+      boton.disabled = true;
+      try {
+        pintar(await api.post("/search", o));
+      } catch (err) {
+        toast(err.message || "No se pudo buscar");
+      }
+      boton.disabled = false;
+    };
+    el.querySelector("#bus-ir").onclick = lanzar;
+    q.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") lanzar();
+    });
+    q.focus();
+  }
+
   async function kit() {
     const pages = await api.get("/pages").catch(() => []);
     const casillas = (prefijo) => KIT_PARTES.map(([id, titulo, nota]) => `
@@ -2779,6 +2929,7 @@
     "krg-seo": seo,
     "krg-users": users,
     "krg-settings": settings,
+    "krg-buscar": buscar,
     "krg-kit": kit,
   };
   const run = routes[pageKey];

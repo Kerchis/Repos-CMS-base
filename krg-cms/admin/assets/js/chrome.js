@@ -29,6 +29,9 @@
     registry: [],
     // Ramas plegadas del árbol del pie (estado de interfaz).
     treeClosed: new Set(),
+    // Lo escrito en el buscador del árbol. También es interfaz: filtra
+    // lo que se ve, no toca el documento.
+    treeFiltro: "",
     widths: { desktop: 1280, tablet: 768, mobile: 390 },
   };
   const PRESETS = {

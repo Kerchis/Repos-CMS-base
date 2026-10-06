@@ -25,6 +25,7 @@ class Menu {
 		add_submenu_page( 'krg', __( 'Páginas', 'meridian' ), __( 'Páginas', 'meridian' ), 'meridian_edit_pages', 'krg-pages', [ self::class, 'app' ] );
 		add_submenu_page( 'krg', __( 'Constructor', 'meridian' ), __( 'Constructor', 'meridian' ), 'meridian_edit_pages', 'krg-builder', [ self::class, 'builder' ] );
 		add_submenu_page( 'krg', __( 'Blog', 'meridian' ), __( 'Blog', 'meridian' ), 'edit_posts', 'krg-blog', [ self::class, 'app' ] );
+		add_submenu_page( 'krg', __( 'Buscar y reemplazar', 'meridian' ), __( 'Buscar y reemplazar', 'meridian' ), 'meridian_edit_pages', 'krg-buscar', [ self::class, 'app' ] );
 		add_submenu_page( 'krg', __( 'Apariencia', 'meridian' ), __( 'Apariencia', 'meridian' ), 'meridian_manage', 'krg-design', [ self::class, 'app' ] );
 		add_submenu_page( 'krg', __( 'Navegación', 'meridian' ), __( 'Navegación', 'meridian' ), 'meridian_manage', 'krg-nav', [ self::class, 'app' ] );
 		add_submenu_page( 'krg', __( 'SEO', 'meridian' ), __( 'SEO', 'meridian' ), 'meridian_manage', 'krg-seo', [ self::class, 'app' ] );

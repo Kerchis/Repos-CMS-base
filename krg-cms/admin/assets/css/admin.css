@@ -521,6 +521,15 @@ select.m-mini {
 .m-kit-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; font-weight: 600; }
 .m-kit-check input { margin-top: 3px; }
 .m-kit-check small { display: block; font-weight: 400; margin-top: 2px; }
+.m-busca-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.m-busca-pag { border-top: 1px solid var(--m-line); padding: 14px 0 4px; }
+.m-busca-pag:first-of-type { border-top: 0; }
+.m-busca-lista { list-style: none; margin: 8px 0 0 28px; padding: 0; display: grid; gap: 6px; }
+.m-busca-lista li { display: grid; grid-template-columns: minmax(120px, 190px) 1fr auto; gap: 10px; align-items: baseline; font-size: 13px; }
+.m-busca-lista code { font-size: 11px; opacity: .7; overflow-wrap: anywhere; }
+.m-busca-lista mark { background: #ffe9a8; color: inherit; padding: 0 2px; border-radius: 3px; }
+.m-busca-ir { font-size: 12px; white-space: nowrap; }
+@media (max-width: 860px) { .m-busca-lista li { grid-template-columns: 1fr; } }
 .m-kit-med { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 12px; }
 .m-kit-med h4 { margin: 0 0 6px; }
 .m-kit-med textarea { width: 100%; font: 11px/1.4 ui-monospace, monospace; }

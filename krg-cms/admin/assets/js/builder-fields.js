@@ -3302,6 +3302,75 @@
         dropNode(srcId, destId, dropPlace(e, hd, src, dest));
       });
     });
+    /* ------------------------------------------------------------------
+       Buscar dentro de esta página.
+
+       El filtro se aplica sobre el árbol ya pintado en vez de volver a
+       dibujarlo: así no se pierde el cursor mientras se escribe. Un
+       bloque casa por su nombre, por su tipo o por el texto que lleva
+       dentro; y si casa, se queda con todos sus padres para que se vea
+       dónde está.
+       ------------------------------------------------------------------ */
+    const cajaQ = root.querySelector("#b-tree-q");
+    const cuentaEl = root.querySelector("#b-tree-cuenta");
+
+    const textoDe = (nodo) => {
+      const trozos = [nodo.name || "", nodo.type || ""];
+      const mirar = (valor) => {
+        if (typeof valor === "string") {
+          trozos.push(valor);
+        } else if (Array.isArray(valor)) {
+          valor.forEach(mirar);
+        } else if (valor && typeof valor === "object") {
+          Object.values(valor).forEach(mirar);
+        }
+      };
+      mirar(nodo.props || {});
+      return trozos.join(" ").toLowerCase();
+    };
+
+    function filtrarArbol(q) {
+      const texto = (q || "").trim().toLowerCase();
+      state.treeFiltro = q || "";
+      if (!treeEl) return;
+      treeEl.classList.toggle("is-filtrando", texto !== "");
+      const cajas = [...treeEl.querySelectorAll(".sec[data-tree]")];
+      if (!texto) {
+        cajas.forEach((c) => c.classList.remove("is-fuera", "is-hit"));
+        if (cuentaEl) cuentaEl.textContent = "";
+        return;
+      }
+      let aciertos = 0;
+      cajas.forEach((c) => {
+        const hit = findNode(state.doc.sections, c.getAttribute("data-tree"));
+        const casa = hit ? textoDe(hit.node).includes(texto) : false;
+        c.classList.toggle("is-hit", casa);
+        if (casa) aciertos++;
+      });
+      // Se queda lo que casa y todo lo que lo contiene.
+      cajas.forEach((c) => {
+        const dentro = c.classList.contains("is-hit") || c.querySelector(".sec.is-hit");
+        c.classList.toggle("is-fuera", !dentro);
+      });
+      if (cuentaEl) {
+        cuentaEl.textContent = aciertos
+          ? `${aciertos} de ${cajas.length}`
+          : "nada";
+      }
+    }
+
+    if (cajaQ) {
+      cajaQ.addEventListener("input", () => filtrarArbol(cajaQ.value));
+      cajaQ.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          cajaQ.value = "";
+          filtrarArbol("");
+        }
+      });
+      // Al volver a pintar el panel, el filtro sigue puesto.
+      if (state.treeFiltro) filtrarArbol(state.treeFiltro);
+    }
+
     treeEl.querySelectorAll("[data-tw]").forEach((b) => {
       b.addEventListener("click", (e) => {
         e.preventDefault();
@@ -3904,6 +3973,11 @@
           <button type="button" class="b-ico" data-tree-all="close" title="Contraer todo">⤡</button>
         </span>
       </h4>
+      <div class="b-tree-busca">
+        <input type="search" id="b-tree-q" placeholder="Buscar en esta página…" autocomplete="off"
+          value="${esc(state.treeFiltro || "")}" aria-label="Buscar bloques en esta página">
+        <span class="b-tree-cuenta" id="b-tree-cuenta"></span>
+      </div>
       ${avisoPorta()}
       <div class="b-tree">${walk(state.doc.sections) || "<p class='b-empty'>Añade una sección.</p>"}</div>
     </div>`;

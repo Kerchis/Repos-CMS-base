@@ -1070,3 +1070,15 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 
 /* Fila de botones dentro de un panel del inspector. */
 .b-insp .b-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+/* --------------------------------------------------------------------
+   Buscar dentro del árbol de la página
+   -------------------------------------------------------------------- */
+.b-tree-busca { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.b-tree-busca input { flex: 1; min-width: 0; font-size: 12px; padding: 5px 8px; }
+.b-tree-cuenta { font-size: 11px; opacity: .65; white-space: nowrap; }
+.b-tree.is-filtrando .sec.is-fuera { display: none; }
+/* Con el filtro puesto, las ramas se abren solas: lo que se busca no
+   puede quedarse escondido dentro de una rama plegada. */
+.b-tree.is-filtrando .b-kids { display: block; }
+.b-tree.is-filtrando .sec.is-hit > .hd .b-tname { background: #ffe9a8; color: #1d1d1b; border-radius: 3px; padding: 0 3px; }
