@@ -39,13 +39,28 @@ class NodeRenderer {
 			return '';
 		}
 
-		$props        = array_merge( $def['defaults'] ?? [], $node['props'] ?? [] );
+		$props = array_merge( $def['defaults'] ?? [], $node['props'] ?? [] );
+
+		// Antes de bajar, apuntar cuánto ancho le queda a lo de dentro.
+		// Una columna de 4 pistas de 12 deja un tercio; una rejilla de
+		// tres columnas, otro tercio de lo que ya hubiera. Las fotos lo
+		// leen para decir en `sizes` lo que ocupan de verdad.
+		$antes = $ctx->fraccion;
+		if ( 'column' === $type ) {
+			$span          = max( 1, min( 12, (int) ( $props['span'] ?? 12 ) ) );
+			$ctx->fraccion = $antes * ( $span / 12 );
+		} elseif ( 'columns' === $type ) {
+			$cols          = max( 1, min( 6, (int) ( $props['desktop'] ?? 1 ) ) );
+			$ctx->fraccion = $antes / $cols;
+		}
+
 		$childrenHtml = '';
 		foreach ( $node['children'] ?? [] as $child ) {
 			if ( is_array( $child ) ) {
 				$childrenHtml .= self::render( $child, $ctx );
 			}
 		}
+		$ctx->fraccion = $antes;
 
 		return ComponentRenders::render( $type, $node, $props, $childrenHtml, $ctx );
 	}

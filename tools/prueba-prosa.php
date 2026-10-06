@@ -41,6 +41,8 @@ foreach (
 		'/core/components/Catalog.php',
 		'/core/components/BrandCatalog.php',
 		'/core/components/Registry.php',
+		'/core/media/Images.php',
+		'/core/media/Formats.php',
 		'/core/render/ComponentRenders.php',
 		'/core/render/BrandRenders.php',
 		'/core/render/NodeRenderer.php',

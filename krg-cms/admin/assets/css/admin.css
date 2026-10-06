@@ -116,6 +116,9 @@
 .m-btn.ghost { background: transparent; color: var(--m-ink); border: 1px solid var(--m-line); }
 .m-btn.danger { background: #c0392b; }
 .m-btn:disabled { opacity: 0.55; cursor: wait; }
+/* Un botón escondido con `hidden` tiene que desaparecer: `display` de
+   la clase manda sobre el atributo, así que hay que decirlo aquí. */
+.m-btn[hidden] { display: none; }
 /* Segundo bloque de una pantalla (p. ej. «Categorías y etiquetas»
    debajo de la lista de entradas): mismo aire que el titular, pero sin
    competir con el h1. */

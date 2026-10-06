@@ -36,7 +36,15 @@ if ( $show_footer ) {
 			<div>
 				<?php
 				if ( ! empty( $f['logoId'] ) ) {
-					echo wp_get_attachment_image( (int) $f['logoId'], 'medium', false, [ 'alt' => esc_attr( $name ) ] );
+					// El del pie sí se difiere: nadie lo ve hasta el final.
+					echo \Meridian\Media\Images::tag(
+						(int) $f['logoId'],
+						'medium',
+						[
+							'alt'   => $name,
+							'papel' => 200,
+						]
+					);
 				} else {
 					echo '<strong class="m-logo-text">' . esc_html( $name ) . '</strong>';
 				}

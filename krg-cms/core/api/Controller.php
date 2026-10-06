@@ -980,6 +980,24 @@ class Controller {
 		return rest_ensure_response( \Meridian\Content\DesignKit::inspect( $pack ) );
 	}
 
+	/** Cuántas fotos están preparadas y cuántas no. */
+	public static function media_formats( WP_REST_Request $req ) {
+		$estado = \Meridian\Media\Formats::estado();
+		unset( $estado['ids'] );
+		return rest_ensure_response( $estado );
+	}
+
+	/** Una tanda de conversiones. El panel vuelve a llamar hasta acabar. */
+	public static function media_prepare( WP_REST_Request $req ) {
+		$body    = $req->get_json_params() ?: [];
+		$cuantas = absint( $body['cuantas'] ?? 8 );
+		try {
+			return rest_ensure_response( \Meridian\Media\Formats::tanda( $cuantas ?: 8 ) );
+		} catch ( \Throwable $e ) {
+			return self::err( 'meridian_media', $e->getMessage() );
+		}
+	}
+
 	public static function kit_import( WP_REST_Request $req ) {
 		$body = $req->get_json_params() ?: [];
 		$pack = is_array( $body['pack'] ?? null ) ? $body['pack'] : $body;

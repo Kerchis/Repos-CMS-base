@@ -23,6 +23,16 @@ class RenderContext {
 	public array $needed = [];
 	public ?int $postId = null;
 	public array $document = [];
+	/**
+	 * Qué parte del ancho del contenido ocupa lo que se está pintando.
+	 *
+	 * Empieza en 1 —la sección entera— y se va estrechando al entrar en
+	 * una columna de 4 de 12 (0.33) o en una rejilla de tres (otro
+	 * tercio). Las fotos lo usan para declarar en `sizes` lo que de
+	 * verdad ocupan y que el navegador no se baje el archivo grande
+	 * para un hueco pequeño.
+	 */
+	public float $fraccion = 1.0;
 
 	/**
 	 * Marca de seleccion para el lienzo del constructor.

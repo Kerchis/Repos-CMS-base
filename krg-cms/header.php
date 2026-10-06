@@ -75,11 +75,31 @@ if ( $show_header ) {
 			<a class="m-logo" href="<?php echo esc_url( $logo_href ); ?>">
 				<?php
 				if ( $logo_id ) {
+					// El logo es de lo primero que se ve: ni se difiere su
+					// carga ni se pide el original de 3000 px para un hueco
+					// de 140. Y con alto y ancho, que si no la cabecera da un
+					// salto al cargar.
 					echo '<span class="m-logo-desktop">';
-					echo wp_get_attachment_image( $logo_id, 'full', false, [ 'alt' => esc_attr( $name ) ] );
+					echo \Meridian\Media\Images::tag(
+						$logo_id,
+						'medium_large',
+						[
+							'alt'   => $name,
+							'papel' => $width,
+							'eager' => true,
+						]
+					);
 					echo '</span>';
 					echo '<span class="m-logo-mobile">';
-					echo wp_get_attachment_image( $logo_m, 'full', false, [ 'alt' => esc_attr( $name ) ] );
+					echo \Meridian\Media\Images::tag(
+						$logo_m,
+						'medium',
+						[
+							'alt'   => $name,
+							'papel' => $wm,
+							'eager' => true,
+						]
+					);
 					echo '</span>';
 				} else {
 					echo '<span class="m-logo-text">' . esc_html( $name ) . '</span>';

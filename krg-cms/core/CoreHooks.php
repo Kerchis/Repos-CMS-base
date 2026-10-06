@@ -37,5 +37,8 @@ class CoreHooks {
 		\Meridian\Render\Preview::register_query_var();
 		\Meridian\Content\Seeder::maybe_library();
 		\Meridian\Content\Seeder::maybe_users();
+		// Las versiones modernas de las fotos: se preparan al subirlas y
+		// se borran con ellas.
+		\Meridian\Media\Formats::register();
 	}
 }

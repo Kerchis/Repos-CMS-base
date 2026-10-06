@@ -155,11 +155,11 @@ class BrandRenders {
 		return '--m-cols:' . $dd . ';--m-cols-t:' . $tt . ';--m-cols-m:' . $mm . ';';
 	}
 
-	private static function media( RenderContext $ctx, int $id, string $alt, string $class, string $size = 'large', bool $eager = false ): string {
+	private static function media( RenderContext $ctx, int $id, string $alt, string $class, string $size = 'large', bool $eager = false, $papel = null ): string {
 		if ( ! $id ) {
-			return '<span class="m-img-placeholder ' . esc_attr( $class ) . '" aria-hidden="true"></span>';
+			return \Meridian\Media\Images::placeholder( $class, '3 / 2', 'span' );
 		}
-		return ComponentRenders::img( $ctx, $id, $alt, $class, $size, $eager );
+		return ComponentRenders::img( $ctx, $id, $alt, $class, $size, $eager, $papel );
 	}
 
 	/**
@@ -220,7 +220,7 @@ class BrandRenders {
 			'quote'    => ! empty( $props['quoteTitle'] ),
 			'veil'     => ( '' !== $veil || '' !== $hover ),
 			'fixedH'   => (bool) $alto,
-			'logo'     => $logo ? ComponentRenders::img( $ctx, $logo, '', 'm-card-logo-img', 'medium' ) : '',
+			'logo'     => $logo ? ComponentRenders::img( $ctx, $logo, '', 'm-card-logo-img', 'medium', false, 'icon' ) : '',
 			'logoPos'  => $donde,
 			'align'    => $alinea,
 			'valign'   => $vert,
@@ -453,7 +453,7 @@ class BrandRenders {
 
 		$sep_html = '';
 		if ( 'image' === $sep && $icon_id ) {
-			$sep_html = '<span class="m-mq-sep is-img" aria-hidden="true">' . self::media( $ctx, $icon_id, '', 'm-mq-icon', 'thumbnail' ) . '</span>';
+			$sep_html = '<span class="m-mq-sep is-img" aria-hidden="true">' . self::media( $ctx, $icon_id, '', 'm-mq-icon', 'thumbnail', false, 'icon' ) . '</span>';
 		} elseif ( isset( $glyphs[ $sep ] ) && '' !== $glyphs[ $sep ] ) {
 			$sep_html = '<span class="m-mq-sep" aria-hidden="true">' . $glyphs[ $sep ] . '</span>';
 		}
@@ -505,7 +505,7 @@ class BrandRenders {
 			$inner .= '<p class="m-pl-label">' . esc_html( $label ) . '</p>';
 		}
 		if ( $img ) {
-			$inner .= '<div class="m-pl-mark">' . self::media( $ctx, $img, '', 'm-pl-img', 'medium', true ) . '</div>';
+			$inner .= '<div class="m-pl-mark">' . self::media( $ctx, $img, '', 'm-pl-img', 'medium', true, 'icon' ) . '</div>';
 		}
 		if ( $count ) {
 			$inner .= '<p class="m-pl-count" data-pl-count>0%</p>';
@@ -574,10 +574,10 @@ class BrandRenders {
 		if ( $img || $img_m ) {
 			$media  = '<div class="m-bh-media" aria-hidden="true">';
 			if ( $img ) {
-				$media .= self::media( $ctx, $img, '', 'm-bh-img is-desktop', 'full', true );
+				$media .= self::media( $ctx, $img, '', 'm-bh-img is-desktop', 'full', true, 'full' );
 			}
 			if ( $img_m ) {
-				$media .= self::media( $ctx, $img_m, '', 'm-bh-img is-mobile', 'large', true );
+				$media .= self::media( $ctx, $img_m, '', 'm-bh-img is-mobile', 'large', true, 'full' );
 			}
 			$media .= '<span class="m-bh-veil" style="opacity:' . ( $overlay / 100 ) . '"></span>';
 			$media .= '</div>';
@@ -590,7 +590,7 @@ class BrandRenders {
 
 		$split_extra = '';
 		if ( 'split' === $variant && $img ) {
-			$split_extra = '<div class="m-bh-side">' . self::media( $ctx, $img, ComponentRenders::texto_plano( $props['title'] ?? '' ), 'm-bh-side-img', 'large', true ) . '</div>';
+			$split_extra = '<div class="m-bh-side">' . self::media( $ctx, $img, ComponentRenders::texto_plano( $props['title'] ?? '' ), 'm-bh-side-img', 'large', true, 'half' ) . '</div>';
 			$media       = '';
 		}
 
@@ -641,7 +641,7 @@ class BrandRenders {
 		}
 		$copy .= '</div>';
 
-		$media = '<div class="m-sf-media is-shape-' . $shape . '">' . self::media( $ctx, $img, ComponentRenders::texto_plano( $props['title'] ?? '' ), 'm-sf-img' ) . '</div>';
+		$media = '<div class="m-sf-media is-shape-' . $shape . '">' . self::media( $ctx, $img, ComponentRenders::texto_plano( $props['title'] ?? '' ), 'm-sf-img', 'large', false, 'half' ) . '</div>';
 
 		return ComponentRenders::wrap(
 			$node,
@@ -682,7 +682,7 @@ class BrandRenders {
 		if ( $icon && $n_icons ) {
 			$icons = '<span class="m-sc-icons" aria-hidden="true">';
 			for ( $i = 0; $i < $n_icons; $i++ ) {
-				$icons .= '<span class="m-sc-icon" style="--m-i:' . $i . '">' . self::media( $ctx, $icon, '', 'm-sc-icon-img', 'thumbnail' ) . '</span>';
+				$icons .= '<span class="m-sc-icon" style="--m-i:' . $i . '">' . self::media( $ctx, $icon, '', 'm-sc-icon-img', 'thumbnail', false, 'icon' ) . '</span>';
 			}
 			$icons .= '</span>';
 		}
@@ -690,7 +690,7 @@ class BrandRenders {
 		$inner = '';
 		if ( $bg ) {
 			$inner .= '<div class="m-sc-media" aria-hidden="true">'
-				. self::media( $ctx, $bg, '', 'm-sc-bg', 'full' )
+				. self::media( $ctx, $bg, '', 'm-sc-bg', 'full', false, 'full' )
 				. '<span class="m-sc-veil" style="opacity:' . ( $overlay / 100 ) . '"></span></div>';
 		}
 		$body = '<div class="m-container m-sc-inner is-align-' . $align . '">';
@@ -1190,7 +1190,7 @@ class BrandRenders {
 
 		$inner = '';
 		if ( $bg ) {
-			$inner .= '<div class="m-tr-media-bg" aria-hidden="true">' . self::media( $ctx, $bg, '', 'm-tr-bg', 'full' ) . '</div>';
+			$inner .= '<div class="m-tr-media-bg" aria-hidden="true">' . self::media( $ctx, $bg, '', 'm-tr-bg', 'full', false, 'full' ) . '</div>';
 		}
 		$inner .= '<div class="m-container m-tr-inner is-align-' . $align . '">'
 			. '<div class="m-tr-head">' . $head . $form . '</div>'
@@ -1236,7 +1236,7 @@ class BrandRenders {
 			if ( ! $img && '' === $name ) {
 				continue;
 			}
-			$body  = $img ? self::media( $ctx, $img, $alt, 'm-rs-img', 'medium' ) : '<span class="m-rs-name">' . esc_html( $name ) . '</span>';
+			$body  = $img ? self::media( $ctx, $img, $alt, 'm-rs-img', 'medium', false, 'quarter' ) : '<span class="m-rs-name">' . esc_html( $name ) . '</span>';
 			$logos .= '<li class="m-rs-item">' . ( '' !== $url
 				? '<a href="' . esc_url( $url ) . '" rel="noopener">' . $body . '</a>'
 				: $body ) . '</li>';
@@ -1316,7 +1316,7 @@ class BrandRenders {
 
 		// --- panel de contenido ---
 		$badge_html = $badge
-			? '<span class="m-sp-badge is-' . $bpos . '">' . self::media( $ctx, $badge, '', 'm-sp-badge-img', 'thumbnail' ) . '</span>'
+			? '<span class="m-sp-badge is-' . $bpos . '">' . self::media( $ctx, $badge, '', 'm-sp-badge-img', 'thumbnail', false, 'icon' ) . '</span>'
 			: '';
 
 		$copy = '';
@@ -1370,7 +1370,7 @@ class BrandRenders {
 			foreach ( $items as $i => $it ) {
 				$cap     = trim( (string) ( $it['caption'] ?? '' ) );
 				$slides .= '<li class="m-sp-slide">'
-					. self::media( $ctx, absint( $it['imageId'] ), (string) ( $it['alt'] ?? '' ), 'm-sp-img', 'large', 0 === $i )
+					. self::media( $ctx, absint( $it['imageId'] ), (string) ( $it['alt'] ?? '' ), 'm-sp-img', 'large', 0 === $i, 'half' )
 					. ( '' !== $cap ? '<span class="m-sp-cap">' . esc_html( $cap ) . '</span>' : '' )
 					. '</li>';
 				$dots   .= '<button type="button" class="m-sp-dot' . ( 0 === $i ? ' is-on' : '' ) . '" data-sp-dot="' . $i . '" aria-label="'
@@ -1629,7 +1629,7 @@ class BrandRenders {
 					. '</figure>';
 			}
 			$abre = $zoom && ! $ctx->isCanvas;
-			$dentro = self::media( $ctx, $img, $alt, 'm-carta-img', 'medium' );
+			$dentro = self::media( $ctx, $img, $alt, 'm-carta-img', 'medium', false, 'icon' );
 			if ( $abre ) {
 				$primera = '' === $extra
 					? '<figure class="m-carta-lb-fig">' . self::media( $ctx, $img, $alt, 'm-carta-lb-img', 'large' ) . '</figure>'
@@ -1732,7 +1732,7 @@ class BrandRenders {
 		if ( $icon_id ) {
 			$w     = max( 16, min( 400, absint( $props['iconWidth'] ?? 56 ) ) );
 			$head .= '<span class="m-carta-icon" style="--m-carta-icon-w:' . $w . 'px">'
-				. self::media( $ctx, $icon_id, (string) ( $props['iconAlt'] ?? '' ), 'm-carta-icon-img', 'medium' )
+				. self::media( $ctx, $icon_id, (string) ( $props['iconAlt'] ?? '' ), 'm-carta-icon-img', 'medium', false, 'icon' )
 				. '</span>';
 		}
 		$eyebrow = trim( (string) ( $props['eyebrow'] ?? '' ) );
@@ -1920,7 +1920,7 @@ class BrandRenders {
 		if ( $logo_id ) {
 			$lw       = max( 40, min( 600, absint( $props['logoWidth'] ?? 160 ) ) );
 			$contact .= '<div class="m-fs-logo" style="--m-fs-logo-w:' . $lw . 'px">'
-				. self::media( $ctx, $logo_id, (string) ( $props['logoAlt'] ?? '' ), 'm-fs-logo-img', 'medium' )
+				. self::media( $ctx, $logo_id, (string) ( $props['logoAlt'] ?? '' ), 'm-fs-logo-img', 'medium', false, 'icon' )
 				. '</div>';
 		}
 		$eyebrow = trim( (string) ( $props['eyebrow'] ?? '' ) );

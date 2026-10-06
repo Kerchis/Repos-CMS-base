@@ -2670,6 +2670,18 @@
         <p class="m-muted" id="flush-msg" hidden></p>
       </div>
       <div class="m-panel" style="padding:16px 20px;margin-top:20px">
+        <h3>Fotos</h3>
+        <p class="m-muted">Las fotos nuevas se preparan solas al subirlas: se les hace una versión en
+        WebP y, si el servidor sabe, otra en AVIF. Pesan la mitad o menos y se ven igual; la web sirve
+        la que entienda cada navegador y deja la original de respaldo. Las que ya estaban se preparan
+        desde aquí.</p>
+        <p id="fotos-estado" class="m-muted">Contando…</p>
+        <div class="m-row">
+          <button class="m-btn" type="button" id="fotos-ir" hidden>Preparar las fotos que ya estaban</button>
+        </div>
+        <p class="m-muted" id="fotos-parte" hidden></p>
+      </div>
+      <div class="m-panel" style="padding:16px 20px;margin-top:20px">
         <h3>Permisos</h3>
         <p class="m-muted">Las rutas REST comprueban caps, no “está logueado”. El autor no puede cambiar tokens.</p>
         <table class="m-table"><thead><tr><th>Rol</th><th>Tokens / chrome</th><th>Páginas</th><th>Publicar</th><th>Blog</th></tr></thead>
@@ -2680,6 +2692,65 @@
       await api.put("/settings", { debug: el.querySelector("#dbg").checked });
       toast("Guardado");
     };
+    /* Las versiones modernas de las fotos, a tandas: el panel sigue
+       respondiendo y se ve cuánto queda. */
+    const fEstado = el.querySelector("#fotos-estado");
+    const fBoton = el.querySelector("#fotos-ir");
+    const fParte = el.querySelector("#fotos-parte");
+    const peso = (n) => (n >= 1048576
+      ? `${(n / 1048576).toFixed(1).replace(".", ",")} MB`
+      : `${Math.round(n / 1024)} KB`);
+
+    const contar = async () => {
+      try {
+        const r = await api.get("/media/formats");
+        if (!r.formatos || !r.formatos.length) {
+          fEstado.textContent = "Este servidor no sabe escribir ni WebP ni AVIF, así que las fotos se sirven tal cual. "
+            + "Es cosa del hospedaje, no del tema.";
+          fBoton.hidden = true;
+          return null;
+        }
+        const nombres = r.formatos.map((m) => (m === "image/avif" ? "AVIF" : "WebP")).join(" y ");
+        fEstado.textContent = r.pendientes
+          ? `${plural(r.fotos, "foto", "fotos")} en la biblioteca, ${r.pendientes} sin preparar. Este servidor sabe hacer ${nombres}.`
+          : `Las ${r.fotos} fotos de la biblioteca están preparadas. Este servidor sabe hacer ${nombres}.`;
+        fBoton.hidden = !r.pendientes;
+        return r;
+      } catch (err) {
+        fEstado.textContent = "No se ha podido mirar el estado de las fotos.";
+        return null;
+      }
+    };
+    contar();
+
+    fBoton.onclick = async () => {
+      fBoton.disabled = true;
+      fParte.hidden = false;
+      let hechas = 0;
+      let antes = 0;
+      let despues = 0;
+      try {
+        for (let vuelta = 0; vuelta < 200; vuelta++) {
+          const r = await api.post("/media/formats", { cuantas: 8 });
+          hechas += r.hechas || 0;
+          antes += r.antes || 0;
+          despues += r.despues || 0;
+          fParte.textContent = r.pendientes
+            ? `Preparando… quedan ${plural(r.pendientes, "foto", "fotos")}.`
+            : `Listo: ${plural(hechas, "archivo nuevo", "archivos nuevos")}.`;
+          if (!r.pendientes) break;
+        }
+        fParte.textContent = antes
+          ? `Listo: ${plural(hechas, "archivo nuevo", "archivos nuevos")}. Lo mismo que antes pesaba ${peso(antes)} ahora pesa ${peso(despues)}.`
+          : "No había nada que ganar: las fotos ya estaban todo lo apretadas que podían.";
+        toast("Fotos preparadas");
+      } catch (err) {
+        fParte.textContent = err.message || "Se ha cortado a mitad. Vuelve a pulsar y sigue por donde iba.";
+      }
+      fBoton.disabled = false;
+      contar();
+    };
+
     el.querySelector("#flush-cache").onclick = async () => {
       const btn = el.querySelector("#flush-cache");
       const msg = el.querySelector("#flush-msg");

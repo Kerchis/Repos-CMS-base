@@ -144,22 +144,30 @@ class ComponentRenders {
 		return $attrs;
 	}
 
-	public static function img( RenderContext $ctx, int $id, string $alt = '', string $class = '', string $size = 'large', bool $eager = false ): string {
+	/**
+	 * La puerta por la que salen las fotos de los bloques.
+	 *
+	 * El `$papel` dice cuánto ocupa de verdad en la pantalla —ancho
+	 * completo, media, una de tres, un icono— y de ahí sale el `sizes`
+	 * que hace que el navegador se baje el archivo del tamaño que toca
+	 * y no el grande siempre. Quien no lo diga se queda con el de
+	 * antes, que es el ancho del contenido.
+	 */
+	public static function img( RenderContext $ctx, int $id, string $alt = '', string $class = '', string $size = 'large', bool $eager = false, $papel = null ): string {
 		if ( ! $id ) {
-			return '<div class="m-img-placeholder" aria-hidden="true"></div>';
+			return \Meridian\Media\Images::placeholder();
 		}
-		$attrs = [
-			'class'    => $class,
-			'alt'      => $alt,
-			'loading'  => $eager ? 'eager' : 'lazy',
-			'decoding' => 'async',
-			'sizes'    => '(max-width: 767px) 100vw, (max-width: 1023px) 90vw, 1200px',
-		];
-		if ( $eager ) {
-			$attrs['fetchpriority'] = 'high';
-		}
-		$html = wp_get_attachment_image( $id, $size, false, $attrs );
-		return $html ?: '<div class="m-img-placeholder" aria-hidden="true"></div>';
+		$html = \Meridian\Media\Images::tag(
+			$id,
+			$size,
+			[
+				'alt'   => $alt,
+				'class' => $class,
+				'eager' => $eager,
+				'papel' => $papel ?? $ctx->fraccion,
+			]
+		);
+		return $html ?: \Meridian\Media\Images::placeholder();
 	}
 
 	/** Tipos que solo sirven para colocar: por si solos no son contenido. */
@@ -537,7 +545,7 @@ class ComponentRenders {
 		if ( ! empty( $props['imageId'] ) ) {
 			$eager = empty( $ctx->needed['hero_img'] );
 			$ctx->needed['hero_img'] = true;
-			$media = '<div class="m-hero-media">' . self::img( $ctx, (int) $props['imageId'], '', 'm-hero-img', 'krg-hero', $eager ) . '</div>';
+			$media = '<div class="m-hero-media">' . self::img( $ctx, (int) $props['imageId'], '', 'm-hero-img', 'krg-hero', $eager, 'full' ) . '</div>';
 		}
 		return self::wrap( $node, $ctx, 'div', $copy . $media, [ 'class' => 'm-hero m-align-' . $align ] );
 	}
@@ -651,9 +659,13 @@ class ComponentRenders {
 			return self::wrap( $node, $ctx, 'div', $empty, $attrs );
 		}
 		if ( 'grid' === $layout ) {
+			// Cuántas caben por fila decide cuánto ocupa cada foto, y de
+			// ahí sale el archivo que se baja el navegador.
+			$cols          = max( 1, min( 6, absint( $props['desktop'] ?? 3 ) ?: 3 ) );
+			$papel_rejilla = $cols >= 4 ? 'quarter' : ( $cols >= 3 ? 'third' : ( $cols >= 2 ? 'half' : 'wide' ) );
 			$inner = '<div class="m-grid">';
 			foreach ( $slides as $s ) {
-				$inner .= '<figure class="m-figure">' . self::img( $ctx, $s['id'], $s['alt'], 'm-img' ) . '</figure>';
+				$inner .= '<figure class="m-figure">' . self::img( $ctx, $s['id'], $s['alt'], 'm-img', 'large', false, $papel_rejilla ) . '</figure>';
 			}
 			$inner .= '</div>';
 			return self::wrap( $node, $ctx, 'div', $inner, $attrs );
@@ -1150,7 +1162,7 @@ class ComponentRenders {
 		$ids   = array_filter( array_map( 'absint', explode( ',', (string) ( $props['ids'] ?? '' ) ) ) );
 		$inner = '<div class="m-grid m-logos">';
 		foreach ( $ids as $id ) {
-			$inner .= self::img( $ctx, $id, '', 'm-logo-img', 'medium' );
+			$inner .= self::img( $ctx, $id, '', 'm-logo-img', 'medium', false, 'icon' );
 		}
 		$inner .= '</div>';
 		return self::wrap( $node, $ctx, 'div', $inner );

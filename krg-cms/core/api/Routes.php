@@ -312,5 +312,17 @@ class Routes {
 			'permission_callback' => $manage,
 			'callback' => [ Controller::class, 'kit_import' ],
 		] );
+		// Las versiones modernas de las fotos que ya estaban: cuántas
+		// faltan y una tanda cada vez, para no caducar la peticion.
+		register_rest_route( $ns, '/media/formats', [
+			'methods' => 'GET',
+			'permission_callback' => $manage,
+			'callback' => [ Controller::class, 'media_formats' ],
+		] );
+		register_rest_route( $ns, '/media/formats', [
+			'methods' => 'POST',
+			'permission_callback' => $manage,
+			'callback' => [ Controller::class, 'media_prepare' ],
+		] );
 	}
 }
