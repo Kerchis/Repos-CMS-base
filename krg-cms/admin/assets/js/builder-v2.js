@@ -1249,6 +1249,49 @@
     },
   ];
 
+  /**
+   * Las secciones de la V.1 que ya tienen recambio.
+   *
+   * No se borra ninguna: las páginas que las usan siguen funcionando
+   * igual, con el mismo módulo y el mismo inspector. Lo único que
+   * cambia es dónde se ofrecen: estas quedan recogidas en un cajón
+   * aparte de la paleta, cerrado, y la de al lado dice con qué ficha
+   * V.2 se hace lo mismo por piezas.
+   *
+   * Aquí sólo entran los módulos **compuestos**: una sección entera
+   * dentro de un solo bloque. Lo que es una pieza de verdad —un
+   * título, una foto, un mapa, un formulario, una marquesina, un
+   * acordeón— se queda donde estaba, porque es justo lo que usan
+   * dentro las fichas V.2.
+   */
+  const JUBILADOS = {
+    hero: 'hero-v2',
+    'brand-hero': 'portada-v2',
+    'split-feature': 'partido-v2',
+    'split-panel': 'paneles-v2',
+    'cards-grid': 'tarjetas-v2',
+    card: 'tarjeta-v2',
+    feature: 'destacado-v2',
+    'feature-grid': 'features-v2',
+    testimonials: 'testimonios-v2',
+    'review-slider': 'resenas-v2',
+    statistics: 'cifras-v2',
+    cta: 'cta-v2',
+    'statement-cta': 'declaracion-v2',
+    faq: 'preguntas-v2',
+    timeline: 'tiempo-v2',
+    'numbered-list': 'lista-v2',
+    'statement-list': 'hitos-v2',
+    'info-table': 'datos-v2',
+    'menu-list': 'carta-v2',
+    'product-rail': 'carril-v2',
+    'collection-grid': 'coleccion-v2',
+    'filter-collection': 'coleccion-v2',
+    'retail-strip': 'tiendas-v2',
+    'trace-module': 'pasos-v2',
+    'footer-split': 'pie-v2',
+  };
+
   window.KrgV2 = {
     /**
      * Lo que se pinta en la paleta.
@@ -1265,6 +1308,23 @@
         nota: s.nota,
         grupo: s.grupo === "pieza" ? "pieza" : "seccion",
       }));
+    },
+    /**
+     * ¿Este bloque de la V.1 tiene ya recambio por piezas?
+     *
+     * Devuelve la ficha V.2 que hace lo mismo, o `null` si el bloque
+     * sigue siendo la única forma de hacerlo. No cambia nada por su
+     * cuenta: sólo lo dice.
+     */
+    jubilado(slug) {
+      const destino = JUBILADOS[slug];
+      if (!destino) return null;
+      const ficha = SECCIONES.find((s) => s.slug === destino);
+      return ficha ? { slug: ficha.slug, name: ficha.name } : null;
+    },
+    /** El mapa entero, para la paleta y para los bancos. */
+    jubilados() {
+      return { ...JUBILADOS };
     },
     /** Monta la sección: devuelve un nodo `section` con todos sus hijos. */
     build(slug, makeNode) {

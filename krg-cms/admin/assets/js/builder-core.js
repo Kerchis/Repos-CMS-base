@@ -181,6 +181,15 @@
       ${ctx.actions || ""}
     </div>`;
 
+    /* Si el bloque es de la hornada vieja, se dice —una línea, sin
+       estorbar— y se deja claro que puede quedarse como está. */
+    const recambio = (window.KrgV2 && ctx.type) ? window.KrgV2.jubilado(ctx.type) : null;
+    const aviso = recambio
+      ? `<p class="b-vieja-aviso" data-vieja-aviso>Este bloque es de la versión anterior: toda la sección
+         va dentro de uno solo. Sigue funcionando igual y puede quedarse así. Si alguna vez quieres
+         editarlo pieza a pieza, su equivalente en la paleta es <strong>${esc(recambio.name)}</strong>.</p>`
+      : "";
+
     const tabsHtml = `<div class="b-tabs" role="tablist">${TABS.map(([v, l]) => {
       const vacia = !(esquema[v] || []).length;
       return `<button type="button" role="tab" data-insp-tab="${v}" class="${tab === v ? "is-on" : ""}"${vacia ? " disabled" : ""}>${l}</button>`;
@@ -189,7 +198,7 @@
     const cuerpo = grupos(esquema[tab], ctx)
       || `<div class="b-empty">Este elemento no tiene ajustes de ${esc((TABS.find((t) => t[0] === tab) || [])[1] || tab).toLowerCase()}.</div>`;
 
-    return `${paginaHtml}${cabecera}${tabsHtml}<div class="b-groups">${cuerpo}</div>`;
+    return `${paginaHtml}${cabecera}${aviso}${tabsHtml}<div class="b-groups">${cuerpo}</div>`;
   }
 
   /**

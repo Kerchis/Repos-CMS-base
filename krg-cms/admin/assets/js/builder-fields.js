@@ -3797,8 +3797,16 @@
    * ni se esconde nada.
    */
   function palette() {
+    const jubilados = window.KrgV2 ? window.KrgV2.jubilados() : {};
+    const esJubilado = (slug) => Object.prototype.hasOwnProperty.call(jubilados, slug);
+    const recambio = (slug) => (window.KrgV2 ? window.KrgV2.jubilado(slug) : null);
     const cats = {};
+    const viejas = [];
     state.registry.forEach((c) => {
+      if (esJubilado(c.slug)) {
+        viejas.push(c);
+        return;
+      }
       cats[c.category] = cats[c.category] || [];
       cats[c.category].push(c);
     });
@@ -3809,20 +3817,29 @@
           ${items.filter((c) => c.slug !== "column").map((c) => `<button type="button" data-add="${c.slug}">${esc(c.name)}</button>`).join("")}
         </div>
       </div>`).join("");
+    const antiguas = viejas.length
+      ? `<div class="b-palette">${viejas.map((c) => {
+        const r = recambio(c.slug);
+        return `<button type="button" class="is-vieja" data-add="${c.slug}" data-vieja="${esc(c.slug)}"
+          title="${esc(r ? `Se sigue pudiendo usar. Lo mismo por piezas: «${r.name}».` : "Se sigue pudiendo usar.")}">${esc(c.name)}</button>`;
+      }).join("")}</div>`
+      : "";
     const nuevas = window.KrgV2 ? window.KrgV2.list() : [];
     const botones = (lista) => (lista.length
       ? `<div class="b-palette">${lista.map((x) => `<button type="button" data-add-v2="${esc(x.slug)}" title="${esc(x.nota || "")}">${esc(x.name)}</button>`).join("")}</div>`
       : "");
     const v2 = botones(nuevas.filter((x) => x.grupo !== "pieza"));
     const piezas = botones(nuevas.filter((x) => x.grupo === "pieza"));
-    return grupoPaleta("v1", "Secciones V.1", v1, "Las de siempre: cada sección es un módulo con su inspector.")
-      + grupoPaleta("v2", "Secciones V.2", v2, "Las mismas secciones, pero por piezas: cada texto, foto o sello es un bloque hijo que se edita aparte.")
-      + grupoPaleta("piezas", "Piezas V.2", piezas, "Un solo bloque, ya metido en su sección: para empezar una parte de la página desde cero sin montar antes la sección, la fila y la columna.");
+    return grupoPaleta("v2", "Secciones V.2", v2, "Las mismas secciones, pero por piezas: cada texto, foto o sello es un bloque hijo que se edita aparte.")
+      + grupoPaleta("piezas", "Piezas V.2", piezas, "Un solo bloque, ya metido en su sección: para empezar una parte de la página desde cero sin montar antes la sección, la fila y la columna.")
+      + grupoPaleta("v1", "Bloques sueltos", v1, "Las piezas de toda la vida: títulos, textos, fotos, botones, mapas, formularios y el andamiaje. Son las mismas que usan por dentro las secciones V.2.")
+      + grupoPaleta("viejas", "Secciones de la versión anterior", antiguas, "Cada una de estas es una sección entera metida en un solo bloque. Se quedan para que las páginas que ya las usan sigan funcionando igual; para una página nueva es mejor su ficha V.2, que se edita pieza a pieza. Pasa el ratón por encima para ver cuál es.");
   }
 
   /** Un grupo plegable de la paleta, con el mismo aspecto que el inspector. */
   function grupoPaleta(id, label, html, pista) {
     if (!html) return "";
+    // «viejas» nace cerrado: lo primero que se ofrece es lo nuevo.
     const abierto = CORE.isOpen("pal." + id, id === "v2");
     return `<section class="acc b-group b-pal-group${abierto ? " is-open" : ""}" data-acc="pal.${id}">
       <button type="button" class="acc-h" data-acc-t="pal.${id}" aria-expanded="${abierto ? "true" : "false"}">

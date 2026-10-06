@@ -323,7 +323,7 @@ const textoAviso = await page.locator('.b-insp [data-bg-note]').innerText();
 ok(!/object Object/.test(textoAviso), `el aviso no enseña basura: «${textoAviso.replace(/\s+/g, ' ').trim().slice(0, 90)}»`);
 ok(/#0000ff/i.test(textoAviso), 'y nombra el color real del bloque');
 
-console.log('\nLa paleta: «Secciones V.1» recogidas, «Secciones V.2» por piezas y «Piezas V.2» sueltas');
+console.log('\nLa paleta: V.2 delante, las piezas sueltas detrás y las secciones viejas en su cajón');
 const pal = await page.evaluate(() => ({
   grupos: [...document.querySelectorAll('.b-left .b-pal-group')].map((g) => ({
     id: g.dataset.acc,
@@ -332,16 +332,21 @@ const pal = await page.evaluate(() => ({
   })),
   v1Visible: !document.querySelector('[data-acc="pal.v1"] .acc-b')?.hidden,
   bloquesV1: document.querySelectorAll('[data-acc="pal.v1"] [data-add]').length,
+  bloquesViejos: document.querySelectorAll('[data-acc="pal.viejas"] [data-add]').length,
   v2: [...document.querySelectorAll('[data-acc="pal.v2"] [data-add-v2]')].map((b) => b.textContent.trim()),
   piezas: [...document.querySelectorAll('[data-acc="pal.piezas"] [data-add-v2]')].map((b) => b.textContent.trim()),
 }));
-ok(pal.grupos.length === 3
-  && pal.grupos[0].titulo === 'Secciones V.1'
-  && pal.grupos[1].titulo === 'Secciones V.2'
-  && pal.grupos[2].titulo === 'Piezas V.2',
-  `la paleta tiene los tres grupos (${pal.grupos.map((g) => g.titulo).join(' · ')})`);
+ok(pal.grupos.length === 4
+  && pal.grupos[0].titulo === 'Secciones V.2'
+  && pal.grupos[1].titulo === 'Piezas V.2'
+  && pal.grupos[2].titulo === 'Bloques sueltos'
+  && pal.grupos[3].titulo === 'Secciones de la versión anterior',
+  `la paleta tiene los cuatro cajones (${pal.grupos.map((g) => g.titulo).join(' · ')})`);
 ok(!pal.v1Visible, 'las de siempre arrancan recogidas, como pediste');
-ok(pal.bloquesV1 > 40, `y dentro siguen todas: ${pal.bloquesV1} bloques, ninguno quitado ni renombrado`);
+// Lo de la V.1 ahora vive en dos cajones —piezas sueltas y secciones
+// jubiladas— pero no se ha ido nada: la suma es la de siempre.
+ok(pal.bloquesV1 + pal.bloquesViejos > 40,
+  `y entre los dos siguen todas: ${pal.bloquesV1} piezas + ${pal.bloquesViejos} secciones viejas, ninguna quitada ni renombrada`);
 ok(pal.v2.length >= 10, `hay ${pal.v2.length} secciones V.2: ${pal.v2.slice(0, 4).join(', ')}…`);
 // Las piezas van en su propio cajón: si se mezclasen con las secciones,
 // la lista pasaría de cuarenta y siete botones y no habría quien la
@@ -354,7 +359,7 @@ ok(['Título V.2', 'Imagen V.2', 'Separador V.2'].every((t) => pal.piezas.includ
 await page.click('[data-acc="pal.v1"] .acc-h');
 await page.waitForTimeout(200);
 const v1Abierta = await page.evaluate(() => !document.querySelector('[data-acc="pal.v1"] .acc-b').hidden);
-ok(v1Abierta, 'al pulsar «Secciones V.1» se despliegan');
+ok(v1Abierta, 'al pulsar «Bloques sueltos» se despliegan');
 
 console.log('\nAñadir una sección V.2 deja todas sus piezas en el árbol');
 const antesSec = await page.evaluate(() => document.querySelectorAll('.b-tree [data-sel]').length);
