@@ -55,6 +55,15 @@ class Contrast {
 	 */
 	public static function resolve_hex( $color ): string {
 		if ( is_string( $color ) ) {
+			$color = trim( $color );
+			// Los estilos de caja guardan los colores de la paleta como
+			// `var(--color-primary)`; sin esto, todo lo que sale de un
+			// token se quedaria sin resolver.
+			if ( preg_match( '/^var\(\s*--([a-z0-9-]+)/i', $color, $m ) ) {
+				// Solo el primer guion separa el grupo del nombre:
+				// `--color-surface-soft` es `color.surface-soft`.
+				return self::token_hex( preg_replace( '/^([a-z0-9]+)-/i', '$1.', $m[1] ) );
+			}
 			$hex = sanitize_hex_color( $color );
 			return $hex ? $hex : '';
 		}
@@ -96,12 +105,22 @@ class Contrast {
 	 * @param string $hex Color en formato #rgb o #rrggbb.
 	 */
 	public static function is_dark( string $hex ): bool {
+		$l = self::luminance( $hex );
+		return null !== $l && $l < 0.42;
+	}
+
+	/**
+	 * Luminancia relativa (WCAG) de un color, o null si no es un hex.
+	 *
+	 * @param string $hex Color en formato #rgb o #rrggbb.
+	 */
+	public static function luminance( string $hex ): ?float {
 		$hex = ltrim( $hex, '#' );
 		if ( 3 === strlen( $hex ) ) {
 			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
 		}
 		if ( 6 !== strlen( $hex ) || ! ctype_xdigit( $hex ) ) {
-			return false;
+			return null;
 		}
 		$channels = [];
 		foreach ( [ 0, 2, 4 ] as $offset ) {
@@ -109,7 +128,25 @@ class Contrast {
 			// Linealización sRGB antes de ponderar.
 			$channels[] = $c <= 0.03928 ? $c / 12.92 : pow( ( $c + 0.055 ) / 1.055, 2.4 );
 		}
-		$luminance = 0.2126 * $channels[0] + 0.7152 * $channels[1] + 0.0722 * $channels[2];
-		return $luminance < 0.42;
+		return 0.2126 * $channels[0] + 0.7152 * $channels[1] + 0.0722 * $channels[2];
+	}
+
+	/**
+	 * Relación de contraste entre dos colores, de 1 a 21.
+	 *
+	 * La misma fórmula que usan las WCAG: 4.5 es el mínimo para texto
+	 * normal y 3 para texto grande. Devuelve 0 si alguno de los dos no
+	 * se puede leer como color, para que quien pregunte sepa que no hay
+	 * respuesta en vez de creerse un 1.
+	 */
+	public static function ratio( string $hex_a, string $hex_b ): float {
+		$a = self::luminance( $hex_a );
+		$b = self::luminance( $hex_b );
+		if ( null === $a || null === $b ) {
+			return 0.0;
+		}
+		$claro = max( $a, $b );
+		$oscuro = min( $a, $b );
+		return ( $claro + 0.05 ) / ( $oscuro + 0.05 );
 	}
 }

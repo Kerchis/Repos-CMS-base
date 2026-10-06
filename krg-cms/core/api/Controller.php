@@ -126,6 +126,19 @@ class Controller {
 		}
 	}
 
+	/**
+	 * La revision de antes de publicar. Avisa, nunca bloquea: quien
+	 * publica decide, y el panel ensena la lista con un boton para
+	 * publicar igualmente.
+	 */
+	public static function pages_review( WP_REST_Request $req ) {
+		$doc = PageRepository::get( (int) $req['id'], 'draft' );
+		if ( ! $doc ) {
+			return new \WP_Error( 'not_found', __( 'Página no encontrada.', 'meridian' ), [ 'status' => 404 ] );
+		}
+		return rest_ensure_response( \Meridian\Content\PageReview::run( $doc ) );
+	}
+
 	public static function pages_duplicate( WP_REST_Request $req ) {
 		try {
 			return rest_ensure_response( PageRepository::duplicate( (int) $req['id'] ) );

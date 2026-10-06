@@ -671,16 +671,35 @@
         toast("No se pudo guardar el borrador. No se publicó.");
         return;
       }
+      // El repaso de antes de publicar. Avisa, nunca impide: si hay algo
+      // que mirar se enseña la lista con el botón de publicar dentro, y
+      // si la revisión falla se publica igual, que no es su trabajo
+      // impedirlo.
+      let revision = null;
       try {
-        await api.post(`/pages/${id}/publish`, {});
-        toast("Publicado. Ya se ve en la web.");
-        state.save = "Publicado";
-        paintStatus();
-        reloadFrame();
+        revision = await api.get(`/pages/${id}/review`);
       } catch (e) {
-        toast(e.message);
+        revision = null;
       }
+      if (revision && (revision.items || []).length) {
+        abrirRevision(revision, { antesDePublicar: true });
+        return;
+      }
+      publicarYa();
     };
+    const rev = root.querySelector("#review");
+    if (rev) {
+      rev.onclick = async () => {
+        rev.disabled = true;
+        try {
+          if (state.dirty || state.saving) await saveDraft();
+          abrirRevision(await api.get(`/pages/${id}/review`), { antesDePublicar: false });
+        } catch (e) {
+          toast(e.message || "No se pudo revisar la página.");
+        }
+        rev.disabled = false;
+      };
+    }
     const sav = root.querySelector("#save");
     if (sav) sav.onclick = () => saveDraft();
     // Red de seguridad: recarga el lienzo a mano, por si algo queda atrás.
@@ -889,6 +908,78 @@
           toast(e.message);
           b.disabled = false;
         }
+      };
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Revisión de antes de publicar                                       */
+  /* ------------------------------------------------------------------ */
+
+  async function publicarYa() {
+    try {
+      await api.post(`/pages/${id}/publish`, {});
+      toast("Publicado. Ya se ve en la web.");
+      state.save = "Publicado";
+      paintStatus();
+      reloadFrame();
+    } catch (e) {
+      toast(e.message);
+    }
+  }
+
+  /**
+   * La lista de lo que conviene mirar, con su botón para ir al bloque.
+   *
+   * Dos niveles: «avisos» son cosas que se notan —una foto sin texto
+   * alternativo, dos titulares de primer nivel, texto que no se lee
+   * sobre su fondo— y «pistas» son mejoras. Ninguno impide publicar:
+   * el botón de publicar está dentro del propio diálogo.
+   */
+  function abrirRevision(revision, { antesDePublicar }) {
+    const items = (revision && revision.items) || [];
+    const avisos = items.filter((x) => x.level === "aviso");
+    const pistas = items.filter((x) => x.level === "pista");
+    const linea = (x, i) => `<li>
+      <span class="b-rev-txt">
+        <span class="b-rev-nivel is-${esc(x.level)}">${x.level === "aviso" ? "Aviso" : "Pista"}</span>
+        <strong>${esc(x.title)}</strong>
+        <span class="b-rev-sub">${esc(x.detail)}</span>
+      </span>
+      ${x.nodeId ? `<span class="b-rev-btns"><button class="m-btn ghost" data-rev-ir="${esc(x.nodeId)}">Ver el bloque</button></span>` : ""}
+    </li>`;
+    const grupo = (titulo, lista) => (lista.length
+      ? `<h4>${esc(titulo)}</h4><ul class="b-rev">${lista.map(linea).join("")}</ul>`
+      : "");
+    const wrap = document.createElement("div");
+    wrap.className = "confirm";
+    wrap.innerHTML = `<div class="box b-revision" style="width:min(720px,94vw);max-height:84vh;overflow:auto">
+      <h3>Antes de publicar</h3>
+      <p class="m-muted">${items.length
+        ? `${esc(plural(avisos.length, "aviso", "avisos"))} y ${esc(plural(pistas.length, "pista", "pistas"))}. `
+          + "Esto no impide publicar: decides tú."
+        : "No hemos visto nada que mirar. La página está lista."}</p>
+      ${grupo("Conviene arreglarlo", avisos)}
+      ${grupo("Se puede mejorar", pistas)}
+      <div class="m-row">
+        ${antesDePublicar ? `<button class="m-btn" id="rev-pub">Publicar igualmente</button>` : ""}
+        <button class="m-btn ghost" id="close">${antesDePublicar ? "Ahora no, lo arreglo" : "Cerrar"}</button>
+      </div>
+    </div>`;
+    document.body.appendChild(wrap);
+    wrap.querySelector("#close").onclick = () => wrap.remove();
+    const botonPub = wrap.querySelector("#rev-pub");
+    if (botonPub) {
+      botonPub.onclick = () => { wrap.remove(); publicarYa(); };
+    }
+    wrap.querySelectorAll("[data-rev-ir]").forEach((b) => {
+      b.onclick = () => {
+        wrap.remove();
+        state.selected = b.dataset.revIr;
+        render();
+        pingFrame();
+        const fila = root.querySelector(`[data-sel="${b.dataset.revIr}"]`);
+        if (fila) fila.scrollIntoView({ block: "center" });
       };
     });
   }
@@ -1123,6 +1214,7 @@
           <button class="m-btn ghost" id="redo" title="Ctrl+Y">Rehacer</button>
           <button class="m-btn ghost" data-panel="left" title="Esconder o enseñar la estructura">Estructura</button>
           <button class="m-btn ghost" data-panel="right" title="Esconder o enseñar los ajustes">Ajustes</button>
+          <button class="m-btn ghost" id="review" title="Repasa la página antes de publicarla">Revisar</button>
           <button class="m-btn ghost" id="history">Historial</button>
           <span class="b-status">${esc(state.save)}</span>
           <span class="b-warn" hidden></span>

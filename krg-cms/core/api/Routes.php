@@ -87,6 +87,11 @@ class Routes {
 			'permission_callback' => $edit,
 			'callback' => [ Controller::class, 'pages_preview' ],
 		] );
+		register_rest_route( $ns, '/pages/(?P<id>\d+)/review', [
+			'methods' => 'GET',
+			'permission_callback' => $edit,
+			'callback' => [ Controller::class, 'pages_review' ],
+		] );
 		register_rest_route( $ns, '/pages/(?P<id>\d+)/revisions', [
 			'methods' => 'GET',
 			'permission_callback' => $edit,

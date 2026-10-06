@@ -989,6 +989,21 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .b-rev li { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
 .b-rev h4, .box h4 { margin: 16px 0 8px; font-size: 13px; }
 
+/* Revisión de antes de publicar: el nivel como etiqueta delante del
+   título, el porqué debajo y el botón para ir al bloque a la derecha. */
+.b-revision .b-rev li { align-items: flex-start; }
+.b-revision .b-rev-nivel {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  text-transform: none;
+  vertical-align: 1px;
+}
+.b-revision .b-rev-nivel.is-aviso { background: var(--m-danger-soft, #f7e2df); color: var(--m-danger, #b3261e); }
+.b-revision .b-rev-nivel.is-pista { background: var(--m-surface-soft, #eef1f0); color: var(--m-muted, #5b6360); }
+
 /* Plantillas de página: el nombre y lo que trae a la izquierda, los dos
    botones a la derecha, y en pantalla estrecha uno debajo del otro. */
 .b-pagtpl .b-rev li { align-items: flex-start; flex-wrap: wrap; }
