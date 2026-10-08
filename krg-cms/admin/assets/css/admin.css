@@ -849,3 +849,157 @@ a.m-kpi:hover { border-color: var(--m-orange); box-shadow: var(--m-sh-2); }
   border-color: var(--m-orange);
   box-shadow: 0 0 0 3px var(--m-action-tint);
 }
+
+/* ====================================================================
+   Apariencia a dos columnas
+   ====================================================================
+   A la izquierda lo que se toca; a la derecha, pegada, una página de
+   mentira que enseña el resultado sin tener que abrir el sitio en otra
+   pestaña y recargar. Por debajo de 1200 px la vista previa pasa
+   debajo: en una columna estrecha estorbaría más de lo que enseña.
+   ==================================================================== */
+.m-design-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+  align-items: start;
+}
+.m-design-main { min-width: 0; }
+.m-design-side { position: sticky; top: 84px; min-width: 0; }
+@media (max-width: 1200px) {
+  .m-design-cols { grid-template-columns: minmax(0, 1fr); }
+  .m-design-side { position: static; }
+}
+
+/* La barra de arriba se queda a la vista: el único botón de guardar no
+   puede quedarse a mil píxeles de scroll del campo que acabas de tocar. */
+.m-top-fija {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 10px 0;
+  margin-bottom: 12px;
+  background: var(--m-paper);
+  box-shadow: 0 10px 12px -12px rgba(0, 0, 0, .3);
+}
+.m-dirty {
+  align-self: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--m-warn);
+}
+.m-form-nota { grid-column: 1 / -1; margin: 0; }
+
+/* Nombre en palabras arriba, nombre técnico debajo en letra pequeña:
+   el que se escribe en `var(--…)` no se pierde. */
+.m-tok-row { grid-template-columns: 210px 1fr; align-items: center; }
+.m-tok-nombre { display: grid; gap: 1px; }
+.m-tok-nombre code {
+  font-size: 10.5px;
+  color: var(--m-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* --------------------------------------------------------------------
+   La página de mentira
+   --------------------------------------------------------------------
+   Todo lo de dentro se pinta con las variables que escribe el panel en
+   `#design-preview`, nunca con colores a mano: si un token está vacío,
+   aquí se ve vacío, que es justo lo que hay que saber.
+   -------------------------------------------------------------------- */
+.m-preview-card {
+  padding: 16px;
+  background: var(--m-white);
+  border: 1px solid var(--m-line);
+  border-radius: var(--m-r-md, 12px);
+  box-shadow: var(--m-sh-1);
+}
+.m-preview-card h3 { margin: 0 0 4px; }
+.m-preview {
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid var(--m-line);
+  border-radius: var(--m-r-sm, 8px);
+  background: var(--color-background, #fff);
+  color: var(--color-text, #111);
+  font-family: var(--font-body, inherit);
+}
+.m-pv-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--color-primary, #333);
+  color: var(--color-on-primary, #fff);
+}
+.m-pv-logo { font-family: var(--font-heading, inherit); font-size: 13px; font-weight: 700; }
+.m-pv-nav { display: flex; gap: 5px; }
+.m-pv-nav i { width: 16px; height: 3px; border-radius: 2px; background: currentColor; opacity: .65; }
+.m-pv-hero { padding: 16px 14px; background: var(--color-surface, transparent); }
+.m-pv-eyebrow {
+  margin: 0 0 6px;
+  font-size: 9.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--color-muted, #777);
+}
+.m-pv-title {
+  margin: 0 0 8px;
+  font-family: var(--font-heading, inherit);
+  font-size: var(--pv-display-size, 22px);
+  font-weight: var(--pv-display-weight, 700);
+  line-height: var(--pv-display-line-height, 1.1);
+  letter-spacing: var(--pv-display-letter-spacing, normal);
+  color: var(--color-text, inherit);
+}
+.m-pv-text {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: var(--pv-p-line-height, 1.55);
+  color: var(--color-text-secondary, var(--color-text, inherit));
+}
+.m-pv-btn {
+  display: inline-block;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: var(--pv-btn-weight, 600);
+  letter-spacing: var(--pv-btn-letter-spacing, normal);
+  color: var(--color-on-primary, #fff);
+  background: var(--color-primary, #333);
+  border-radius: var(--radius-buttons, var(--radius-md, 6px));
+}
+.m-pv-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px 14px 14px;
+}
+.m-pv-card {
+  padding: 10px;
+  background: var(--color-surface-alt, var(--color-background, #fff));
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: var(--radius-cards, var(--radius-md, 8px));
+  box-shadow: var(--shadow-sm, none);
+}
+.m-pv-card strong { display: block; font-size: 12px; font-family: var(--font-heading, inherit); }
+.m-pv-card p { margin: 4px 0 0; font-size: 10.5px; color: var(--color-muted, #777); line-height: 1.4; }
+.m-pv-badge {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 1px 7px;
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--color-on-secondary, var(--color-background, #fff));
+  background: var(--color-secondary, var(--color-primary, #555));
+  border-radius: var(--radius-badges, var(--radius-full, 999px));
+}
+
+/* En la columna estrecha los cuadritos no se estiran: con `flex:1` la
+   última fila repartía el ancho entre dos o tres y parecían barras. */
+.m-preview-card .m-palette-bar { margin-top: 10px; }
+.m-preview-card .m-palette-chip { flex: 0 0 26px; width: 26px; height: 26px; }
+
+/* La letra pequeña de un campo no es parte de su etiqueta: no va en
+   negrita ni del color del texto principal. */
+.m-field small, .m-form-grid small { font-weight: 400; color: var(--m-muted); }

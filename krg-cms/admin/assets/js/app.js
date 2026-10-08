@@ -968,13 +968,49 @@
     document.head.appendChild(l);
   }
 
+  /**
+   * Cómo se llama cada token en castellano.
+   *
+   * Los tokens se guardan con su nombre técnico —`2xl`, `page-max-width`,
+   * `sm`— porque es el que acaba en el CSS y el que hay que escribir en
+   * `var(--…)`. Pero una pantalla que pone «xs, sm, md, lg, xl, 2xl» en
+   * una columna no dice nada a quien no se sabe la convención. Aquí se
+   * enseñan las dos cosas: el nombre en palabras y, debajo, el técnico.
+   */
+  const NOMBRES_TOKEN = {
+    spacing: {
+      xs: "Muy pequeño", sm: "Pequeño", md: "Medio", lg: "Grande", xl: "Muy grande",
+      "2xl": "Enorme", section: "Aire entre secciones", card: "Aire dentro de una tarjeta",
+    },
+    radius: {
+      sm: "Esquina apenas redondeada", md: "Esquina redondeada", lg: "Esquina muy redondeada",
+      full: "Redondo del todo", buttons: "Botones", cards: "Tarjetas", inputs: "Campos de formulario",
+      badges: "Etiquetas y sellos",
+    },
+    shadow: { sm: "Sombra corta", md: "Sombra media", lg: "Sombra larga" },
+    layout: {
+      "page-max-width": "Ancho máximo de la página", "section-gap": "Separación entre secciones",
+      "card-padding": "Relleno de las tarjetas",
+    },
+    breakpoint: { tablet: "A partir de aquí, tableta", desktop: "A partir de aquí, escritorio" },
+  };
+  function nombreToken(grupo, clave, etiqueta) {
+    if (etiqueta) return etiqueta;
+    const dic = NOMBRES_TOKEN[grupo] || {};
+    if (dic[clave]) return dic[clave];
+    // Lo que no esté en el diccionario, al menos legible: guiones fuera
+    // y la primera en mayúscula.
+    const suelto = String(clave).replace(/[-_]+/g, " ").trim();
+    return suelto.charAt(0).toUpperCase() + suelto.slice(1);
+  }
+
   function tokenMap(obj, prefix) {
     return Object.entries(obj || {}).map(([k, v]) => {
       const val = v && typeof v === "object" && "value" in v ? v.value : (typeof v === "object" ? JSON.stringify(v) : v);
-      const label = (v && v.label) || k;
-      return `<div class="m-field-row" style="grid-template-columns:160px 1fr">
-        <span>${esc(label)}</span>
-        <input data-tok="${prefix}.${k}" value="${esc(val ?? "")}">
+      const label = nombreToken(prefix, k, v && v.label);
+      return `<div class="m-field-row m-tok-row">
+        <span class="m-tok-nombre">${esc(label)}<code>${esc(k)}</code></span>
+        <input data-tok="${prefix}.${k}" value="${esc(val ?? "")}" aria-label="${esc(label)}">
       </div>`;
     }).join("");
   }
@@ -1153,7 +1189,7 @@
           <p class="m-muted" id="skin-contraste"></p>
           <details class="m-skin-avanzado">
             <summary>Ajustar los colores uno a uno</summary>
-            <p class="m-muted">Parten del tema elegido. Se ven al instante mientras los tocas; pulsa Guardar para dejarlos fijos.</p>
+            <p class="m-muted">Parten del tema elegido. Se ven al instante mientras los tocas; pulsa «Guardar colores del CMS» para dejarlos fijos.</p>
             <div id="skin-colors">${rows}</div>
             <div class="m-section-save m-row">
               <button type="button" class="m-btn" id="save-skin">Guardar colores del CMS</button>
@@ -1166,24 +1202,24 @@
     }
 
     shell("design", `
-      <div class="m-top"><h1>Apariencia</h1>
+      <div class="m-top m-top-fija"><h1>Apariencia</h1>
         <div class="m-row">
-          <button class="m-btn" id="save-tokens">Guardar tokens</button>
+          <span class="m-dirty" id="design-dirty" hidden>Hay cambios sin guardar</span>
+          <button class="m-btn" id="save-tokens">Guardar cambios</button>
           <button class="m-btn ghost" id="exp-tokens">Exportar tokens</button>
           <label class="m-btn ghost">Importar tokens <input type="file" id="imp-tokens" accept="application/json" hidden></label>
         </div>
       </div>
       <p class="m-zona">Tu web <span class="m-muted">— lo que ve quien visita el sitio que estás construyendo.</span></p>
+      <div class="m-design-cols">
+      <div class="m-design-main">
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Presets</h3>
-        <p class="m-muted">El interruptor aplica la paleta al instante en esta pantalla. Luego pulsa Guardar paleta para publicarla en el sitio. Solo un interruptor queda encendido.</p>
+        <p class="m-muted">El interruptor aplica la paleta al instante en esta pantalla y en la vista previa. Para publicarla en el sitio, «Guardar cambios». Solo un interruptor queda encendido.</p>
         <div class="m-presets">${presetCards}</div>
         <p class="m-preset-status">${presetStatus}</p>
         <div class="m-palette-bar">${paletteBar}</div>
-        <div class="m-preset-actions">
-          <button class="m-btn" type="button" id="save-preset">Guardar paleta</button>
-          <span class="m-muted" id="preset-dirty" hidden>Hay un cambio de preset sin guardar.</span>
-        </div>
+        <p class="m-muted" id="preset-dirty" hidden>Has cambiado de paleta: pulsa «Guardar cambios» arriba para publicarla.</p>
         <div class="m-preset-new">
           <h4>Crear un preset</h4>
           <p class="m-muted">Guarda los colores y tipografías que tienes ahora mismo como un preset nuevo, para poder volver a ellos cuando quieras. Los presets que vienen con el tema no se tocan.</p>
@@ -1191,7 +1227,7 @@
             <label class="m-field m-field-grow">Nombre del preset
               <input id="new-preset-name" placeholder="Por ejemplo: Verano 2026" maxlength="60">
             </label>
-            <button class="m-btn" type="button" id="new-preset">Guardar como preset</button>
+            <button class="m-btn ghost" type="button" id="new-preset">Crear el preset</button>
           </div>
         </div>
       </div>
@@ -1215,7 +1251,7 @@
             </div>
             <small class="m-muted">PNG cuadrado (32×32 o 512×512). Aparece en la pestaña del navegador.</small>
           </label>
-          <button class="m-btn" type="submit">Guardar identidad</button>
+          <p class="m-muted m-form-nota">El nombre, el eslogan, el logo y el favicon se guardan con «Guardar cambios», arriba.</p>
         </form>
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
@@ -1229,39 +1265,54 @@
           <button type="button" class="m-btn ghost" id="add-color">Añadir</button>
         </div>
         <p class="m-muted">Cada color queda disponible como <code>var(--color-nombre)</code> y aparece en los selectores de color de los bloques. Los del núcleo no se pueden quitar porque los usan los componentes.</p>
-        <div class="m-section-save"><button type="button" class="m-btn" data-save-section="colores">Guardar colores</button></div>
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Familias tipográficas</h3>
         <p class="m-muted">Elige la familia y su variante (Regular, Bold, Italic…). En fuentes de WordPress aparecen las caras instaladas. Luego pulsa Guardar familias.</p>
         ${familiasConUi(tokens.font).map(([k, v]) => fontFamilyRow(k, v, fontCatalog)).join("")}
-        <div class="m-section-save"><button type="button" class="m-btn" data-save-section="familias">Guardar familias</button></div>
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Roles tipográficos</h3>
         <p class="m-muted">Tamaño, peso, familia, interlineado y tracking de cada rol (títulos, párrafo, botón…).</p>
         ${typeRows(tokens.typography, tokens.font)}
-        <div class="m-section-save"><button type="button" class="m-btn" data-save-section="roles">Guardar roles tipográficos</button></div>
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Espaciado</h3>${tokenMap(tokens.spacing, "spacing")}
-        <div class="m-section-save"><button type="button" class="m-btn" data-save-section="espaciado">Guardar espaciado</button></div>
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Radios</h3>${tokenMap(tokens.radius, "radius")}
-        <div class="m-section-save"><button type="button" class="m-btn" data-save-section="radios">Guardar radios</button></div>
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Sombras</h3>${tokenMap(tokens.shadow, "shadow")}
-        <div class="m-section-save"><button type="button" class="m-btn" data-save-section="sombras">Guardar sombras</button></div>
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Layout</h3>${tokenMap(tokens.layout, "layout")}
-        <div class="m-section-save"><button type="button" class="m-btn" data-save-section="layout">Guardar layout</button></div>
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Breakpoints</h3>${tokenMap(tokens.breakpoint, "breakpoint")}
-        <div class="m-section-save"><button type="button" class="m-btn" data-save-section="breakpoints">Guardar breakpoints</button></div>
+      </div>
+      </div>
+      <aside class="m-design-side">
+        <div class="m-preview-card">
+          <h3>Vista previa</h3>
+          <p class="m-muted">Lo que estás tocando, aplicado a una página de mentira. Cambia mientras escribes; no es tu web, es un ejemplo.</p>
+          <style id="design-preview-css"></style>
+          <div class="m-preview" id="design-preview">
+            <div class="m-pv-bar"><span class="m-pv-logo">${esc(identity.siteName || "Tu sitio")}</span><span class="m-pv-nav"><i></i><i></i><i></i></span></div>
+            <div class="m-pv-hero">
+              <p class="m-pv-eyebrow">Antetítulo</p>
+              <h4 class="m-pv-title">Un titular de ejemplo</h4>
+              <p class="m-pv-text">Así queda un párrafo con la tipografía, el color de texto y el ritmo que tienes puestos ahora mismo.</p>
+              <span class="m-pv-btn">Botón principal</span>
+            </div>
+            <div class="m-pv-cards">
+              <div class="m-pv-card"><span class="m-pv-badge">Sello</span><strong>Una tarjeta</strong><p>Fondo de superficie, borde y radio de tarjeta.</p></div>
+              <div class="m-pv-card"><span class="m-pv-badge">Sello</span><strong>Otra tarjeta</strong><p>La sombra y el relleno salen de sus tokens.</p></div>
+            </div>
+          </div>
+          <div class="m-palette-bar" id="design-chips"></div>
+        </div>
+      </aside>
       </div>
       ${adminSkinPanel()}`);
     el.querySelectorAll("[data-color]").forEach((inp) => {
@@ -1400,7 +1451,12 @@
     const markPresetDirty = (yes) => {
       const hint = el.querySelector("#preset-dirty");
       if (hint) hint.hidden = !yes;
-      el.querySelectorAll("#save-preset, #save-tokens").forEach((b) => b.classList.toggle("is-pulse", !!yes));
+      // El aviso de arriba es el mismo para todo: un cambio es un
+      // cambio, venga de un campo o de cambiar de paleta.
+      const bandera = el.querySelector("#design-dirty");
+      if (bandera && yes) bandera.hidden = false;
+      const b = el.querySelector("#save-tokens");
+      if (b) b.classList.toggle("is-pulse", !!yes);
     };
 
     const saveTokens = async (btn, msg) => {
@@ -1497,22 +1553,97 @@
       vsel?.addEventListener("change", sync);
       sync();
     });
-    el.querySelector("#save-tokens").onclick = () => saveTokens(el.querySelector("#save-tokens"), "Todos los tokens guardados. El sitio público ya los usa.");
-    const savePresetBtn = el.querySelector("#save-preset");
-    if (savePresetBtn) savePresetBtn.onclick = () => saveTokens(savePresetBtn, "Paleta guardada. El sitio público ya la usa.");
-    const sectionMsg = {
-      colores: "Colores guardados. El sitio público ya los usa.",
-      familias: "Familias tipográficas guardadas. El sitio público ya las usa.",
-      roles: "Roles tipográficos guardados. El sitio público ya los usa.",
-      espaciado: "Espaciado guardado. El sitio público ya lo usa.",
-      radios: "Radios guardados. El sitio público ya los usa.",
-      sombras: "Sombras guardadas. El sitio público ya las usa.",
-      layout: "Layout guardado. El sitio público ya lo usa.",
-      breakpoints: "Breakpoints guardados. El sitio público ya los usa.",
+    /* ------------------------------------------------------------------
+       Un solo botón de guardar.
+
+       Antes había nueve: uno por apartado, más el de la paleta, más el
+       de la identidad, más el de arriba. Todos llamaban a lo mismo
+       —`PUT /tokens` con la pantalla entera—, así que «Guardar radios»
+       guardaba también los colores sin decirlo, y quien tocaba tres
+       apartados y pulsaba uno creía haber guardado sólo ese. Ahora hay
+       uno arriba, que es verdad: guarda los tokens y, si la has tocado,
+       la identidad.
+       ------------------------------------------------------------------ */
+    const btnGuardar = el.querySelector("#save-tokens");
+    const avisoSucio = el.querySelector("#design-dirty");
+    let sucio = false;
+    const marcarSucio = (si) => {
+      sucio = !!si;
+      if (avisoSucio) avisoSucio.hidden = !sucio;
+      if (btnGuardar) btnGuardar.classList.toggle("is-pulse", sucio);
     };
-    el.querySelectorAll("[data-save-section]").forEach((b) => {
-      b.onclick = () => saveTokens(b, sectionMsg[b.dataset.saveSection] || "Cambios guardados. El sitio público ya los usa.");
-    });
+
+    const guardarIdentidad = async () => {
+      const form = el.querySelector("#idform");
+      if (!form) return;
+      const fd = new FormData(form);
+      await api.put("/identity", {
+        siteName: fd.get("siteName"),
+        tagline: fd.get("tagline"),
+        logoId: Number(fd.get("logoId") || 0),
+        faviconId: Number(fd.get("faviconId") || 0),
+      });
+      identityCache = null;
+    };
+
+    const guardarTodo = async () => {
+      if (btnGuardar) btnGuardar.disabled = true;
+      try {
+        await guardarIdentidad();
+      } catch (err) {
+        toast("No se pudo guardar la identidad: " + (err.message || "error"));
+      } finally {
+        if (btnGuardar) btnGuardar.disabled = false;
+      }
+      await saveTokens(btnGuardar, "Guardado. El sitio público ya usa estos valores.");
+      marcarSucio(false);
+    };
+    if (btnGuardar) btnGuardar.onclick = guardarTodo;
+
+    /* ------------------------------------------------------------------
+       La vista previa viva.
+
+       Es una página de mentira pintada con los valores que hay ahora
+       mismo en los campos, no con los guardados. Las variables se
+       escriben acotadas a `#design-preview`, así que no tocan ni el
+       panel ni el sitio: sólo este recuadro.
+       ------------------------------------------------------------------ */
+    const hojaPrevia = el.querySelector("#design-preview-css");
+    const chipsPrevia = el.querySelector("#design-chips");
+    let pintando = null;
+    const pintarPrevia = () => {
+      if (!hojaPrevia) return;
+      const t = collect().tokens || {};
+      const linea = [];
+      Object.entries(t.color || {}).forEach(([k, v]) => linea.push(`--color-${k}:${tokVal(v)}`));
+      Object.entries(t.font || {}).forEach(([k, v]) => linea.push(`--font-${k}:${tokVal(v)}`));
+      ["spacing", "radius", "shadow", "layout"].forEach((g) => {
+        Object.entries(t[g] || {}).forEach(([k, v]) => linea.push(`--${g === "layout" ? "" : g + "-"}${k}:${tokVal(v)}`));
+      });
+      const tipo = t.typography || {};
+      const rol = (nombre, pre) => {
+        const r = tipo[nombre] || {};
+        Object.entries(r).forEach(([k, v]) => { if (v) linea.push(`--pv-${pre}-${k}:${v}`); });
+      };
+      rol("display", "display"); rol("h2", "h2"); rol("p", "p"); rol("button", "btn");
+      hojaPrevia.textContent = `#design-preview{${linea.filter((x) => !/:\s*(undefined|null)?$/.test(x)).join(";")}}`;
+      if (chipsPrevia) chipsPrevia.innerHTML = paletteHtml(t.color);
+    };
+    const repintar = () => {
+      clearTimeout(pintando);
+      pintando = setTimeout(pintarPrevia, 120);
+    };
+    // Cualquier campo de la columna de la izquierda repinta el ejemplo y
+    // enciende el aviso de «sin guardar».
+    const columna = el.querySelector(".m-design-main");
+    if (columna) {
+      ["input", "change"].forEach((ev) => columna.addEventListener(ev, (e) => {
+        if (e.target.closest(".m-skin")) return;   // la piel del CMS no es la web
+        marcarSucio(true);
+        repintar();
+      }));
+    }
+    pintarPrevia();
     el.querySelector("#exp-tokens").onclick = async () => {
       const pack = collect();
       const blob = new Blob([JSON.stringify({ krg: 1, tokens: pack }, null, 2)], { type: "application/json" });
@@ -1754,7 +1885,7 @@
           data.activePreset = "";
           setPresetUI("");
           markPresetDirty(true);
-          toast("Preset desactivado en pantalla. Los valores se mantienen. Pulsa Guardar paleta.");
+          toast("Preset desactivado en pantalla. Los valores se mantienen. Pulsa «Guardar cambios».");
           return;
         }
         const preset = (pack.presets || []).find((p) => p.slug === slug);
@@ -1770,8 +1901,9 @@
         applyTokensToForm(data.tokens);
         setPresetUI(slug);
         markPresetDirty(true);
+        pintarPrevia();
         const label = slug === "marca" ? "Marca Novamix" : (preset.name || "Preset");
-        toast(label + " aplicada. Pulsa Guardar paleta para publicarla.");
+        toast(label + " aplicada. Pulsa «Guardar cambios» para publicarla.");
       });
     });
     const picker = (btnId, inputName, title) => {
@@ -1797,17 +1929,11 @@
     };
     picker("#pick-logo", "logoId", "Logo");
     picker("#pick-fav", "faviconId", "Favicon");
-    el.querySelector("#idform").onsubmit = async (e) => {
+    // Pulsar Intro dentro de la identidad hace lo mismo que el botón de
+    // arriba: no hay dos guardados distintos que puedan contradecirse.
+    el.querySelector("#idform").onsubmit = (e) => {
       e.preventDefault();
-      const fd = new FormData(e.target);
-      await api.put("/identity", {
-        siteName: fd.get("siteName"),
-        tagline: fd.get("tagline"),
-        logoId: Number(fd.get("logoId") || 0),
-        faviconId: Number(fd.get("faviconId") || 0),
-      });
-      identityCache = null;
-      toast("Identidad y favicon guardados. Recarga el sitio para ver la pestaña.");
+      guardarTodo();
     };
   }
 

@@ -127,6 +127,63 @@ const ordenOk = await page.evaluate(() => {
 });
 ok(!!ordenOk, 'y va la última, después de todo lo del sitio');
 
+console.log('\nPRUEBA 1 bis — Apariencia a dos columnas, con vista previa viva y un solo guardar');
+
+const dos = await page.evaluate(() => {
+  const cols = document.querySelector('.m-design-cols');
+  const lado = document.querySelector('.m-design-side');
+  return {
+    columnas: cols ? getComputedStyle(cols).gridTemplateColumns.split(' ').length : 0,
+    pegada: lado ? getComputedStyle(lado).position : '(no está)',
+    previa: !!document.querySelector('#design-preview'),
+    guardados: [...document.querySelectorAll('.m-design-main .m-btn')]
+      .filter((b) => /^Guardar/i.test(b.textContent.trim())).map((b) => b.textContent.trim()),
+    arriba: (document.querySelector('#save-tokens') || {}).textContent || '',
+    topFijo: getComputedStyle(document.querySelector('.m-top')).position,
+  };
+});
+ok(dos.columnas === 2, `la pantalla va a dos columnas (${dos.columnas})`);
+ok(dos.pegada === 'sticky', `y la de la derecha se queda pegada (${dos.pegada})`);
+ok(dos.previa, 'con una página de ejemplo dentro');
+ok(dos.guardados.length === 0, `ya no hay un botón de guardar por apartado (${dos.guardados.join(' · ') || 'ninguno'})`);
+ok(dos.arriba.trim() === 'Guardar cambios', `sólo el de arriba, y dice lo que hace: «${dos.arriba.trim()}»`);
+ok(dos.topFijo === 'sticky', `que además no se pierde al bajar (${dos.topFijo})`);
+
+const vivo = await page.evaluate(async () => {
+  const antes = getComputedStyle(document.querySelector('.m-pv-btn')).backgroundColor;
+  const campo = document.querySelector('[data-color="primary"]');
+  campo.value = '#113355';
+  campo.dispatchEvent(new Event('input', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 400));
+  return {
+    antes,
+    despues: getComputedStyle(document.querySelector('.m-pv-btn')).backgroundColor,
+    aviso: !document.querySelector('#design-dirty').hidden,
+    sitio: getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim(),
+    panel: getComputedStyle(document.querySelector('.m-aside')).backgroundColor,
+  };
+});
+ok(vivo.despues === 'rgb(17, 51, 85)', `cambiar un color repinta el ejemplo al momento (${vivo.antes} → ${vivo.despues})`);
+ok(vivo.aviso, 'y avisa de que hay cambios sin guardar');
+ok(vivo.sitio === '', 'sin tocar los tokens de verdad hasta que se guarde');
+ok(vivo.panel === 'rgb(35, 26, 20)', `ni la piel del propio panel (${vivo.panel})`);
+
+const nombres = await page.evaluate(() => {
+  const filas = [...document.querySelectorAll('.m-tok-row')];
+  return {
+    cuantas: filas.length,
+    conNombre: filas.filter((f) => {
+      const n = f.querySelector('.m-tok-nombre');
+      const code = n && n.querySelector('code');
+      return n && code && n.textContent.replace(code.textContent, '').trim().length > 2;
+    }).length,
+    ejemplo: filas.map((f) => f.querySelector('.m-tok-nombre')?.textContent.trim()).find((t) => /Ancho máximo/.test(t || '')) || '',
+  };
+});
+ok(nombres.cuantas > 10, `hay filas de tokens que nombrar (${nombres.cuantas})`);
+ok(nombres.conNombre === nombres.cuantas, `todas dicen su nombre en palabras (${nombres.conNombre}/${nombres.cuantas})`);
+ok(/page-max-width/.test(nombres.ejemplo), `y debajo el técnico: «${nombres.ejemplo}»`);
+
 console.log('\nPRUEBA 2 — quien no administra no lo ve');
 
 const page2 = await browser.newPage({ viewport: { width: 1440, height: 900 } });
@@ -495,6 +552,11 @@ ok(sucio.length === 0, `sin errores de JavaScript${sucio.length ? ` — ${sucio[
 
 if (process.env.KRG_SHOT) {
   await page.screenshot({ path: `${ROOT}/captura-piel.png`, fullPage: true });
+  // Sin `fullPage`: lo pegado (la barra de arriba y la vista previa) sólo
+  // sale en su sitio cuando la foto es del tamaño de la ventana.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: `${ROOT}/captura-apariencia.png` });
   await page.$eval('#skin-zona', (e) => e.scrollIntoView());
   await (await page.$('#skin-zona')).screenshot({ path: `${ROOT}/captura-piel-apartado.png` });
   await pageP.screenshot({ path: `${ROOT}/captura-piel-paginas.png`, fullPage: true });
