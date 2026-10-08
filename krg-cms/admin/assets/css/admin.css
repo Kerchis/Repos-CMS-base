@@ -1,22 +1,122 @@
+/* ------------------------------------------------------------------ */
+/* La piel del CMS.                                                     */
+/*                                                                      */
+/* Estos valores son el tema «Bronce», el de fábrica. En WordPress los  */
+/* reescribe `Meridian\Admin\Skin::css()` con el tema que el            */
+/* administrador haya elegido; lo de aquí es la red de seguridad para   */
+/* cuando el CSS se abre suelto (los bancos de pruebas) o si la opción  */
+/* no llega. Los dos sitios tienen que decir lo mismo: lo vigila        */
+/* tools/prueba-piel.php, que falla si se desincronizan.                */
+/*                                                                      */
+/* Ojo: esta paleta NO es la del sitio que se construye con KRG. Esa    */
+/* vive en los tokens (Design\TokenRepository) y no se toca desde aquí. */
+/* ------------------------------------------------------------------ */
 :root {
-  /* Paleta del sistema visual (honeycomb): verde profundo, crema y negro. */
-  --m-ink: #0c0f0e;
-  --m-brown: #3f5e58;        /* superficie de marca (sidebar, barras) */
-  --m-brown-deep: #2b413d;
-  --m-orange: #3f5e58;       /* color de acción */
-  --m-orange-deep: #2b413d;
-  --m-accent-soft: #e7eeec;  /* tinte del color de acción */
-  --m-paper: #fef6e7;
-  --m-surface: #f7ead1;
-  --m-surface-soft: #fbf2e1;
-  --m-white: #fff;
-  --m-line: #e1d3b6;
-  --m-line-strong: #cbb894;
-  --m-muted: #78736a;
+  /* — Color —————————————————————————————————————— */
+  --m-ink: #1d1d1b;
+  --m-brown: #231a14;        /* superficie de marca (sidebar, barras) */
+  --m-brown-deep: #171009;
+  --m-orange: #9f6637;       /* color de acción */
+  --m-orange-deep: #7a4d28;
+  --m-accent: #d9a441;       /* realce: insignias y selección */
+  --m-accent-soft: #f3e2ce;  /* tinte del color de acción */
+  --m-paper: #faefd8;
+  --m-surface: #f5e8d2;
+  --m-surface-soft: #fbf3e4;
+  --m-white: #fffdf8;        /* tarjetas y campos */
+  --m-line: #e4d2b6;
+  --m-line-strong: #c9b18d;
+  --m-muted: #6b5744;
+  --m-ok: #3f6b4a;
+  --m-warn: #8a5a10;
+  --m-danger: #a33a2a;
+
+  /* — Tintes ——————————————————————————————————————
+     Se calculan a partir del color, no se guardan: así cualquier tema
+     nuevo trae sus fondos suaves sin tener que declarar seis hex más. */
+  --m-ok-soft: color-mix(in srgb, var(--m-ok) 14%, var(--m-white));
+  --m-warn-soft: color-mix(in srgb, var(--m-warn) 16%, var(--m-white));
+  --m-danger-soft: color-mix(in srgb, var(--m-danger) 12%, var(--m-white));
+  --m-accent-tint: color-mix(in srgb, var(--m-accent) 28%, var(--m-white));
+  --m-action-tint: color-mix(in srgb, var(--m-orange) 10%, var(--m-white));
+
+  /* — Espacio ————————————————————————————————————— */
+  --m-s1: 4px;
+  --m-s2: 8px;
+  --m-s3: 12px;
+  --m-s4: 16px;
+  --m-s5: 24px;
+  --m-s6: 32px;
+  --m-s7: 48px;
+
+  /* — Esquinas ———————————————————————————————————— */
+  --m-r-sm: 8px;
+  --m-r-md: 12px;
+  --m-r-lg: 16px;
+  --m-r-pill: 999px;
+
+  /* — Relieve —————————————————————————————————————
+     Tres niveles y no más: reposo, elevado y flotante. */
+  --m-sh-1: 0 1px 2px rgba(29, 29, 27, 0.05);
+  --m-sh-2: 0 2px 8px rgba(29, 29, 27, 0.07);
+  --m-sh-3: 0 12px 28px rgba(29, 29, 27, 0.14);
+
+  /* — Movimiento ——————————————————————————————————— */
+  --m-fast: 120ms ease;
+  --m-slow: 200ms ease;
+
+  /* — Letra ———————————————————————————————————————
+     La serif es solo para los titulares de pantalla: da el aire
+     editorial sin tocar la legibilidad de los formularios. */
+  --m-font-ui: Inter, "Segoe UI", system-ui, sans-serif;
+  --m-font-display: Palatino, "Palatino Linotype", Georgia, serif;
+
   --m-sidebar: 240px;
 }
 
-#krg-admin, #krg-builder { font-family: Inter, "Segoe UI", system-ui, sans-serif; color: var(--m-ink); }
+/* Quien no entienda `color-mix` (navegadores viejos) se queda con un
+   tinte fijo en vez de con un fondo transparente. */
+@supports not (background: color-mix(in srgb, red 10%, white)) {
+  :root {
+    --m-ok-soft: #eef6e3;
+    --m-warn-soft: #fff4d6;
+    --m-danger-soft: #f7e2df;
+    --m-accent-tint: #f3e2ce;
+    --m-action-tint: #f6ece1;
+  }
+}
+
+/* Nadie debería ver un salto de foco distinto en cada control. */
+#krg-admin :focus-visible,
+#krg-builder :focus-visible {
+  outline: 2px solid var(--m-orange);
+  outline-offset: 2px;
+  border-radius: var(--m-r-sm);
+}
+/* Quien pide menos movimiento en su sistema no lo pide «salvo en los
+   botones»: esta es la única regla del panel con `!important`, y lo
+   lleva porque tiene que ganarle a la transición de cada componente
+   sin ir componente por componente. */
+@media (prefers-reduced-motion: reduce) {
+  #krg-admin *, #krg-builder * { transition: none !important; animation: none !important; }
+}
+
+/* El panel se mide en caja de borde, sin excepciones.
+   Por qué: los campos del inspector van a `width:100%` dentro de una
+   columna de 320 px con 12 px de relleno a cada lado. En caja de
+   contenido, ese 100 % se mide ANTES del relleno y del borde del propio
+   campo, así que el inspector se desbordaba 6 px y aparecía una barra de
+   desplazamiento horizontal con los campos cortados por la derecha.
+   WordPress lo declara para sus propios formularios, pero el panel vive
+   en su isla y no puede depender de eso. */
+#krg-admin, #krg-builder,
+#krg-admin *, #krg-builder *,
+#krg-admin *::before, #krg-builder *::before,
+#krg-admin *::after, #krg-builder *::after { box-sizing: border-box; }
+/* Las ventanas y los avisos cuelgan del `body`, fuera de esas dos islas. */
+.m-modal-bg, .m-modal, .m-modal *, .m-toast, .confirm, .confirm * { box-sizing: border-box; }
+
+#krg-admin, #krg-builder { font-family: var(--m-font-ui); color: var(--m-ink); }
 .m-shell { display: grid; grid-template-columns: var(--m-sidebar) 1fr; min-height: 100vh; background: var(--m-paper); }
 .m-aside {
   background: var(--m-brown);
@@ -52,7 +152,7 @@
   padding: 4px 8px 4px 4px;
   text-decoration: none;
   color: inherit;
-  font-family: Palatino, Georgia, serif;
+  font-family: var(--m-font-display);
   font-size: 22px;
   letter-spacing: -0.03em;
 }
@@ -64,8 +164,18 @@
   padding: 9px 20px;
   font-size: 14px;
   opacity: 0.82;
+  border-left: 3px solid transparent;
+  transition: background var(--m-fast), opacity var(--m-fast), border-color var(--m-fast);
 }
-.m-aside nav a:hover, .m-aside nav a.is-active { background: rgba(255,255,255,0.08); opacity: 1; }
+.m-aside nav a:hover { background: rgba(255,255,255,0.08); opacity: 1; }
+/* La página en la que estás no se distingue solo por un fondo apenas
+   más claro: lleva su propia marca a la izquierda. */
+.m-aside nav a.is-active {
+  background: rgba(255,255,255,0.12);
+  opacity: 1;
+  font-weight: 600;
+  border-left-color: var(--m-accent);
+}
 .m-aside nav .grp { padding: 18px 20px 6px; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.5; }
 .m-main-col { padding: 28px 36px 80px; }
 .m-nav-jump {
@@ -76,7 +186,7 @@
 }
 .m-nav-jump a {
   display: block;
-  background: #fff;
+  background: var(--m-white);
   border: 1px solid var(--m-line);
   border-radius: 12px;
   padding: 16px 18px;
@@ -94,28 +204,44 @@
   gap: 16px;
   margin-bottom: 24px;
 }
-.m-top h1 { margin: 0; font-size: 28px; font-family: Palatino, Georgia, serif; font-weight: 600; }
+.m-top h1 { margin: 0; font-size: 30px; line-height: 1.15; font-family: var(--m-font-display); font-weight: 600; letter-spacing: -0.01em; }
 .m-muted { color: var(--m-muted); }
 .m-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .m-btn {
   appearance: none;
-  border: 0;
+  border: 1px solid transparent;
   background: var(--m-orange);
   color: #fff;
-  padding: 9px 14px;
-  border-radius: 8px;
+  padding: 9px 15px;
+  border-radius: var(--m-r-sm);
   font: inherit;
   font-weight: 600;
   font-size: 13px;
+  line-height: 1.3;
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--m-s2);
+  box-shadow: var(--m-sh-1);
+  transition: background var(--m-fast), border-color var(--m-fast), box-shadow var(--m-fast), transform var(--m-fast);
 }
-.m-btn.ghost { background: transparent; color: var(--m-ink); border: 1px solid var(--m-line); }
-.m-btn.danger { background: #c0392b; }
-.m-btn:disabled { opacity: 0.55; cursor: wait; }
+.m-btn:hover { background: var(--m-orange-deep); box-shadow: var(--m-sh-2); }
+.m-btn:active { transform: translateY(1px); box-shadow: none; }
+.m-btn.ghost {
+  background: var(--m-white);
+  color: var(--m-ink);
+  border-color: var(--m-line-strong);
+  box-shadow: none;
+}
+.m-btn.ghost:hover { background: var(--m-action-tint); border-color: var(--m-orange); }
+.m-btn.danger { background: var(--m-danger); }
+.m-btn.danger:hover { background: var(--m-danger); filter: brightness(0.9); }
+.m-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
+.m-btn:disabled:hover { background: var(--m-orange); }
+.m-btn.ghost:disabled:hover { background: var(--m-white); border-color: var(--m-line-strong); }
+/* El botón que espera a que termine algo sí avisa de que hay espera. */
+.m-btn.is-waiting, .m-btn.is-waiting:hover { cursor: wait; }
 /* Un botón escondido con `hidden` tiene que desaparecer: `display` de
    la clase manda sobre el atributo, así que hay que decirlo aquí. */
 .m-btn[hidden] { display: none; }
@@ -123,7 +249,7 @@
    debajo de la lista de entradas): mismo aire que el titular, pero sin
    competir con el h1. */
 .m-top-sub { margin-top: 36px; }
-.m-top-sub h2 { margin: 0; font-size: 20px; font-family: Palatino, Georgia, serif; font-weight: 600; }
+.m-top-sub h2 { margin: 0; font-size: 21px; font-family: var(--m-font-display); font-weight: 600; }
 .m-tax-note { margin: -16px 0 14px; font-size: 13px; max-width: 70ch; }
 .m-tax-new { margin-top: 12px; }
 .m-tax-new input {
@@ -132,7 +258,7 @@
   min-width: 260px;
   border: 1px solid var(--m-line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--m-white);
 }
 /* Ojo: nada de `display:flex` en una celda de tabla —la saca del
    modelo de la fila y la raya de abajo se descoloca—. Basta con
@@ -150,7 +276,7 @@
   padding: 6px 10px;
   border: 1px solid var(--m-line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--m-white);
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -169,7 +295,7 @@
   display: grid;
   gap: 6px;
   padding: 10px 12px;
-  background: #fff;
+  background: var(--m-white);
   border: 1px solid var(--m-line);
   border-radius: 10px;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
@@ -183,7 +309,7 @@ select.m-mini {
   padding: 6px 10px;
   border: 1px solid var(--m-line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--m-white);
 }
 
 /* Pestañas sencillas (categorías / etiquetas). */
@@ -231,7 +357,7 @@ select.m-mini {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--m-white);
   border: 1px solid var(--m-line-strong);
   transition: transform 0.15s ease;
 }
@@ -243,37 +369,70 @@ select.m-mini {
 .m-kpi {
   background: var(--m-white);
   border: 1px solid var(--m-line);
-  border-radius: 16px;
-  padding: 18px 20px;
+  border-radius: var(--m-r-lg);
+  padding: var(--m-s4) var(--m-s5);
+  box-shadow: var(--m-sh-1);
+  transition: box-shadow var(--m-fast), border-color var(--m-fast);
 }
-.m-kpi b { display: block; font-size: 32px; font-family: Palatino, Georgia, serif; }
+a.m-kpi:hover { border-color: var(--m-orange); box-shadow: var(--m-sh-2); }
+.m-kpi > span { color: var(--m-muted); font-size: 13px; }
+.m-kpi b { display: block; font-size: 34px; line-height: 1.1; font-family: var(--m-font-display); }
 .m-table, .m-panel {
   background: var(--m-white);
   border: 1px solid var(--m-line);
-  border-radius: 16px;
+  border-radius: var(--m-r-lg);
   overflow: hidden;
+  box-shadow: var(--m-sh-1);
 }
+/* Un panel sin relleno pega el titular contra su propio borde: eso era
+   lo que pasaba en «Portada del sitio». El relleno va aquí, y quien
+   necesite otro lo pone en su sitio (la mayoría lo trae en línea). */
+.m-panel { padding: var(--m-s5); }
+.m-panel > h2:first-child, .m-panel > h3:first-child, .m-panel > h4:first-child { margin-top: 0; }
 .m-table table { width: 100%; border-collapse: collapse; }
 .m-table th, .m-table td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--m-line); font-size: 14px; }
+.m-table tbody tr { transition: background var(--m-fast); }
+.m-table tbody tr:hover { background: var(--m-surface-soft); }
+.m-table tbody tr:last-child td { border-bottom: 0; }
+/* Las acciones de una fila van juntas, a la derecha y sin partirse. */
+.m-table td.m-acts { text-align: right; white-space: nowrap; }
+.m-table td.m-acts .m-btn + .m-btn { margin-left: var(--m-s2); }
+/* Un enlace de la tabla se pinta con el color de acción... salvo que
+   sea un botón: ahí el color lo pone el botón y pisarlo dejaba el texto
+   bronce sobre fondo bronce. */
+.m-table a:not(.m-btn) { color: var(--m-orange-deep); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.m-table a:not(.m-btn):hover { color: var(--m-orange); }
+/* En una celda estrecha, un botón parte su texto en dos líneas y la fila
+   crece el doble. Los rótulos de acción son cortos: no se parten. */
+.m-table .m-btn { white-space: nowrap; }
 .m-table th { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--m-muted); }
 .m-pill {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
+  padding: 3px 9px;
+  border-radius: var(--m-r-pill);
   font-size: 11px;
+  font-weight: 600;
   background: var(--m-paper);
   border: 1px solid var(--m-line);
 }
-.m-pill.pub { background: #eef6e3; border-color: #c8e0a8; }
+.m-pill.pub { background: var(--m-accent-tint); border-color: var(--m-accent); }
 .m-table select, .m-front-bar select {
   font: inherit;
   font-size: 13px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  border: 1px solid var(--m-line);
-  background: #fff;
+  padding: 6px 28px 6px 10px;
+  border-radius: var(--m-r-sm);
+  border: 1px solid var(--m-line-strong);
+  background-color: var(--m-white);
+  color: inherit;
   max-width: 220px;
+  /* Flecha propia: la del sistema operativo rompe la paleta. */
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 15px) calc(50% + 2px), calc(100% - 10px) calc(50% + 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
 }
+.m-table select:hover, .m-front-bar select:hover { border-color: var(--m-orange); }
 .m-table input[data-pw] {
   display: block;
   margin-top: 6px;
@@ -286,7 +445,7 @@ select.m-mini {
 }
 .m-table input[data-pw][hidden] { display: none; }
 .m-front-bar { margin: 0 0 16px; }
-.m-front-bar h2 { margin: 0 0 6px; font-size: 18px; }
+.m-front-bar h2 { margin: 0 0 6px; font-size: 19px; font-family: var(--m-font-display); }
 .m-front-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 12px 0; }
 .m-front-row .m-field { min-width: 260px; }
 .m-form-grid { display: grid; gap: 14px; max-width: 720px; }
@@ -295,9 +454,19 @@ select.m-mini {
   font: inherit;
   font-weight: 400;
   padding: 10px 12px;
-  border: 1px solid var(--m-line);
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--m-line-strong);
+  border-radius: var(--m-r-sm);
+  background: var(--m-white);
+  color: inherit;
+  transition: border-color var(--m-fast), box-shadow var(--m-fast);
+}
+.m-field input:hover, .m-field textarea:hover, .m-field select:hover { border-color: var(--m-orange); }
+/* El campo en el que estás escribiendo se ve desde el otro lado de la
+   mesa: borde del color de acción y un halo suave. */
+.m-field input:focus, .m-field textarea:focus, .m-field select:focus {
+  outline: none;
+  border-color: var(--m-orange);
+  box-shadow: 0 0 0 3px var(--m-action-tint);
 }
 .m-field-row { display: grid; grid-template-columns: 160px 1fr 120px; gap: 8px; align-items: center; }
 .m-font-row {
@@ -312,7 +481,7 @@ select.m-mini {
   padding: 8px 10px;
   border: 1px solid var(--m-line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--m-white);
   width: 100%;
 }
 .m-font-row [data-font-variant] { min-width: 0; }
@@ -338,20 +507,20 @@ select.m-mini {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--m-muted, #6b6b6b);
+  color: var(--m-muted);
 }
 .m-font-row .m-font-google[hidden] { display: none; }
 .m-font-row .m-font-google input { margin: 0; }
-.m-font-row > span small { display: block; font-size: 11px; color: var(--m-muted, #6b6b6b); line-height: 1.3; }
+.m-font-row > span small { display: block; font-size: 11px; color: var(--m-muted); line-height: 1.3; }
 .m-font-row .m-font-aviso {
   grid-column: 2 / -1;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--m-muted, #6b6b6b);
+  color: var(--m-muted);
 }
-.m-color { width: 42px; height: 34px; padding: 2px; border: 1px solid var(--m-line); border-radius: 8px; background: #fff; }
+.m-color { width: 42px; height: 34px; padding: 2px; border: 1px solid var(--m-line); border-radius: 8px; background: var(--m-white); }
 .m-toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
-.m-toolbar button { font: inherit; font-size: 12px; padding: 4px 8px; border: 1px solid var(--m-line); background: #fff; border-radius: 6px; cursor: pointer; }
+.m-toolbar button { font: inherit; font-size: 12px; padding: 4px 8px; border: 1px solid var(--m-line); background: var(--m-white); border-radius: 6px; cursor: pointer; }
 /* El editor clasico de WordPress dentro de un campo del panel.
    Trae su propio marco (pestanas Visual/Texto y barra de formato), asi
    que el area de texto de dentro no lleva el borde redondeado que el
@@ -366,7 +535,7 @@ select.m-mini {
 .m-field .wp-editor-tools { margin-bottom: 0; }
 
 .m-media-row { display: flex; align-items: center; gap: 12px; }
-.m-thumb { display: block; object-fit: contain; background: #fff; border: 1px solid var(--m-line); border-radius: 8px; }
+.m-thumb { display: block; object-fit: contain; background: var(--m-white); border: 1px solid var(--m-line); border-radius: 8px; }
 .m-thumb-logo { width: 96px; height: 48px; padding: 4px; }
 .m-thumb-fav { width: 32px; height: 32px; }
 .m-thumb-empty { width: 48px; height: 32px; display: grid; place-items: center; font-size: 10px; color: var(--m-muted); background: var(--m-paper); border: 1px dashed var(--m-line); border-radius: 8px; }
@@ -383,11 +552,11 @@ select.m-mini {
   padding: 10px 12px 10px 16px;
   border: 1px solid var(--m-line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--m-white);
   cursor: pointer;
   user-select: none;
 }
-.m-preset.is-on { border-color: #34c759; box-shadow: 0 0 0 3px rgba(52,199,89,0.18); }
+.m-preset.is-on { border-color: var(--m-ok); box-shadow: 0 0 0 3px var(--m-ok-soft); }
 .m-preset-copy { display: flex; flex-direction: column; gap: 6px; min-width: 120px; }
 .m-preset-copy strong { font-size: 14px; }
 .m-preset-swatches { display: flex; gap: 4px; }
@@ -410,12 +579,12 @@ select.m-mini {
   position: absolute;
   top: 2px; left: 2px;
   width: 27px; height: 27px;
-  background: #fff;
+  background: var(--m-white);
   border-radius: 50%;
   box-shadow: 0 1px 4px rgba(0,0,0,.25);
   transition: transform .2s ease;
 }
-.m-preset:has(input:checked) .m-ios-switch { background: #34c759; }
+.m-preset:has(input:checked) .m-ios-switch { background: var(--m-ok); }
 .m-preset:has(input:checked) .m-ios-switch::after { transform: translateX(20px); }
 .m-preset-status { margin: 4px 0 10px; color: var(--m-muted); font-size: 13px; }
 .m-section-save {
@@ -439,17 +608,23 @@ select.m-mini {
   border-radius: 6px;
   border: 1px solid rgba(0,0,0,0.08);
 }
+/* Los avisos se apilan hacia arriba en vez de pisarse unos a otros. */
 .m-toast {
   position: fixed;
   right: 20px;
   bottom: 20px;
   background: var(--m-ink);
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: 8px;
+  color: var(--m-white);
+  padding: 11px 15px;
+  border-radius: var(--m-r-sm);
   font-size: 13px;
   z-index: 99;
+  box-shadow: var(--m-sh-3);
+  animation: m-toast-in 180ms ease;
 }
+.m-toast ~ .m-toast { bottom: 68px; }
+.m-toast ~ .m-toast ~ .m-toast { bottom: 116px; }
+@keyframes m-toast-in { from { opacity: 0; transform: translateY(8px); } }
 .m-modal-bg {
   position: fixed; inset: 0;
   background: rgba(29,29,27,0.45);
@@ -457,10 +632,11 @@ select.m-mini {
   z-index: 80;
 }
 .m-modal {
-  background: #fff;
-  border-radius: 16px;
-  padding: 24px;
+  background: var(--m-white);
+  border-radius: var(--m-r-lg);
+  padding: var(--m-s5);
   width: min(480px, 92vw);
+  box-shadow: var(--m-sh-3);
 }
 .m-modal h3 { margin: 0 0 8px; }
 @media (max-width: 900px) {
@@ -543,7 +719,7 @@ select.m-mini {
    izquierda, los datos de contacto en medio y lo que se puede hacer a
    la derecha, para repasar la lista de un vistazo. */
 .m-res-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 4px; }
-.m-res-tabs .m-btn.is-active { background: var(--m-ink, #1d2327); color: #fff; }
+.m-res-tabs .m-btn.is-active { background: var(--m-ink); border-color: var(--m-ink); color: var(--m-white); }
 .m-res-dia { margin-top: 18px; }
 .m-res-dia h3 { margin: 0 0 8px; font-size: 14px; text-transform: none; }
 .m-res-grupo { padding: 4px 18px; }
@@ -562,10 +738,114 @@ select.m-mini {
 .m-res-nota { margin: 6px 0 0; font-size: 13px; opacity: .8; }
 .m-res-acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
 .m-res-estado { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--m-line); }
-.m-res-estado.is-nueva { background: #fff4d6; }
-.m-res-estado.is-confirmada { background: #e3f3e6; }
-.m-res-estado.is-cancelada { background: #f3e3e3; text-decoration: line-through; }
+.m-res-estado.is-nueva { background: var(--m-warn-soft); }
+.m-res-estado.is-confirmada { background: var(--m-ok-soft); }
+.m-res-estado.is-cancelada { background: var(--m-danger-soft); text-decoration: line-through; }
 @media (max-width: 860px) {
   .m-res { grid-template-columns: 1fr; }
   .m-res-acciones { justify-content: flex-start; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Las dos zonas de Apariencia.                                        */
+/*                                                                     */
+/* Arriba, la web del cliente. Abajo, plegado y solo para quien        */
+/* administra, la cara del propio KRG. Están separadas a propósito:    */
+/* son dos paletas distintas y confundirlas era la mitad del lío.      */
+/* ------------------------------------------------------------------ */
+.m-zona {
+  margin: 0 0 var(--m-s3);
+  font-family: var(--m-font-display);
+  font-size: 17px;
+  font-weight: 600;
+}
+.m-zona .m-muted { font-family: var(--m-font-ui); font-size: 13px; font-weight: 400; }
+
+.m-skin { margin-top: var(--m-s6); padding: 0; }
+.m-skin > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: var(--m-s4) var(--m-s5);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--m-s3);
+  border-radius: var(--m-r-lg);
+  transition: background var(--m-fast);
+}
+.m-skin > summary::-webkit-details-marker { display: none; }
+.m-skin > summary:hover { background: var(--m-surface-soft); }
+.m-skin > summary::after {
+  content: "";
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--m-muted);
+  border-bottom: 2px solid var(--m-muted);
+  transform: rotate(45deg);
+  transition: transform var(--m-fast);
+}
+.m-skin[open] > summary::after { transform: rotate(-135deg); }
+.m-skin[open] > summary { border-bottom: 1px solid var(--m-line); border-radius: var(--m-r-lg) var(--m-r-lg) 0 0; }
+.m-skin-tit { display: inline-flex; align-items: center; gap: var(--m-s2); font-size: 16px; }
+.m-skin-tit strong { font-family: var(--m-font-display); font-size: 18px; }
+.m-skin-body { padding: var(--m-s5); }
+.m-skin-body > p:first-child { margin-top: 0; max-width: 70ch; }
+.m-skin-avanzado { margin-top: var(--m-s5); border-top: 1px solid var(--m-line); padding-top: var(--m-s4); }
+.m-skin-avanzado > summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+#skin-contraste.is-mal { color: var(--m-danger); font-weight: 600; }
+
+/* Las tarjetas de tema: se elige uno, no doce colores. */
+.m-temas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--m-s3);
+  margin: var(--m-s4) 0 var(--m-s3);
+}
+.m-tema {
+  display: grid;
+  gap: var(--m-s1);
+  text-align: left;
+  font: inherit;
+  padding: var(--m-s3) var(--m-s4) var(--m-s4);
+  background: var(--m-white);
+  border: 1px solid var(--m-line);
+  border-radius: var(--m-r-md);
+  cursor: pointer;
+  transition: border-color var(--m-fast), box-shadow var(--m-fast), transform var(--m-fast);
+}
+.m-tema:hover { border-color: var(--m-orange); box-shadow: var(--m-sh-2); }
+.m-tema:active { transform: translateY(1px); }
+.m-tema.is-on { border-color: var(--m-orange); box-shadow: 0 0 0 2px var(--m-orange); }
+.m-tema strong { font-size: 15px; }
+.m-tema .m-muted { font-size: 12px; line-height: 1.35; }
+.m-tema-chips { display: flex; gap: 0; margin-bottom: var(--m-s2); }
+.m-tema-chips i {
+  width: 28px;
+  height: 28px;
+  display: block;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-left-width: 0;
+}
+.m-tema-chips i:first-child { border-left-width: 1px; border-radius: var(--m-r-sm) 0 0 var(--m-r-sm); }
+.m-tema-chips i:last-child { border-radius: 0 var(--m-r-sm) var(--m-r-sm) 0; }
+/* Las etiquetas de los colores del panel son largas («Barra lateral
+   (tono oscuro)»): con la columna de 160 px de serie se parten en dos
+   líneas y la lista queda a saltos. */
+.m-skin #skin-colors .m-field-row { grid-template-columns: 210px 1fr 48px; gap: var(--m-s3); }
+.m-skin #skin-colors .m-field-row > span { font-size: 13px; }
+.m-skin #skin-colors input:not(.m-color) {
+  font: inherit;
+  font-size: 13px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  padding: 7px 10px;
+  border: 1px solid var(--m-line-strong);
+  border-radius: var(--m-r-sm);
+  background: var(--m-white);
+  color: inherit;
+}
+.m-skin #skin-colors input:not(.m-color):focus {
+  outline: none;
+  border-color: var(--m-orange);
+  box-shadow: 0 0 0 3px var(--m-action-tint);
 }

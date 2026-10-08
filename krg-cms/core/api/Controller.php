@@ -288,6 +288,8 @@ class Controller {
 				'data'     => \Meridian\Admin\Skin::get(),
 				'defaults' => \Meridian\Admin\Skin::defaults(),
 				'suggest'  => \Meridian\Admin\Skin::from_tokens(),
+				'theme'    => \Meridian\Admin\Skin::tema(),
+				'themes'   => \Meridian\Admin\Skin::temas(),
 			]
 		);
 		$res->header( 'Cache-Control', 'no-store, no-cache, must-revalidate' );
@@ -296,14 +298,25 @@ class Controller {
 
 	public static function admin_skin_save( WP_REST_Request $req ) {
 		$body = self::json_body( $req );
-		$data = ! empty( $body['reset'] )
-			? \Meridian\Admin\Skin::reset()
-			: \Meridian\Admin\Skin::save( is_array( $body['colors'] ?? null ) ? $body['colors'] : [] );
+		if ( ! empty( $body['reset'] ) ) {
+			$data = \Meridian\Admin\Skin::reset();
+		} else {
+			$entrada = [];
+			if ( isset( $body['theme'] ) ) {
+				$entrada['theme'] = (string) $body['theme'];
+			}
+			if ( is_array( $body['colors'] ?? null ) ) {
+				$entrada['colors'] = $body['colors'];
+			}
+			$data = \Meridian\Admin\Skin::save( $entrada );
+		}
 		$res = rest_ensure_response(
 			[
 				'data'     => $data,
 				'defaults' => \Meridian\Admin\Skin::defaults(),
 				'suggest'  => \Meridian\Admin\Skin::from_tokens(),
+				'theme'    => \Meridian\Admin\Skin::tema(),
+				'themes'   => \Meridian\Admin\Skin::temas(),
 			]
 		);
 		$res->header( 'Cache-Control', 'no-store, no-cache, must-revalidate' );

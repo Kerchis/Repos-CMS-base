@@ -48,7 +48,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 }
 .b-top .m-btn.ghost:hover,
 .b-top .m-btn.ghost:focus {
-  color: #fff;
+  color: var(--m-white);
   background: rgba(255, 255, 255, 0.12);
 }
 .b-top .grow { flex: 1; }
@@ -110,7 +110,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   z-index: 4;
   border: 1px solid var(--m-line);
   border-radius: 0 8px 8px 0;
-  background: #fff;
+  background: var(--m-white);
   color: var(--m-muted);
   font: inherit;
   font-size: 11px;
@@ -124,7 +124,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .b-show:hover { color: var(--m-ink); border-color: var(--m-brown); }
 .b-top [data-panel].is-off { opacity: 0.45; }
 .b-left, .b-right {
-  background: #fff;
+  background: var(--m-white);
   border-right: 1px solid var(--m-line);
   overflow: auto;
   min-width: 0;
@@ -152,7 +152,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   padding: 0;
   border: 1px solid var(--m-line);
   border-radius: 4px;
-  background: #fff;
+  background: var(--m-white);
   color: var(--m-muted);
   font: inherit;
   font-size: 11px;
@@ -186,13 +186,13 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 }
 .b-frame-wrap {
   position: relative;
-  background: #fff;
+  background: var(--m-white);
   overflow: hidden;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(29,29,27,0.12);
   transform-origin: top center;
 }
-.b-frame-wrap iframe { width: 100%; height: 100%; border: 0; background: #fff; display: block; pointer-events: auto; }
+.b-frame-wrap iframe { width: 100%; height: 100%; border: 0; background: #fff; /* el lienzo es la web, no el panel */ display: block; pointer-events: auto; }
 .b-rz {
   position: absolute;
   z-index: 5;
@@ -202,7 +202,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .b-rz-e { top: 12px; right: -5px; width: 10px; bottom: 18px; cursor: ew-resize; }
 .b-rz-s { left: 12px; right: 18px; bottom: -5px; height: 10px; cursor: ns-resize; }
 .b-rz-se { right: -6px; bottom: -6px; width: 14px; height: 14px; cursor: nwse-resize; }
-.b-sec { padding: 12px 14px; border-bottom: 1px solid #eee; }
+.b-sec { padding: 12px 14px; border-bottom: 1px solid var(--m-line); }
 .b-sec h4 {
   margin: 0 0 8px;
   font-size: 11px;
@@ -338,7 +338,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   padding: 2px 6px;
   border: 1px solid var(--m-orange);
   border-radius: 6px;
-  background: #fff;
+  background: var(--m-white);
 }
 .b-ico {
   border: 0;
@@ -347,7 +347,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   font-size: 12px;
   padding: 2px 4px;
 }
-.b-insp .acc { border-bottom: 1px solid #eee; padding: 10px 12px; }
+.b-insp .acc { border-bottom: 1px solid var(--m-line); padding: 10px 12px; }
 .b-insp .acc h5 {
   margin: 0 0 8px;
   font-size: 11px;
@@ -403,7 +403,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
    mismo acordeón que el inspector, pero viven en el panel de la
    izquierda, donde los selectores de arriba no llegan. Mismo aspecto,
    mismo comportamiento, misma memoria. */
-.b-left .b-pal-group { padding: 0; border-bottom: 1px solid #eee; }
+.b-left .b-pal-group { padding: 0; border-bottom: 1px solid var(--m-line); }
 .b-left .b-pal-group > .acc-h {
   display: flex;
   align-items: center;
@@ -447,8 +447,8 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .b-left .b-pal-group .b-sec.is-sub:last-child { padding-bottom: 0; }
 /* Las secciones V.2 se distinguen de un vistazo. */
 .b-left .b-pal-group[data-acc="pal.v2"] .b-palette button {
-  border-color: var(--m-brown, #6b4f3a);
-  box-shadow: inset 2px 0 0 var(--m-brown, #6b4f3a);
+  border-color: var(--m-brown);
+  box-shadow: inset 2px 0 0 var(--m-brown);
 }
 
 /* Cabecera: qué hay seleccionado. Antes solo aparecía el nombre del
@@ -459,7 +459,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   align-items: baseline;
   gap: 4px 8px;
   padding: 12px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--m-line);
   background: var(--m-surface-soft);
 }
 .b-sel-kind {
@@ -491,11 +491,11 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   padding: 6px 8px;
   border: 1px solid var(--m-line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--m-white);
   color: inherit;
   cursor: pointer;
 }
-.b-porta-btn:hover:not(:disabled) { border-color: var(--m-brown, #6b4f3a); }
+.b-porta-btn:hover:not(:disabled) { border-color: var(--m-brown); }
 .b-porta-btn:disabled { opacity: 0.45; cursor: default; }
 .b-porta-bar {
   display: flex;
@@ -549,19 +549,19 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   height: 100%;
   border-radius: 8px;
   background:
-    linear-gradient(to top right, transparent calc(50% - 1px), #d94e27 calc(50% - 1px), #d94e27 calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(to top right, transparent calc(50% - 1px), var(--m-danger) calc(50% - 1px), var(--m-danger) calc(50% + 1px), transparent calc(50% + 1px)),
     repeating-linear-gradient(45deg, #f2f2f2 0 6px, #e4e4e4 6px 12px);
   pointer-events: none;
 }
 .m-pick-clear {
   width: 30px;
-  border: 1px solid var(--m-line, #ddd);
+  border: 1px solid var(--m-line);
   border-radius: 8px;
   background: transparent;
   cursor: pointer;
   line-height: 1;
 }
-.m-pick-clear:hover { background: var(--m-soft, #f3f3f3); }
+.m-pick-clear:hover { background: var(--m-surface-soft); }
 /* Con color elegido aparece la aspa para volver al tema. */
 .m-pick-color:has([data-color-clear]) { grid-template-columns: 42px minmax(0, 1fr) 30px; }
 .m-pick-color [data-color-clear] { width: 30px; }
@@ -575,7 +575,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   padding: 2px;
   border: 1px solid var(--m-line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--m-white);
   cursor: pointer;
 }
 .m-pick-unit { font-size: 11px; font-weight: 400; color: var(--m-muted); }
@@ -620,14 +620,14 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   align-items: start;
   margin: 0 0 10px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--m-line);
 }
 .b-gal-item .b-thumb { width: 72px; height: 56px; overflow: hidden; border-radius: 8px; background: var(--m-paper); }
 .b-gal-item .b-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .b-gal-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .b-gal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .rep-item {
-  border: 1px solid #eee;
+  border: 1px solid var(--m-line);
   border-radius: 10px;
   padding: 10px;
   margin: 8px 0;
@@ -640,7 +640,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   gap: 6px;
   margin: -2px 0 2px;
   padding-bottom: 6px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--m-line);
 }
 .rep-n {
   flex: 0 0 auto;
@@ -673,8 +673,8 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 /* es la misma idea y conviene que se vea igual en todo el editor.      */
 /* ------------------------------------------------------------------ */
 .b-rep { display: grid; gap: 6px; }
-.tree-n.is-rep { border: 1px solid var(--m-line); background: #fff; }
-.tree-n.is-rep > .tree-h { background: #fcfcfc; border-radius: 7px 7px 0 0; }
+.tree-n.is-rep { border: 1px solid var(--m-line); background: var(--m-white); }
+.tree-n.is-rep > .tree-h { background: var(--m-surface-soft); border-radius: 7px 7px 0 0; }
 .tree-n.is-rep.is-open > .tree-h { border-bottom: 1px solid var(--m-line); }
 /* `:not([hidden])` no es adorno: `[hidden]` solo vale (0,1,0) y esta
    regla pesa (0,3,0), asi que sin el filtro una ficha plegada se
@@ -714,7 +714,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 /* ------------------------------------------------------------------ */
 .b-tree { display: grid; gap: 6px; }
 .tree-n { border-radius: 8px; }
-.tree-n.is-cat { border: 1px solid var(--m-line); background: #fff; }
+.tree-n.is-cat { border: 1px solid var(--m-line); background: var(--m-white); }
 .tree-h {
   display: flex;
   align-items: center;
@@ -732,14 +732,14 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   place-items: center;
   border: 1px solid var(--m-line);
   border-radius: 4px;
-  background: #fff;
+  background: var(--m-white);
   color: var(--m-muted);
   font: inherit;
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
 }
-.tree-t:hover { border-color: var(--m-accent, #3f5e58); color: var(--m-ink, #111); }
+.tree-t:hover { border-color: var(--m-orange); color: var(--m-ink); }
 .tree-lbl {
   flex: 1 1 auto;
   min-width: 0;
@@ -763,7 +763,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   font-size: 10px;
   font-weight: 700;
 }
-.tree-n.is-cat > .tree-h > .tree-c { background: #fff; }
+.tree-n.is-cat > .tree-h > .tree-c { background: var(--m-white); }
 .tree-acts { flex: 0 0 auto; display: flex; }
 /* La guía cuelga del botón de plegar, no del borde de la caja: así se
    ve de un vistazo qué pertenece a qué. La sangría es de 11+9 px y no
@@ -787,8 +787,8 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .tree-b input,
 .tree-b textarea,
 .tree-b select { box-sizing: border-box; max-width: 100%; }
-.tree-n.is-plato { border: 1px solid var(--m-line); background: #fff; }
-.tree-n.is-plato > .tree-h { background: #fcfcfc; border-radius: 7px 7px 0 0; }
+.tree-n.is-plato { border: 1px solid var(--m-line); background: var(--m-white); }
+.tree-n.is-plato > .tree-h { background: var(--m-surface-soft); border-radius: 7px 7px 0 0; }
 .tree-n.is-sub > .tree-h { padding-left: 0; }
 .tree-n.is-sub .tree-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--m-muted); }
 .tree-cat-fields { display: grid; gap: 8px; }
@@ -815,8 +815,8 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   height: 62px;
   object-fit: cover;
   border-radius: 4px;
-  border: 1px solid var(--m-line, #ddd);
-  background: var(--m-bg2, #f2f2f2);
+  border: 1px solid var(--m-line);
+  background: var(--m-surface);
 }
 .tree-foto-vacia { display: grid; place-items: center; font-size: 11px; color: var(--m-muted); }
 .tree-foto-acts {
@@ -832,7 +832,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .tree-foto:focus-within .tree-foto-acts { opacity: 1; }
 .tree-foto-acts .b-ico {
   background: rgba(0, 0, 0, 0.6);
-  color: #fff;
+  color: var(--m-white);
   border-color: transparent;
 }
 .tree-foto-alt { font-size: 11px; padding: 2px 4px; }
@@ -843,7 +843,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .b-rt-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 .b-rt-bar button {
   border: 1px solid var(--m-line);
-  background: #fff;
+  background: var(--m-white);
   border-radius: 6px;
   padding: 4px 8px;
   font: inherit;
@@ -856,7 +856,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   border: 1px solid var(--m-line);
   border-radius: 8px;
   padding: 10px;
-  background: #fff;
+  background: var(--m-white);
   font-weight: 400;
   line-height: 1.5;
 }
@@ -897,13 +897,13 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   background: var(--m-surface-soft);
   margin-bottom: 10px;
 }
-.b-thumb img { display: block; width: 100%; max-height: 180px; object-fit: contain; background: #fff; }
+.b-thumb img { display: block; width: 100%; max-height: 180px; object-fit: contain; background: #fff; /* contenido del sitio */ }
 .m-thumb-empty { display: grid; place-items: center; min-height: 110px; color: var(--m-muted); font-size: 12px; }
 .b-thumb-actions { display: flex; gap: 8px; padding: 8px; }
 .b-anim { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px; }
 .b-anim button {
   border: 1px solid var(--m-line);
-  background: #fff;
+  background: var(--m-white);
   border-radius: 8px;
   padding: 10px 6px;
   font: inherit;
@@ -930,7 +930,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   font: inherit;
 }
 .b-lay:hover { border-color: var(--m-brown); }
-.b-lay.is-on { border-color: var(--m-brown); box-shadow: 0 0 0 2px var(--m-brown); background: #fff; }
+.b-lay.is-on { border-color: var(--m-brown); box-shadow: 0 0 0 2px var(--m-brown); background: var(--m-white); }
 .b-lay-track {
   display: flex;
   gap: 4px;
@@ -965,11 +965,11 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .m-pick-val { font-weight: 400; }
 .b-insp textarea { min-height: 70px; }
 .rep-item {
-  border: 1px solid #eee;
+  border: 1px solid var(--m-line);
   border-radius: 8px;
   padding: 8px;
   margin-bottom: 8px;
-  background: #fafafa;
+  background: var(--m-surface-soft);
 }
 .b-empty { padding: 24px; color: var(--m-muted); font-size: 13px; }
 .confirm {
@@ -979,14 +979,14 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   z-index: 100000;
   padding: 16px;
 }
-.confirm .box { background: #fff; padding: 20px; border-radius: 12px; width: min(400px, 90vw); }
+.confirm .box { background: var(--m-white); padding: 20px; border-radius: 12px; width: min(400px, 90vw); }
 .confirm .box.b-lay-box {
   width: min(760px, 94vw);
   max-height: 86vh;
   overflow: auto;
 }
 .b-rev { list-style: none; padding: 0; margin: 0 0 16px; }
-.b-rev li { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+.b-rev li { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--m-line); font-size: 13px; }
 .b-rev h4, .box h4 { margin: 16px 0 8px; font-size: 13px; }
 
 /* Revisión de antes de publicar: el nivel como etiqueta delante del
@@ -1001,8 +1001,8 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   text-transform: none;
   vertical-align: 1px;
 }
-.b-revision .b-rev-nivel.is-aviso { background: var(--m-danger-soft, #f7e2df); color: var(--m-danger, #b3261e); }
-.b-revision .b-rev-nivel.is-pista { background: var(--m-surface-soft, #eef1f0); color: var(--m-muted, #5b6360); }
+.b-revision .b-rev-nivel.is-aviso { background: var(--m-danger-soft); color: var(--m-danger); }
+.b-revision .b-rev-nivel.is-pista { background: var(--m-surface-soft); color: var(--m-muted); }
 
 /* Plantillas de página: el nombre y lo que trae a la izquierda, los dos
    botones a la derecha, y en pantalla estrecha uno debajo del otro. */
@@ -1023,16 +1023,16 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .b-rev-dif p { margin: 0 0 6px; }
 .b-dif { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
 .b-dif li { display: block; border: 0; padding: 0; font-size: 12px; }
-.b-status.is-mal { color: var(--m-danger, #b3261e); font-weight: 600; }
+.b-status.is-mal { color: var(--m-danger); font-weight: 600; }
 
 /* Aviso de contenido recortado en las secciones de alto exacto. */
 .b-insp .b-warn {
   margin: 8px 0 0;
   padding: 8px 10px;
-  border-left: 3px solid var(--m-orange, #3f5e58);
+  border-left: 3px solid var(--m-orange);
   border-radius: 0 6px 6px 0;
   background: var(--m-accent-soft, #e7eeec);
-  color: var(--m-ink, #0c0f0e);
+  color: var(--m-ink);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -1043,7 +1043,7 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   max-width: 420px;
   padding: 4px 10px;
   border-radius: 6px;
-  background: #fdecea;
+  background: var(--m-danger-soft);
   color: #8a1c13;
   font-size: 12px;
   line-height: 1.35;
@@ -1055,10 +1055,10 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   width: 100%;
   margin-top: 8px;
   padding: 8px 10px;
-  border: 1px solid var(--m-line, #dfe3e1);
+  border: 1px solid var(--m-line);
   border-radius: 6px;
-  background: #fbfbfa;
-  color: var(--m-ink, #0c0f0e);
+  background: var(--m-surface-soft);
+  color: var(--m-ink);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11px;
   line-height: 1.5;

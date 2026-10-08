@@ -391,6 +391,23 @@
       </div>`);
   }
 
+  /**
+   * Contraste entre dos colores, en la escala de WCAG (de 1 a 21).
+   */
+  function ratio(a, b) {
+    const lum = (h) => {
+      const m = /^#?([0-9a-fA-F]{6})$/.exec(h || "");
+      if (!m) return 0;
+      const c = [0, 1, 2].map((i) => {
+        const n = parseInt(m[1].slice(i * 2, i * 2 + 2), 16) / 255;
+        return n <= 0.03928 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    const x = lum(a), y = lum(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  }
+
   function contrastHint(bg, fg) {
     const hex = (v) => {
       const m = /^#?([0-9a-fA-F]{6})$/.exec(v || "");
@@ -602,10 +619,10 @@
               <input data-pw type="password" placeholder="${p.hasPassword ? "Nueva contraseña" : "Contraseña"}" autocomplete="new-password" ${p.visibility === "protected" ? "" : "hidden"}>
             </td>
             <td>${p.isFront ? `<span class="m-pill pub">Sí</span>` : `<button type="button" class="m-btn ghost" data-front="${p.id}" ${canPub ? "" : "disabled"}>Usar como portada</button>`}</td>
-            <td>
-              <a href="${cfg.admin}?page=krg-builder&id=${p.id}">Editar</a>
-              · <button class="m-btn ghost" data-dup="${p.id}">Duplicar</button>
-              · <button class="m-btn ghost" data-del="${p.id}">Eliminar</button>
+            <td class="m-acts">
+              <a class="m-btn" href="${cfg.admin}?page=krg-builder&id=${p.id}">Editar</a>
+              <button class="m-btn ghost" data-dup="${p.id}">Duplicar</button>
+              <button class="m-btn ghost" data-del="${p.id}">Eliminar</button>
             </td>
           </tr>`).join("")}
         </tbody>
@@ -1025,42 +1042,81 @@
       sidebarDeep: "Barra lateral (tono oscuro)",
       action: "Color de acción (botones)",
       actionDeep: "Acción al pasar el ratón",
+      accent: "Realce (insignias y selección)",
       accentSoft: "Tinte suave de acción",
       paper: "Fondo del panel",
       surface: "Superficie",
       surfaceSoft: "Superficie suave",
+      card: "Tarjetas y campos",
       line: "Líneas y bordes",
       lineStrong: "Bordes marcados",
       ink: "Texto",
       muted: "Texto secundario",
+      ok: "Correcto",
+      warn: "Aviso",
+      danger: "Peligro",
     };
     const skinVars = {
       sidebar: "--m-brown", sidebarDeep: "--m-brown-deep", action: "--m-orange",
-      actionDeep: "--m-orange-deep", accentSoft: "--m-accent-soft", paper: "--m-paper",
-      surface: "--m-surface", surfaceSoft: "--m-surface-soft", line: "--m-line",
-      lineStrong: "--m-line-strong", ink: "--m-ink", muted: "--m-muted",
+      actionDeep: "--m-orange-deep", accent: "--m-accent", accentSoft: "--m-accent-soft",
+      paper: "--m-paper", surface: "--m-surface", surfaceSoft: "--m-surface-soft",
+      card: "--m-white", line: "--m-line", lineStrong: "--m-line-strong",
+      ink: "--m-ink", muted: "--m-muted", ok: "--m-ok", warn: "--m-warn", danger: "--m-danger",
     };
+    const skinTemas = (skinPack && skinPack.themes) || {};
+    const skinTemaActivo = (skinPack && skinPack.theme) || "";
 
+    /**
+     * El apartado «El panel KRG».
+     *
+     * Va plegado y solo lo ve quien puede administrar: cambiar la cara del
+     * gestor no es tarea de quien edita páginas. El servidor ya rechaza la
+     * escritura sin `manage_options`; esto es para no enseñar una puerta
+     * que está cerrada.
+     */
     function adminSkinPanel() {
-      if (!skinPack) return "";
+      if (!skinPack || !cfg.canManage) return "";
       const rows = Object.keys(skinLabels).map((k) => {
         const v = skinData[k] || skinDefaults[k] || "#000000";
         return `<div class="m-field-row">
           <span>${esc(skinLabels[k])}</span>
-          <input data-skin="${k}" value="${esc(v)}">
-          <input class="m-color" type="color" data-skin-picker="${k}" value="${esc(normalizeHex(v))}">
+          <input data-skin="${k}" value="${esc(v)}" aria-label="${esc(skinLabels[k])}">
+          <input class="m-color" type="color" data-skin-picker="${k}" value="${esc(normalizeHex(v))}" aria-label="${esc(skinLabels[k])} (selector)">
         </div>`;
       }).join("");
-      return `<div class="m-panel" style="padding:20px;margin-bottom:16px">
-        <h3>Colores del CMS</h3>
-        <p class="m-muted">Cambian el aspecto de este panel, no el del sitio público. Se ven al instante mientras los tocas; pulsa Guardar para dejarlos fijos.</p>
-        <div id="skin-colors">${rows}</div>
-        <div class="m-section-save m-row">
-          <button type="button" class="m-btn" id="save-skin">Guardar colores del CMS</button>
-          <button type="button" class="m-btn ghost" id="skin-from-palette">Usar la paleta del sitio</button>
-          <button type="button" class="m-btn ghost" id="skin-reset">Restablecer</button>
+      const cartas = Object.entries(skinTemas).map(([slug, t]) => {
+        const c = t.colores || {};
+        const on = slug === skinTemaActivo;
+        const chips = ["sidebar", "action", "accent", "paper", "card"]
+          .map((k) => `<i style="background:${esc(c[k] || "#000")}"></i>`).join("");
+        return `<button type="button" class="m-tema${on ? " is-on" : ""}" data-tema="${esc(slug)}" aria-pressed="${on ? "true" : "false"}">
+          <span class="m-tema-chips" aria-hidden="true">${chips}</span>
+          <strong>${esc(t.nombre || slug)}</strong>
+          <span class="m-muted">${esc(t.nota || "")}</span>
+        </button>`;
+      }).join("");
+      return `<details class="m-panel m-skin" id="skin-zona">
+        <summary>
+          <span class="m-skin-tit"><strong>El panel KRG</strong>
+            <span class="m-pill">Solo administradores</span></span>
+          <span class="m-muted">La cara del gestor: colores y temas. No toca tu web.</span>
+        </summary>
+        <div class="m-skin-body">
+          <p class="m-muted">Son dos paletas distintas a propósito. Todo lo de arriba viaja al sitio que estás construyendo; esto de aquí solo cambia cómo se ve este panel, para ti y para quien entre a gestionarlo.</p>
+          <div class="m-temas">${cartas}</div>
+          <p class="m-muted" id="skin-contraste"></p>
+          <details class="m-skin-avanzado">
+            <summary>Ajustar los colores uno a uno</summary>
+            <p class="m-muted">Parten del tema elegido. Se ven al instante mientras los tocas; pulsa Guardar para dejarlos fijos.</p>
+            <div id="skin-colors">${rows}</div>
+            <div class="m-section-save m-row">
+              <button type="button" class="m-btn" id="save-skin">Guardar colores del CMS</button>
+              <button type="button" class="m-btn ghost" id="skin-from-palette">Usar la paleta del sitio</button>
+              <button type="button" class="m-btn ghost" id="skin-reset">Volver al tema</button>
+            </div>
+          </details>
         </div>
-      </div>`;
+      </details>`;
     }
 
     shell("design", `
@@ -1071,6 +1127,7 @@
           <label class="m-btn ghost">Importar tokens <input type="file" id="imp-tokens" accept="application/json" hidden></label>
         </div>
       </div>
+      <p class="m-zona">Tu web <span class="m-muted">— lo que ve quien visita el sitio que estás construyendo.</span></p>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Presets</h3>
         <p class="m-muted">El interruptor aplica la paleta al instante en esta pantalla. Luego pulsa Guardar paleta para publicarla en el sitio. Solo un interruptor queda encendido.</p>
@@ -1092,7 +1149,6 @@
           </div>
         </div>
       </div>
-      ${adminSkinPanel()}
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Identidad</h3>
         <form class="m-form-grid" id="idform">
@@ -1160,7 +1216,8 @@
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Breakpoints</h3>${tokenMap(tokens.breakpoint, "breakpoint")}
         <div class="m-section-save"><button type="button" class="m-btn" data-save-section="breakpoints">Guardar breakpoints</button></div>
-      </div>`);
+      </div>
+      ${adminSkinPanel()}`);
     el.querySelectorAll("[data-color]").forEach((inp) => {
       const p = el.querySelector(`[data-color-picker="${inp.dataset.color}"]`);
       inp.oninput = () => { if (p && /^#[0-9a-fA-F]{6}$/.test(inp.value)) p.value = inp.value; };
@@ -1550,6 +1607,58 @@
           liveSkin(inp.dataset.skin, inp.value);
         });
       });
+      /* Avisa si la combinación elegida deja de leerse. El cálculo es el
+         mismo que se usa para el sitio público: nada de ojo clínico. */
+      const revisarContraste = () => {
+        const caja = el.querySelector("#skin-contraste");
+        if (!caja) return;
+        const val = (k) => {
+          const inp = el.querySelector(`[data-skin="${CSS.escape(k)}"]`);
+          return normalizeHex(inp ? inp.value : (skinData[k] || ""));
+        };
+        const pares = [
+          ["el texto sobre el fondo", val("ink"), val("paper"), 4.5],
+          ["el texto sobre las tarjetas", val("ink"), val("card"), 4.5],
+          ["el texto secundario", val("muted"), val("paper"), 4.5],
+          ["los botones", "#ffffff", val("action"), 4.5],
+          ["la barra lateral", val("card"), val("sidebar"), 4.5],
+        ];
+        const malos = pares.filter(([, a, b, min]) => ratio(a, b) < min);
+        if (!malos.length) {
+          caja.textContent = "Contraste comprobado: todo se lee (AA).";
+          caja.classList.remove("is-mal");
+          return;
+        }
+        caja.textContent = "Ojo: no se lee bien " + malos.map(([q, a, b]) => `${q} (${ratio(a, b).toFixed(1)}:1)`).join(", ") + ". El objetivo es 4.5:1.";
+        caja.classList.add("is-mal");
+      };
+      /* Cambiar de tema: se pinta al instante y se guarda, porque un tema
+         es una decisión entera, no un campo suelto a medio escribir. */
+      el.querySelectorAll("[data-tema]").forEach((btn) => {
+        btn.onclick = async () => {
+          const slug = btn.dataset.tema;
+          const tema = skinTemas[slug];
+          if (!tema) return;
+          el.querySelectorAll("[data-tema]").forEach((b) => {
+            const on = b === btn;
+            b.classList.toggle("is-on", on);
+            b.setAttribute("aria-pressed", on ? "true" : "false");
+          });
+          fillSkin(tema.colores || {});
+          revisarContraste();
+          try {
+            await api.put("/admin-skin", { theme: slug });
+            toast(`Tema «${tema.nombre || slug}» aplicado al panel.`);
+          } catch (err) {
+            toast(err.message);
+          }
+        };
+      });
+      el.querySelectorAll("[data-skin], [data-skin-picker]").forEach((inp) => {
+        inp.addEventListener("change", revisarContraste);
+      });
+      revisarContraste();
+
       const saveSkinBtn = el.querySelector("#save-skin");
       if (saveSkinBtn) {
         saveSkinBtn.onclick = async () => {
@@ -1578,6 +1687,12 @@
           try {
             const res = await api.put("/admin-skin", { reset: true });
             fillSkin(res.data || {});
+            el.querySelectorAll("[data-tema]").forEach((b) => {
+              const on = b.dataset.tema === (res.theme || "");
+              b.classList.toggle("is-on", on);
+              b.setAttribute("aria-pressed", on ? "true" : "false");
+            });
+            revisarContraste();
             toast("Colores del CMS restablecidos.");
           } catch (err) {
             toast(err.message);
