@@ -322,14 +322,17 @@ for (const [id, titulo] of CASOS) {
 console.log('\nEstirar un bloque que pinta, con el control de posición');
 await seleccionar('secCta', 'design');
 comprueba(
-  await page.evaluate(() => !document.querySelector('.b-insp [data-prop="stretchAlign"]')),
+  await page.evaluate(() => !document.querySelector('.b-insp [data-prop="stretchAlign"], .b-insp [data-prop-set="stretchAlign"]')),
   'sin estirar, el control de posición no se enseña'
 );
+// Este sigue siendo desplegable: «Estirar: el contenido llena el alto»
+// no cabe en un botón. El de debajo, con tres rótulos de una palabra,
+// sí pasó a botones.
 await page.selectOption('.b-insp [data-prop="vAlign"]', 'stretch');
 await page.waitForTimeout(300);
 await abrirTodos();
 comprueba(
-  await page.evaluate(() => !!document.querySelector('.b-insp [data-prop="stretchAlign"]')),
+  await page.evaluate(() => !!document.querySelector('.b-insp [data-prop="stretchAlign"], .b-insp [data-prop-set="stretchAlign"]')),
   'al elegir «Estirar» aparece «Contenido dentro del bloque estirado»'
 );
 
@@ -337,7 +340,7 @@ let est = await calculado('.m-n-secCta', ['align-items']);
 comprueba(/is-va-stretch/.test(est.clases || ''), `el lienzo marca la sección al instante: ${(est.clases || '').split(' ').filter((c) => c.startsWith('is-va')).join('')}`);
 comprueba(/is-sa-center/.test(est.clases || ''), 'y con el centro por defecto');
 
-await page.selectOption('.b-insp [data-prop="stretchAlign"]', 'end');
+await page.click('.b-insp [data-prop-set="stretchAlign"][data-v="end"]');
 await page.waitForTimeout(250);
 est = await calculado('.m-n-secCta', ['align-items']);
 comprueba(/is-sa-end/.test(est.clases || ''), 'cambiar a «Abajo» se ve al instante en el lienzo');
@@ -355,7 +358,13 @@ for (const [donde, f] of [['arriba', 0.06], ['abajo', 0.94]]) {
 
 await abrirPanel();
 await seleccionar('secCta', 'design');
-const guardado = await page.evaluate(() => document.querySelector('.b-insp [data-prop="stretchAlign"]')?.value || '');
+const guardado = await page.evaluate(() => {
+  const lista = document.querySelector('.b-insp [data-prop="stretchAlign"]');
+  if (lista) return lista.value || '';
+  // En botones, lo elegido es el que está marcado.
+  const on = document.querySelector('.b-insp [data-prop-set="stretchAlign"].is-on');
+  return on ? on.dataset.v : '';
+});
 comprueba(guardado === 'end', `tras recargar el editor, el inspector sigue diciendo «abajo»: ${guardado || '(no está)'}`);
 
 /* ================================================================== */

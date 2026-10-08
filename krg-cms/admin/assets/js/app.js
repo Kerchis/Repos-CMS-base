@@ -62,6 +62,25 @@
     ajustes: svg('<path d="M2 5h8"/><path d="M12.5 5h1.5"/><circle cx="11.2" cy="5" r="1.5"/><path d="M2 11h2"/><path d="M6.5 11h7.5"/><circle cx="5.2" cy="11" r="1.5"/>'),
     refrescar: svg('<path d="M13 8a5 5 0 1 1-1.6-3.7"/><path d="M13.2 2.5v3h-3"/>'),
     buscar: svg('<circle cx="7" cy="7" r="4.2"/><path d="m10.2 10.2 3.3 3.3"/>'),
+    ayuda: svg('<circle cx="8" cy="8" r="6.2"/><path d="M6.4 6.2a1.7 1.7 0 1 1 1.9 1.9v1.1"/><path d="M8.3 12h.01"/>'),
+    /* Los de los grupos del inspector. Mismo trazo, misma rejilla. */
+    rejilla: svg('<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.2"/><path d="M6 2.8v10.4"/><path d="M10 2.8v10.4"/>'),
+    texto: svg('<path d="M2.5 3.5h11"/><path d="M2.5 7h11"/><path d="M2.5 10.5h7"/>'),
+    imagen: svg('<rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.4"/><circle cx="5.6" cy="6.2" r="1.1"/><path d="m2.4 11.6 3.4-3 2.6 2.2 2.3-1.9 3.3 2.7"/>'),
+    video: svg('<rect x="1.8" y="3.2" width="12.4" height="9.6" rx="1.4"/><path d="m6.6 6.3 3.6 1.7-3.6 1.7z"/>'),
+    enlace: svg('<path d="M6.6 9.4a2.6 2.6 0 0 1 0-3.6l1.6-1.6a2.6 2.6 0 1 1 3.6 3.6l-.8.8"/><path d="M9.4 6.6a2.6 2.6 0 0 1 0 3.6l-1.6 1.6a2.6 2.6 0 1 1-3.6-3.6l.8-.8"/>'),
+    alinear: svg('<path d="M2.5 3.5h11"/><path d="M2.5 8h7"/><path d="M2.5 12.5h9"/>'),
+    medida: svg('<path d="M1.8 6.2h12.4v3.6H1.8z"/><path d="M4.6 6.2v1.6"/><path d="M7 6.2v2.4"/><path d="M9.4 6.2v1.6"/><path d="M11.8 6.2v2.4"/>'),
+    espacio: svg('<path d="M2.2 2.6h11.6"/><path d="M2.2 13.4h11.6"/><path d="M8 5.2v5.6"/><path d="m6.4 6.8 1.6-1.6 1.6 1.6"/><path d="m6.4 9.2 1.6 1.6 1.6-1.6"/>'),
+    gota: svg('<path d="M8 2.2S3.8 6.6 3.8 9.2a4.2 4.2 0 0 0 8.4 0C12.2 6.6 8 2.2 8 2.2z"/>'),
+    tipo: svg('<path d="M2.6 12.6 6 3.4l3.4 9.2"/><path d="M3.8 9.6h4.4"/><path d="M11 12.6V7.8a1.9 1.9 0 0 1 2.6 1.7v3.1"/>'),
+    borde: svg('<rect x="2.2" y="2.2" width="11.6" height="11.6" rx="1.4" stroke-dasharray="3 2"/>'),
+    sombra: svg('<rect x="1.8" y="1.8" width="9" height="9" rx="1.2"/><path d="M5.6 13.8h7a1.6 1.6 0 0 0 1.6-1.6v-7" opacity=".55"/>'),
+    movimiento: svg('<path d="M2 11.5c3.4 0 3.4-7 6.8-7s3.4 7 5.2 7"/><path d="M11.6 2.6 14 5l-2.4 2.4"/>'),
+    codigo: svg('<path d="m5.6 5.4-3 2.6 3 2.6"/><path d="m10.4 5.4 3 2.6-3 2.6"/><path d="m9.2 3.4-2.4 9.2"/>'),
+    ojo: svg('<path d="M1.6 8S3.9 3.8 8 3.8 14.4 8 14.4 8 12.1 12.2 8 12.2 1.6 8 1.6 8z"/><circle cx="8" cy="8" r="1.9"/>'),
+    forma: svg('<rect x="2.2" y="2.6" width="11.6" height="10.8" rx="1.4"/><path d="M4.8 6.2h6.4"/><path d="M4.8 9h3.6"/>'),
+    pagina: svg('<path d="M3.4 1.8h5.4l3.8 3.8v8.6H3.4z"/><path d="M8.8 1.8v3.8h3.8"/>'),
   };
 
   const uiEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

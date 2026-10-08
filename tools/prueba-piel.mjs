@@ -377,6 +377,120 @@ const vuelto = await cons.evaluate(() => ({
 ok(vuelto.vistos === todos, `al borrar vuelven todos (${vuelto.vistos})`);
 ok(!vuelto.abiertos.includes('pal.viejas'), `y los grupos que nacen cerrados siguen cerrados (${vuelto.abiertos.join(', ')})`);
 
+console.log('\nPRUEBA 11 — el inspector: cabecera fija, iconos y ayuda plegada');
+
+// La sección y su pestaña de diseño: el sitio donde el inspector se
+// llena de grupos, de explicaciones y de listas de opciones.
+await cons.evaluate(() => document.querySelector('[data-sel="sRes"]')?.click());
+await cons.waitForTimeout(300);
+await cons.click('.b-insp [data-insp-tab="design"]');
+await cons.waitForTimeout(300);
+await cons.evaluate(() => {
+  document.querySelectorAll('.b-insp .b-group:not(.is-open) > .acc-h').forEach((b) => b.click());
+});
+await cons.waitForTimeout(250);
+
+const fija = await cons.evaluate(() => {
+  const panel = document.querySelector('.b-right');
+  const cab = document.querySelector('.b-insp-fija');
+  return {
+    pegada: cab ? getComputedStyle(cab).position : '(no está)',
+    dentro: !!(cab && cab.querySelector('.b-sel') && cab.querySelector('.b-tabs')),
+    alto: panel.scrollHeight,
+    visible: panel.clientHeight,
+  };
+});
+ok(fija.pegada === 'sticky', `la cabecera del inspector se queda pegada (${fija.pegada})`);
+ok(fija.dentro, 'y se lleva consigo el nombre del bloque y las pestañas');
+ok(fija.alto > fija.visible + 200, `hay de sobra que desplazar (${fija.alto} > ${fija.visible})`);
+
+const trasBajar = await cons.evaluate(async () => {
+  const panel = document.querySelector('.b-right');
+  panel.scrollTop = panel.scrollHeight;
+  await new Promise((r) => setTimeout(r, 200));
+  const cab = document.querySelector('.b-insp-fija').getBoundingClientRect();
+  const caja = panel.getBoundingClientRect();
+  return {
+    arriba: Math.round(cab.top - caja.top),
+    nombre: (document.querySelector('.b-sel-name') || {}).textContent || '',
+    pestanas: [...document.querySelectorAll('.b-tabs button')].filter((b) => b.getBoundingClientRect().top >= caja.top - 1).length,
+  };
+});
+ok(Math.abs(trasBajar.arriba) <= 1, `al bajar del todo sigue arriba (${trasBajar.arriba} px del borde)`);
+ok(trasBajar.nombre.trim().length > 0, `y se sigue sabiendo qué se edita: «${trasBajar.nombre.trim()}»`);
+ok(trasBajar.pestanas === 3, `con las tres pestañas a mano (${trasBajar.pestanas})`);
+await cons.evaluate(() => { document.querySelector('.b-right').scrollTop = 0; });
+
+const iconos = await cons.evaluate(() => {
+  const grupos = [...document.querySelectorAll('.b-insp .b-group')];
+  return {
+    cuantos: grupos.length,
+    sinIcono: grupos.filter((g) => !g.querySelector('.acc-i svg')).map((g) => g.dataset.acc),
+    distintos: new Set(grupos.map((g) => (g.querySelector('.acc-i svg') || {}).innerHTML || '')).size,
+  };
+});
+ok(iconos.cuantos >= 6, `el bloque tiene grupos de sobra (${iconos.cuantos})`);
+ok(iconos.sinIcono.length === 0, `todos llevan su dibujo (sin icono: ${iconos.sinIcono.join(', ') || 'ninguno'})`);
+ok(iconos.distintos >= 3, `y no es el mismo dibujo para todo (${iconos.distintos} distintos)`);
+
+const ayuda = await cons.evaluate(() => {
+  const plegadas = [...document.querySelectorAll('.b-insp details.b-ayuda')];
+  const sueltos = [...document.querySelectorAll('.b-insp .acc-b > p.m-muted')]
+    .filter((p) => p.textContent.trim().length >= 90);
+  if (!plegadas.length) return null;
+  const d = plegadas[0];
+  const p = d.querySelector('p');
+  const antes = p.checkVisibility();
+  d.querySelector('summary').click();
+  return {
+    cuantas: plegadas.length,
+    sueltos: sueltos.length,
+    antes,
+    despues: p.checkVisibility(),
+    rotulo: d.querySelector('summary').textContent.trim(),
+    largo: p.textContent.trim().length,
+  };
+});
+ok(ayuda && ayuda.cuantas > 0, `las explicaciones largas están plegadas (${ayuda ? ayuda.cuantas : 0})`);
+ok(ayuda && ayuda.antes === false && ayuda.despues === true, 'y se abren al pulsarlas');
+ok(ayuda && ayuda.rotulo === 'Qué significa', `con un rótulo de una línea: «${ayuda ? ayuda.rotulo : ''}»`);
+ok(ayuda && ayuda.sueltos === 0, `no queda ningún parrafón suelto estorbando (${ayuda ? ayuda.sueltos : '?'})`);
+
+const letra = await cons.evaluate(() => {
+  const p = [...document.querySelectorAll('.b-insp .m-muted')].find((x) => x.checkVisibility());
+  const label = document.querySelector('.b-insp label');
+  return { pista: p ? parseFloat(getComputedStyle(p).fontSize) : 0, etiqueta: parseFloat(getComputedStyle(label).fontSize) };
+});
+ok(letra.pista > 0 && letra.pista < letra.etiqueta,
+  `la letra pequeña es más pequeña que la etiqueta (${letra.pista} < ${letra.etiqueta} px)`);
+
+console.log('\nPRUEBA 12 — botones cuando son pocas opciones, lista cuando son muchas');
+
+const elegir = await cons.evaluate(() => {
+  const segs = [...document.querySelectorAll('.b-insp .b-seg')];
+  const listas = [...document.querySelectorAll('.b-insp select[data-prop]')];
+  const anchos = segs.map((s) => {
+    const caja = s.getBoundingClientRect();
+    const hijos = [...s.children].map((b) => b.getBoundingClientRect());
+    return Math.max(...hijos.map((h) => Math.round(h.bottom))) - Math.min(...hijos.map((h) => Math.round(h.top))) <= caja.height + 1;
+  });
+  return {
+    segs: segs.length,
+    // Más de cuatro sólo se tolera con rótulos de dos o tres letras,
+    // como H1…H6, que ya venían así de antes.
+    enUnaFila: anchos.filter(Boolean).length,
+    anchoMax: Math.round(Math.max(0, ...segs.map((s) => s.scrollWidth))),
+    anchoPanel: Math.round(Math.min(...segs.map((s) => s.clientWidth))),
+    cabenTodos: segs.every((s) => s.scrollWidth <= s.clientWidth + 1),
+    listasCortas: listas.filter((l) => l.options.length <= 4 && [...l.options].every((o) => o.textContent.length <= 13)).length,
+  };
+});
+ok(elegir.segs > 0, `hay grupos de botones en el inspector (${elegir.segs})`);
+ok(elegir.cabenTodos, `y ninguno se sale del panel (${elegir.anchoMax} ≤ ${elegir.anchoPanel} px)`);
+ok(elegir.enUnaFila === elegir.segs, `y todos caben en una sola fila (${elegir.enUnaFila}/${elegir.segs})`);
+ok(elegir.listasCortas === 0,
+  `no queda ningún desplegable corto que debiera ser botones (${elegir.listasCortas})`);
+
 ok(sucio.length === 0, `sin errores de JavaScript${sucio.length ? ` — ${sucio[0]}` : ''}`);
 
 if (process.env.KRG_SHOT) {
@@ -385,6 +499,14 @@ if (process.env.KRG_SHOT) {
   await (await page.$('#skin-zona')).screenshot({ path: `${ROOT}/captura-piel-apartado.png` });
   await pageP.screenshot({ path: `${ROOT}/captura-piel-paginas.png`, fullPage: true });
   await cons.screenshot({ path: `${ROOT}/captura-piel-constructor.png` });
+  // Sin la ficha de la página abierta: lo que se quiere ver es el bloque.
+  await cons.evaluate(() => {
+    const g = document.querySelector('.b-insp [data-acc="pagina"]');
+    if (g && g.classList.contains('is-open')) g.querySelector('.acc-h').click();
+    document.querySelector('.b-right').scrollTop = 0;
+  });
+  await cons.waitForTimeout(250);
+  await (await cons.$('.b-right')).screenshot({ path: `${ROOT}/captura-piel-inspector.png` });
   console.log(`\n  capturas en ${ROOT}/captura-piel*.png`);
 }
 

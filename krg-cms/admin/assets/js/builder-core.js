@@ -111,17 +111,90 @@
     recuerda();
   }
 
+  /**
+   * Qué dibujo le toca a cada grupo del inspector.
+   *
+   * Un panel con veinte cabeceras de texto en versalitas se lee igual de
+   * mal que una lista de la compra. El icono no sustituye al rótulo:
+   * sirve para volver al grupo que ya habías visitado sin leerlo todo.
+   * Por familias, no uno distinto para cada uno: la idea es reconocer
+   * «esto es color» o «esto es medida» de un vistazo.
+   */
+  const ICONO_GRUPO = {
+    pagina: "pagina",
+    sectionBasics: "rejilla", sectionRows: "rejilla", rowBasics: "rejilla", columnBasics: "rejilla",
+    catLayout: "rejilla", galColumns: "rejilla",
+    textContent: "texto", moduleContent: "texto", globalNote: "texto",
+    imageContent: "imagen", galleryItems: "imagen", imgFill: "imagen", imgRadius: "imagen",
+    imgScale: "imagen", galPresentation: "imagen", galNav: "imagen",
+    videoSource: "video", vidSize: "video", vidPlayback: "video",
+    everestForm: "forma",
+    imageLink: "enlace",
+    align: "alinear",
+    sectionWidth: "medida", sectionHeight: "medida", size: "medida", position: "medida",
+    catResponsive: "ojo", visibility: "ojo",
+    sectionCurtain: "movimiento", imgParallax: "movimiento", galParallax: "movimiento",
+    animation: "movimiento", transitions: "movimiento", transform: "movimiento",
+    sectionHeader: "ajustes", menuModes: "ajustes", catDesign: "ajustes",
+    catColors: "gota", background: "gota", filters: "gota",
+    catSpacing: "espacio", spacing: "espacio",
+    catTypography: "tipo", typography: "tipo", textSize: "tipo", headingTag: "tipo",
+    border: "borde",
+    shadow: "sombra",
+    cssId: "codigo", customCss: "codigo", attributes: "codigo", diag: "codigo",
+  };
+  function iconoDe(id) {
+    const set = (typeof window !== "undefined" && window.KrgIco) || {};
+    return set[ICONO_GRUPO[id] || "ajustes"] || "";
+  }
+
+  /**
+   * Guarda los parrafones de ayuda detrás de un desplegable.
+   *
+   * El inspector explicaba cada ajuste con tres o cuatro líneas de
+   * prosa debajo del control. Junto todo era un prospecto: el usuario
+   * que ya sabe lo que hace tenía que desplazar el panel entero para
+   * llegar al siguiente ajuste. Ahora las explicaciones largas quedan
+   * tras un «Qué significa» que ocupa una línea; las cortas, que caben
+   * de un vistazo, se quedan donde estaban.
+   *
+   * No se mueven de sitio: cada una sigue justo debajo del control que
+   * explica.
+   */
+  const LARGO_AYUDA = 90;
+  function plegarAyudas(html) {
+    return String(html).replace(/<p class="m-muted">([\s\S]*?)<\/p>/g, (todo, dentro) => {
+      // Sólo se pliega la prosa de manual: texto llano y largo. Si el
+      // párrafo trae marcas dentro —un nombre en negrita, un color en
+      // <code>, un enlace— es un aviso de lo que está pasando ahora
+      // mismo en esta página, y eso tiene que verse sin pulsar nada.
+      if (dentro.indexOf("<") !== -1) return todo;
+      if (dentro.trim().length < LARGO_AYUDA) return todo;
+      return `<details class="b-ayuda"><summary>Qué significa</summary><p class="m-muted">${dentro}</p></details>`;
+    });
+  }
+
   /** Un grupo: cabecera pulsable y cuerpo que se pliega. */
   function grupo(id, label, html, abierto, hint) {
     if (!html) return "";
+    // La explicación del grupo entero, si la hay, va detrás de un «?».
+    const ayuda = hint
+      ? `<button type="button" class="acc-ayuda-t" data-ayuda="${esc(id)}" aria-expanded="false"
+           aria-label="Qué es ${esc(label)}" title="Qué es esto">${(typeof window !== "undefined" && window.KrgIco ? window.KrgIco.ayuda : "") || "?"}</button>`
+      : "";
+    // El «?» es hermano de la cabecera, no hijo: un botón no puede ir
+    // dentro de otro, y además hay bancos y atajos que buscan `.acc-h`
+    // como hijo directo del grupo. La fila la arma el CSS con flex.
     return `<section class="acc b-group${abierto ? " is-open" : ""}" data-acc="${esc(id)}">
       <button type="button" class="acc-h" data-acc-t="${esc(id)}" aria-expanded="${abierto ? "true" : "false"}">
+        <span class="acc-i" aria-hidden="true">${iconoDe(id)}</span>
         <span class="acc-t">${esc(label)}</span>
         <span class="acc-x" aria-hidden="true"></span>
       </button>
+      ${ayuda}
       <div class="acc-b"${abierto ? "" : " hidden"}>
-        ${hint ? `<p class="m-muted">${esc(hint)}</p>` : ""}
-        ${html}
+        ${hint ? `<p class="m-muted acc-ayuda" id="ayuda-${esc(id)}" hidden>${esc(hint)}</p>` : ""}
+        ${plegarAyudas(html)}
       </div>
     </section>`;
   }
@@ -198,7 +271,10 @@
     const cuerpo = grupos(esquema[tab], ctx)
       || `<div class="b-empty">Este elemento no tiene ajustes de ${esc((TABS.find((t) => t[0] === tab) || [])[1] || tab).toLowerCase()}.</div>`;
 
-    return `${paginaHtml}${cabecera}${aviso}${tabsHtml}<div class="b-groups">${cuerpo}</div>`;
+    // La cabecera y las pestañas se quedan pegadas arriba: en un panel
+    // de treinta controles, al bajar ya no sabías qué estabas editando
+    // ni podías cambiar de pestaña sin volver al principio.
+    return `${paginaHtml}<div class="b-insp-fija">${cabecera}${tabsHtml}</div>${aviso}<div class="b-groups">${cuerpo}</div>`;
   }
 
   /**
@@ -208,6 +284,24 @@
    * desde aqui mataria el control en el que el usuario acaba de pulsar.
    */
   function bindGroups(root) {
+    root.querySelectorAll("[data-ayuda]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const sec = btn.closest("[data-acc]");
+        const p = sec && sec.querySelector(".acc-ayuda");
+        if (!p) return;
+        // Si el grupo estaba plegado, enseñar la ayuda lo abre: si no,
+        // se pulsa el «?» y no pasa nada visible.
+        if (!sec.classList.contains("is-open")) {
+          const cab = sec.querySelector("[data-acc-t]");
+          if (cab) cab.click();
+          p.hidden = false;
+        } else {
+          p.hidden = !p.hidden;
+        }
+        btn.setAttribute("aria-expanded", p.hidden ? "false" : "true");
+      });
+    });
     root.querySelectorAll("[data-acc-t]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const sec = btn.closest("[data-acc]");

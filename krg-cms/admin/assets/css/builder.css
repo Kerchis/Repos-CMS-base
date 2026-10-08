@@ -1209,3 +1209,100 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 }
 .b-pal-cuenta { font-size: 11px; opacity: .65; white-space: nowrap; }
 .b-palette button[hidden] { display: none; }
+
+/* --------------------------------------------------------------------
+   El inspector, tercera ola
+   --------------------------------------------------------------------
+   Tres cosas: la cabecera y las pestañas se quedan pegadas arriba, cada
+   grupo lleva su dibujo y la explicación de cada grupo se guarda detrás
+   de un «?».
+   -------------------------------------------------------------------- */
+.b-insp-fija {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--m-white);
+  /* Una sombra muy corta para que se note que el resto pasa por debajo,
+     sólo cuando hay algo debajo que tape. */
+  box-shadow: 0 1px 0 var(--m-line), 0 6px 10px -8px rgba(0, 0, 0, .22);
+}
+.b-insp-fija .b-sel { border-bottom: 0; }
+.b-insp .b-insp-fija .b-tabs { margin: 10px 12px 12px; }
+
+/* Cabecera de grupo: el botón de plegar ocupa todo el ancho y el «?» va
+   a su derecha, en la misma fila, sin ser hijo suyo. El cuerpo del
+   grupo salta de línea él solo. */
+.b-insp .b-group { display: flex; flex-wrap: wrap; align-items: stretch; }
+.b-insp .b-group > .acc-h { flex: 1 1 auto; min-width: 0; width: auto; }
+.b-insp .b-group > .acc-b { flex: 1 0 100%; }
+.b-insp .acc-i {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  flex: none;
+  color: var(--m-muted);
+}
+.b-insp .b-group.is-open > .acc-h .acc-i { color: var(--m-brown); }
+.b-insp .acc-t { flex: 1; min-width: 0; text-align: left; }
+.b-insp .acc-ayuda-t {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--m-muted);
+  cursor: pointer;
+  opacity: .7;
+  transition: opacity var(--m-fast, 120ms ease), color var(--m-fast, 120ms ease);
+}
+.b-insp .acc-ayuda-t:hover { opacity: 1; color: var(--m-brown); }
+.b-insp .acc-ayuda-t[aria-expanded="true"] { opacity: 1; color: var(--m-brown); }
+.b-insp .acc-ayuda {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  background: var(--m-surface-soft);
+  border-radius: var(--m-r-sm, 8px);
+}
+
+/* La letra pequeña es pequeña. Las explicaciones sueltas que viven
+   dentro de los controles se leían con el mismo cuerpo que las
+   etiquetas, y el panel parecía un prospecto. */
+.b-insp .m-muted,
+.b-insp .b-hint,
+.b-insp p { font-size: 11.5px; line-height: 1.45; }
+
+/* La ayuda larga, plegada. Una línea en reposo; al abrirla, el texto
+   con el mismo fondo suave que el resto de notas del panel. */
+.b-insp .b-ayuda { margin: -2px 0 10px; }
+.b-insp .b-ayuda > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  padding: 2px 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--m-muted);
+  cursor: pointer;
+  list-style: none;
+}
+.b-insp .b-ayuda > summary::-webkit-details-marker { display: none; }
+.b-insp .b-ayuda > summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--m-fast, 120ms ease);
+}
+.b-insp .b-ayuda[open] > summary::before { transform: rotate(45deg); }
+.b-insp .b-ayuda > summary:hover { color: var(--m-brown); }
+.b-insp .b-ayuda > p {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  background: var(--m-surface-soft);
+  border-radius: var(--m-r-sm, 8px);
+}

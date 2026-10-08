@@ -239,8 +239,27 @@
       ${rangeControl("Espaciado de letras", "letter-spacing", st, -4, 20, "px")}`;
   }
 
+  /**
+   * ¿Esta lista de opciones se enseña en botones o en desplegable?
+   *
+   * Con pocas opciones y rótulos cortos, los botones se ven todos a la
+   * vez: ni abrir, ni leer, ni elegir a ciegas. En cuanto son más de
+   * cuatro —o los rótulos son frases— el desplegable es mejor, porque
+   * en un panel de 320 px los botones se parten en tres líneas y se
+   * vuelven ilegibles.
+   */
+  const ANCHO_SEG = 30;   // suma de letras que caben en una fila de botones
+  const LARGO_SEG = 13;   // ninguna opción puede pasar de aquí
+  function cabeSegmentado(opts) {
+    if (!Array.isArray(opts) || opts.length < 2 || opts.length > 4) return false;
+    const letras = opts.map((o) => String(o.l ?? "").length);
+    return Math.max(...letras) <= LARGO_SEG && letras.reduce((a, b) => a + b, 0) <= ANCHO_SEG;
+  }
+
   /** Select corto de props, el que usaban los grupos de sección. */
   function selProp(key, value, opts) {
+    const norm = opts.map(([v, l]) => ({ v: v, l: l }));
+    if (cabeSegmentado(norm)) return seg(key, value, norm, "data-prop-set");
     return `<select data-prop="${key}">${opts.map(([v, l]) =>
       `<option value="${v}" ${String(value) === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
   }
@@ -1804,11 +1823,18 @@
     }
     if (f.type === "select") {
       const opts = f.options || [];
-      return `<label>${esc(f.label)} <select data-prop="${f.key}">${opts.map((o) => {
-        const v = typeof o === "object" ? (o.value ?? o.id ?? "") : o;
-        const l = typeof o === "object" ? (o.label ?? o.name ?? v) : o;
-        return `<option value="${esc(v)}" ${String(val) === String(v) ? "selected" : ""}>${esc(l)}</option>`;
-      }).join("")}</select></label>`;
+      const norm = opts.map((o) => ({
+        v: typeof o === "object" ? (o.value ?? o.id ?? "") : o,
+        l: String(typeof o === "object" ? (o.label ?? o.name ?? o.value ?? "") : o),
+      }));
+      if (cabeSegmentado(norm)) {
+        return `<div class="m-pick-label">${esc(f.label)}
+          ${seg(f.key, val ?? norm[0].v, norm, "data-prop-set")}
+        </div>`;
+      }
+      return `<label>${esc(f.label)} <select data-prop="${f.key}">${norm.map((o) =>
+        `<option value="${esc(o.v)}" ${String(val) === String(o.v) ? "selected" : ""}>${esc(o.l)}</option>`
+      ).join("")}</select></label>`;
     }
     if (f.type === "number") {
       return `<label>${esc(f.label)} <input type="number" data-prop="${f.key}" value="${esc(val ?? "")}" min="${f.min ?? ""}" max="${f.max ?? ""}"></label>`;
