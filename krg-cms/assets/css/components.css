@@ -702,6 +702,127 @@ body.krg-canvas .m-col {
   cursor: pointer;
 }
 
+/* ------------------------------------------------------------------ */
+/* Reserva de mesa.                                                     */
+/*                                                                      */
+/* Los campos nativos son el plan A: sin guion se ven y funcionan. En   */
+/* cuanto el guion monta el selector, el formulario se marca `is-js` y  */
+/* los esconde; siguen ahi, llevando el valor en el envio.              */
+/* ------------------------------------------------------------------ */
+.m-booking { max-width: 640px; }
+.m-booking .m-bk-nativo {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.m-booking.is-js .m-bk-nativo { display: none; }
+
+.m-bk-pick {
+  display: grid;
+  gap: 20px;
+  padding: 22px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-cards, 18px);
+}
+.m-bk-paso { display: grid; gap: 10px; justify-items: stretch; }
+.m-bk-paso-gente { justify-items: start; }
+.m-bk-tit {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary, var(--color-muted));
+}
+.m-bk-nada { margin: 0; color: var(--color-muted); }
+
+.m-bk-dias {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.m-bk-dia {
+  flex: 0 0 auto;
+  width: 66px;
+  display: grid;
+  gap: 1px;
+  justify-items: center;
+  padding: 10px 6px;
+  font: inherit;
+  color: inherit;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: transform .18s ease, background-color .18s ease, border-color .18s ease, color .18s ease;
+}
+.m-bk-dia:hover { transform: translateY(-1px); border-color: var(--color-primary); }
+.m-bk-dia.is-sel {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.m-bk-dow, .m-bk-mes { font-size: 11px; opacity: .72; }
+.m-bk-num { font-size: 20px; font-weight: 600; line-height: 1.2; }
+
+.m-bk-horas { display: flex; flex-wrap: wrap; gap: 8px; }
+.m-bk-hora {
+  padding: 9px 15px;
+  font: inherit;
+  color: inherit;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full, 999px);
+  cursor: pointer;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+}
+.m-bk-hora:hover { border-color: var(--color-primary); }
+.m-bk-hora.is-sel {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.m-bk-gente {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 8px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full, 999px);
+}
+.m-bk-mas {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.m-bk-mas:disabled { opacity: .35; cursor: default; }
+.m-bk-cuenta { min-width: 2ch; text-align: center; font-size: 17px; font-weight: 600; }
+
+.m-bk-dia:focus-visible, .m-bk-hora:focus-visible, .m-bk-mas:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.m-bk-resumen { margin: 0; font-size: 15px; }
+.m-bk-wa { justify-self: start; }
+
+@media (prefers-reduced-motion: reduce) {
+  .m-bk-dia, .m-bk-hora { transition: none; }
+  .m-bk-dia:hover { transform: none; }
+}
+
 /* Preview chrome */
 body.krg-canvas [data-krg-id],
 body.krg-canvas [data-krg-chrome] { cursor: pointer; }

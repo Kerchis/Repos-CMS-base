@@ -33,6 +33,8 @@ foreach (
 		'/core/components/Registry.php',
 		'/core/media/Images.php',
 		'/core/media/Formats.php',
+		'/core/forms/Booking.php',
+		'/core/forms/BookingStore.php',
 		'/core/render/ComponentRenders.php',
 		'/core/render/BrandRenders.php',
 		'/core/render/NodeRenderer.php',

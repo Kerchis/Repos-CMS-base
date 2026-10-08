@@ -323,6 +323,24 @@ class Routes {
 			'permission_callback' => $edit,
 			'callback' => [ Controller::class, 'search_replace' ],
 		] );
+		// Las reservas de mesa que ha dejado la gente.
+		register_rest_route( $ns, '/bookings', [
+			'methods' => 'GET',
+			'permission_callback' => $posts,
+			'callback' => [ Controller::class, 'bookings_list' ],
+		] );
+		register_rest_route( $ns, '/bookings/(?P<id>\d+)', [
+			[
+				'methods' => 'POST',
+				'permission_callback' => $posts,
+				'callback' => [ Controller::class, 'bookings_update' ],
+			],
+			[
+				'methods' => 'DELETE',
+				'permission_callback' => $posts,
+				'callback' => [ Controller::class, 'bookings_delete' ],
+			],
+		] );
 		// Las versiones modernas de las fotos que ya estaban: cuántas
 		// faltan y una tanda cada vez, para no caducar la peticion.
 		register_rest_route( $ns, '/media/formats', [

@@ -840,8 +840,8 @@
     {
       slug: "reserva-v2",
       name: "Reserva V.2",
-      desde: "contact-form",
-      nota: "Pedir mesa: a un lado el horario y el teléfono, al otro el formulario, y cada dato suelto.",
+      desde: "booking-form",
+      nota: "Pedir mesa: a un lado el horario y el teléfono, al otro el selector de día y hora, y cada dato suelto.",
       build: (t) => {
         const dato = (n, etiqueta, linea) => [
           t.nodo("eyebrow", { text: etiqueta }, `Etiqueta ${n}`),
@@ -863,11 +863,11 @@
               [t.nodo("button", { text: "Llamar ahora", url: "tel:+34910000000", variant: "ghost" }, "Botón de teléfono")]
             ), null, "Columna de los datos"),
             t.columna(7, [
-              t.nodo("contact-form", {
+              t.nodo("booking-form", {
                 submit: "Pedir mesa",
                 success: "Hemos recibido tu petición. Te confirmamos enseguida.",
-                showPhone: true,
-                showSubject: true,
+                destino: "ambos",
+                whatsapp: "",
                 showMessage: true,
               }, "Formulario de reserva"),
             ], null, "Columna del formulario"),

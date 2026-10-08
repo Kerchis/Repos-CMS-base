@@ -79,6 +79,8 @@ add_action( 'wp_ajax_krg_contact', [ \Meridian\Forms\Contact::class, 'handle' ] 
 add_action( 'wp_ajax_nopriv_krg_contact', [ \Meridian\Forms\Contact::class, 'handle' ] );
 add_action( 'wp_ajax_meridian_contact', [ \Meridian\Forms\Contact::class, 'handle' ] );
 add_action( 'wp_ajax_nopriv_meridian_contact', [ \Meridian\Forms\Contact::class, 'handle' ] );
+add_action( 'wp_ajax_krg_booking', [ \Meridian\Forms\Booking::class, 'handle' ] );
+add_action( 'wp_ajax_nopriv_krg_booking', [ \Meridian\Forms\Booking::class, 'handle' ] );
 add_action(
 	'wp',
 	static function () {

@@ -1106,6 +1106,74 @@ class ComponentRenders {
 		return self::wrap( $node, $ctx, 'div', $html );
 	}
 
+	/**
+	 * Reserva de mesa.
+	 *
+	 * Sale ya montado con los campos nativos del navegador —fecha,
+	 * hora y número— porque son los que viajan en el envío y los que
+	 * funcionan sin JavaScript. Encima, cuando hay guión, se despliega
+	 * el selector de días y horas: no sustituye a los campos, los
+	 * rellena. Así lo que se manda es siempre lo mismo.
+	 */
+	public static function booking_form( array $node, array $props, string $children, RenderContext $ctx ): string {
+		$ctx->needed['form'] = true;
+		$cfg   = \Meridian\Forms\Booking::config( $props );
+		$style = ( ( $props['style'] ?? 'boxed' ) === 'underline' ) ? ' is-underline' : ' is-boxed';
+		$nid   = (string) ( $node['id'] ?? '' );
+		$hoy   = \Meridian\Forms\Booking::fecha_de( \Meridian\Forms\Booking::ahora() );
+		$tope  = \Meridian\Forms\Booking::fecha_de( \Meridian\Forms\Booking::ahora() + ( $cfg['days'] * DAY_IN_SECONDS ) );
+
+		$html  = '<form class="m-form m-booking js-krg-booking' . $style . '" method="post" novalidate'
+			. ' data-krg-booking="' . esc_attr( (string) wp_json_encode( \Meridian\Forms\Booking::para_js( $cfg ) ) ) . '">';
+		$html .= wp_nonce_field( 'krg_booking', 'krg_nonce', true, false );
+		$html .= '<input type="hidden" name="pageId" value="' . esc_attr( (string) (int) ( $ctx->postId ?? 0 ) ) . '">';
+		$html .= '<input type="hidden" name="nodeId" value="' . esc_attr( $nid ) . '">';
+		$html .= '<div class="m-hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>';
+
+		// El selector bonito. Nace oculto y lo abre el guión: sin
+		// JavaScript no se ve un hueco vacío, se ven los campos de
+		// siempre.
+		$html .= '<div class="m-bk-pick" hidden>';
+		$html .= '<div class="m-bk-paso"><span class="m-bk-tit">' . esc_html__( 'Día', 'meridian' ) . '</span>'
+			. '<div class="m-bk-dias" role="radiogroup" aria-label="' . esc_attr__( 'Elige el día', 'meridian' ) . '"></div>'
+			. '<p class="m-bk-nada" hidden>' . esc_html__( 'No quedan días libres por ahora.', 'meridian' ) . '</p></div>';
+		$html .= '<div class="m-bk-paso"><span class="m-bk-tit">' . esc_html__( 'Hora', 'meridian' ) . '</span>'
+			. '<div class="m-bk-horas" role="radiogroup" aria-label="' . esc_attr__( 'Elige la hora', 'meridian' ) . '"></div></div>';
+		$html .= '<div class="m-bk-paso m-bk-paso-gente"><span class="m-bk-tit">' . esc_html__( 'Comensales', 'meridian' ) . '</span>'
+			. '<div class="m-bk-gente">'
+			. '<button type="button" class="m-bk-mas" data-bk-menos aria-label="' . esc_attr__( 'Una persona menos', 'meridian' ) . '">&minus;</button>'
+			. '<output class="m-bk-cuenta" data-bk-cuenta>' . esc_html( number_format_i18n( $cfg['guests'] ) ) . '</output>'
+			. '<button type="button" class="m-bk-mas" data-bk-mas aria-label="' . esc_attr__( 'Una persona más', 'meridian' ) . '">+</button>'
+			. '</div></div>';
+		$html .= '</div>';
+
+		$html .= '<div class="m-bk-nativo">';
+		$html .= '<label class="m-field"><span>' . esc_html__( 'Día', 'meridian' ) . '</span>'
+			. '<input type="date" name="fecha" min="' . esc_attr( $hoy ) . '" max="' . esc_attr( $tope ) . '" required></label>';
+		$html .= '<label class="m-field"><span>' . esc_html__( 'Hora', 'meridian' ) . '</span>'
+			. '<input type="time" name="hora" step="' . esc_attr( (string) ( $cfg['slot'] * 60 ) ) . '" required></label>';
+		$html .= '<label class="m-field"><span>' . esc_html__( 'Comensales', 'meridian' ) . '</span>'
+			. '<input type="number" name="comensales" min="1" max="' . esc_attr( (string) $cfg['maxGuests'] ) . '" value="' . esc_attr( (string) $cfg['guests'] ) . '" required></label>';
+		$html .= '</div>';
+
+		$html .= '<p class="m-bk-resumen" data-bk-resumen role="status" aria-live="polite" hidden></p>';
+
+		$html .= '<label class="m-field"><span>' . esc_html__( 'Nombre', 'meridian' ) . '</span><input type="text" name="name" autocomplete="name" required></label>';
+		$html .= '<label class="m-field"><span>' . esc_html__( 'Teléfono', 'meridian' ) . '</span><input type="tel" name="phone" autocomplete="tel" required></label>';
+		$html .= '<label class="m-field"><span>' . esc_html__( 'Email (opcional)', 'meridian' ) . '</span><input type="email" name="email" autocomplete="email"></label>';
+		if ( $cfg['mensaje'] ) {
+			$html .= '<label class="m-field"><span>' . esc_html__( 'Alguna cosa que debamos saber', 'meridian' ) . '</span><textarea name="message" rows="3"></textarea></label>';
+		}
+		$html .= '<button class="m-btn m-btn-primary" type="submit">' . esc_html( $cfg['submit'] ) . '</button>';
+		$html .= '<p class="m-form-msg" hidden data-success="' . esc_attr( $cfg['success'] ) . '"></p>';
+		$consent = trim( (string) ( $props['consent'] ?? '' ) );
+		if ( '' !== $consent ) {
+			$html .= '<p class="m-form-consent">' . self::prosa( $consent ) . '</p>';
+		}
+		$html .= '</form>';
+		return self::wrap( $node, $ctx, 'div', $html );
+	}
+
 	public static function everest_form( array $node, array $props, string $children, RenderContext $ctx ): string {
 		$id = absint( $props['formId'] ?? 0 );
 		if ( ! $id ) {

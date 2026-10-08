@@ -538,3 +538,34 @@ select.m-mini {
 .m-kit-swatch { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
 .m-kit-swatch span { width: 72px; height: 48px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, .18); display: block; }
 .m-kit-swatch code { font-size: 11px; opacity: .7; }
+
+/* Reservas: una línea por mesa, agrupadas por día. La hora manda a la
+   izquierda, los datos de contacto en medio y lo que se puede hacer a
+   la derecha, para repasar la lista de un vistazo. */
+.m-res-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 4px; }
+.m-res-tabs .m-btn.is-active { background: var(--m-ink, #1d2327); color: #fff; }
+.m-res-dia { margin-top: 18px; }
+.m-res-dia h3 { margin: 0 0 8px; font-size: 14px; text-transform: none; }
+.m-res-grupo { padding: 4px 18px; }
+.m-res {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--m-line);
+}
+.m-res:first-child { border-top: 0; }
+.m-res-cuando strong { display: block; font-size: 18px; }
+.m-res-cuando small { display: block; }
+.m-res-datos { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; margin-top: 2px; }
+.m-res-nota { margin: 6px 0 0; font-size: 13px; opacity: .8; }
+.m-res-acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
+.m-res-estado { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--m-line); }
+.m-res-estado.is-nueva { background: #fff4d6; }
+.m-res-estado.is-confirmada { background: #e3f3e6; }
+.m-res-estado.is-cancelada { background: #f3e3e3; text-decoration: line-through; }
+@media (max-width: 860px) {
+  .m-res { grid-template-columns: 1fr; }
+  .m-res-acciones { justify-content: flex-start; }
+}

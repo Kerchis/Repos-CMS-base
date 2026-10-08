@@ -455,4 +455,269 @@
       }
     });
   });
+  /* ------------------------------------------------------------------ */
+  /* Reserva de mesa.                                                     */
+  /*                                                                      */
+  /* El formulario ya trae los campos nativos de fecha, hora y numero:    */
+  /* son los que viajan en el envio y los que funcionan sin guion. Esto   */
+  /* monta encima la tira de dias y las fichas de hora, que no sustituyen */
+  /* a esos campos: los rellenan. Las reglas (turnos, salto, antelacion)  */
+  /* vienen del bloque, y el servidor vuelve a comprobarlas todas.        */
+  /* ------------------------------------------------------------------ */
+  const bkPad = (n) => String(n).padStart(2, "0");
+  const bkIso = (d) => `${d.getFullYear()}-${bkPad(d.getMonth() + 1)}-${bkPad(d.getDate())}`;
+  const bkMin = (hhmm) => {
+    const p = String(hhmm).split(":");
+    return (Number(p[0]) || 0) * 60 + (Number(p[1]) || 0);
+  };
+  const bkHhmm = (m) => `${bkPad(Math.floor(m / 60))}:${bkPad(m % 60)}`;
+  const bkFecha = (f) => new Date(`${f}T12:00:00`);
+
+  const montarReserva = (form) => {
+    let cfg;
+    try {
+      cfg = JSON.parse(form.getAttribute("data-krg-booking") || "{}");
+    } catch (err) {
+      return;
+    }
+    const pick = form.querySelector(".m-bk-pick");
+    const tiraDias = form.querySelector(".m-bk-dias");
+    const tiraHoras = form.querySelector(".m-bk-horas");
+    const nada = form.querySelector(".m-bk-nada");
+    const resumen = form.querySelector("[data-bk-resumen]");
+    const cuenta = form.querySelector("[data-bk-cuenta]");
+    const inFecha = form.querySelector("input[name=fecha]");
+    const inHora = form.querySelector("input[name=hora]");
+    const inGente = form.querySelector("input[name=comensales]");
+    if (!pick || !tiraDias || !tiraHoras || !inFecha || !inHora || !inGente) return;
+    if (!Array.isArray(cfg.turnos) || !cfg.turnos.length) return;
+
+    const cerrados = Array.isArray(cfg.cerrados) ? cfg.cerrados : [];
+    const salto = Number(cfg.slot) || 30;
+    const antelacion = Number(cfg.lead) || 0;
+    const vista = Math.max(1, Number(cfg.days) || 30);
+    const tope = Math.max(1, Number(cfg.maxGuests) || 12);
+
+    const turnosDe = (fecha) => {
+      if (cerrados.indexOf(fecha) !== -1) return [];
+      const n = bkFecha(fecha).getDay() || 7;
+      return cfg.turnos.filter((t) => Array.isArray(t.dias) && t.dias.indexOf(n) !== -1);
+    };
+    const huecosDe = (fecha) => {
+      const limite = Date.now() + antelacion * 60000;
+      const out = [];
+      turnosDe(fecha).forEach((t) => {
+        const fin = bkMin(t.end);
+        for (let m = bkMin(t.start); m <= fin; m += salto) {
+          const h = bkHhmm(m);
+          if (new Date(`${fecha}T${h}:00`).getTime() < limite) continue;
+          if (out.indexOf(h) === -1) out.push(h);
+        }
+      });
+      return out.sort();
+    };
+
+    const dias = [];
+    const hoy = new Date();
+    for (let i = 0; i < vista; i++) {
+      const d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + i, 12, 0, 0);
+      const f = bkIso(d);
+      if (huecosDe(f).length) dias.push(f);
+    }
+
+    pick.hidden = false;
+    form.classList.add("is-js");
+    // Los campos nativos dejan de ser obligatorios para el navegador:
+    // ahora los rellena el selector y el aviso lo damos nosotros.
+    [inFecha, inHora, inGente].forEach((i) => i.removeAttribute("required"));
+
+    if (!dias.length) {
+      if (nada) nada.hidden = false;
+      form.classList.remove("is-js");
+      pick.hidden = true;
+      [inFecha, inHora, inGente].forEach((i) => i.setAttribute("required", "required"));
+      return;
+    }
+
+    let gente = Math.min(tope, Math.max(1, Number(inGente.value) || Number(cfg.guests) || 2));
+    let fechaSel = "";
+    let horaSel = "";
+
+    // Los nombres de los dias los pone el idioma del sitio, no el del
+    // navegador: un aleman mirando la carta de un bar de Bogota tiene
+    // que leer «jue», igual que lo lee el resto de la pagina.
+    const idioma = document.documentElement.getAttribute("lang") || undefined;
+    const nombreDia = (f) => bkFecha(f).toLocaleDateString(idioma, { weekday: "short" });
+    const nombreMes = (f) => bkFecha(f).toLocaleDateString(idioma, { month: "short" });
+    const largo = (f) => bkFecha(f).toLocaleDateString(idioma, { weekday: "long", day: "numeric", month: "long" });
+
+    const pintarResumen = () => {
+      if (!resumen) return;
+      if (!fechaSel || !horaSel) {
+        resumen.hidden = true;
+        resumen.textContent = "";
+        return;
+      }
+      resumen.hidden = false;
+      resumen.textContent = `${largo(fechaSel)} · ${horaSel} · ${gente} ${gente === 1 ? "persona" : "personas"}`;
+    };
+
+    const pintarHoras = () => {
+      const libres = fechaSel ? huecosDe(fechaSel) : [];
+      if (libres.indexOf(horaSel) === -1) horaSel = "";
+      inHora.value = horaSel;
+      tiraHoras.innerHTML = libres.map((h, i) => `
+        <button type="button" class="m-bk-hora${h === horaSel ? " is-sel" : ""}" role="radio"
+          aria-checked="${h === horaSel ? "true" : "false"}"
+          tabindex="${h === horaSel || (!horaSel && i === 0) ? "0" : "-1"}" data-h="${h}">${h}</button>`).join("");
+      pintarResumen();
+    };
+
+    const elegirDia = (f) => {
+      fechaSel = f;
+      inFecha.value = f;
+      tiraDias.querySelectorAll("[data-f]").forEach((b) => {
+        const mio = b.getAttribute("data-f") === f;
+        b.classList.toggle("is-sel", mio);
+        b.setAttribute("aria-checked", mio ? "true" : "false");
+        b.tabIndex = mio ? 0 : -1;
+      });
+      pintarHoras();
+    };
+
+    const elegirHora = (h) => {
+      horaSel = h;
+      inHora.value = h;
+      tiraHoras.querySelectorAll("[data-h]").forEach((b) => {
+        const mio = b.getAttribute("data-h") === h;
+        b.classList.toggle("is-sel", mio);
+        b.setAttribute("aria-checked", mio ? "true" : "false");
+        b.tabIndex = mio ? 0 : -1;
+      });
+      pintarResumen();
+    };
+
+    tiraDias.innerHTML = dias.map((f) => `
+      <button type="button" class="m-bk-dia" role="radio" aria-checked="false" tabindex="-1" data-f="${f}">
+        <span class="m-bk-dow">${nombreDia(f)}</span>
+        <span class="m-bk-num">${bkFecha(f).getDate()}</span>
+        <span class="m-bk-mes">${nombreMes(f)}</span>
+      </button>`).join("");
+
+    // Las flechas mueven dentro de cada grupo, como manda un grupo de
+    // opciones: el teclado tiene que llegar a lo mismo que el raton.
+    const flechas = (caja, attr, elegir) => {
+      caja.addEventListener("keydown", (e) => {
+        if (["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"].indexOf(e.key) === -1) return;
+        const bs = [...caja.querySelectorAll(`[${attr}]`)];
+        if (!bs.length) return;
+        const i = bs.indexOf(document.activeElement);
+        let j = i;
+        if (e.key === "Home") j = 0;
+        else if (e.key === "End") j = bs.length - 1;
+        else if (e.key === "ArrowRight" || e.key === "ArrowDown") j = i < 0 ? 0 : Math.min(bs.length - 1, i + 1);
+        else j = i < 0 ? 0 : Math.max(0, i - 1);
+        e.preventDefault();
+        bs[j].focus();
+        elegir(bs[j].getAttribute(attr));
+      });
+      caja.addEventListener("click", (e) => {
+        const b = e.target.closest(`[${attr}]`);
+        if (!b) return;
+        e.preventDefault();
+        elegir(b.getAttribute(attr));
+      });
+    };
+    flechas(tiraDias, "data-f", elegirDia);
+    flechas(tiraHoras, "data-h", elegirHora);
+
+    const verGente = () => {
+      inGente.value = String(gente);
+      if (cuenta) cuenta.textContent = String(gente);
+      const menos = form.querySelector("[data-bk-menos]");
+      const mas = form.querySelector("[data-bk-mas]");
+      if (menos) menos.disabled = gente <= 1;
+      if (mas) mas.disabled = gente >= tope;
+      pintarResumen();
+    };
+    const paso = (d) => {
+      gente = Math.min(tope, Math.max(1, gente + d));
+      verGente();
+    };
+    const bMenos = form.querySelector("[data-bk-menos]");
+    const bMas = form.querySelector("[data-bk-mas]");
+    if (bMenos) bMenos.addEventListener("click", () => paso(-1));
+    if (bMas) bMas.addEventListener("click", () => paso(1));
+
+    elegirDia(dias[0]);
+    verGente();
+
+    form.addEventListener("krg:reservado", () => {
+      horaSel = "";
+      elegirDia(dias[0]);
+    });
+  };
+
+  document.querySelectorAll(".js-krg-booking").forEach((form) => {
+    montarReserva(form);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = form.querySelector(".m-form-msg");
+      const btn = form.querySelector("[type=submit]");
+      const vieja = form.querySelector(".m-bk-wa");
+      if (vieja) vieja.remove();
+      const fd = new FormData(form);
+      fd.append("action", "krg_booking");
+      if (!fd.get("fecha") || !fd.get("hora")) {
+        if (msg) {
+          msg.hidden = false;
+          msg.textContent = "Elige el día y la hora.";
+          msg.classList.add("m-form-error");
+        }
+        return;
+      }
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch(window.KrgPublic.ajax, { method: "POST", body: fd, credentials: "same-origin" });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.data?.message || window.KrgPublic.i18n.error);
+        if (msg) {
+          msg.hidden = false;
+          msg.textContent = json.data?.message || msg.dataset.success || window.KrgPublic.i18n.sent;
+          msg.classList.remove("m-form-error");
+        }
+        const wa = json.data?.wa;
+        if (wa && wa.url) {
+          // El mensaje sale del WhatsApp de quien reserva, asi que hace
+          // falta un gesto suyo. Se intenta abrir y, si el navegador lo
+          // frena, queda el boton: nunca se pierde el aviso.
+          const a = document.createElement("a");
+          a.className = "m-btn m-btn-primary m-bk-wa";
+          a.href = wa.url;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.textContent = wa.label || "Enviar por WhatsApp";
+          if (msg && msg.parentNode) msg.parentNode.insertBefore(a, msg.nextSibling);
+          else form.appendChild(a);
+          try {
+            window.open(wa.url, "_blank", "noopener");
+          } catch (err) {
+            /* lo abre el boton */
+          }
+        }
+        form.querySelectorAll("input[type=text], input[type=tel], input[type=email], textarea").forEach((i) => {
+          i.value = "";
+        });
+        form.dispatchEvent(new CustomEvent("krg:reservado"));
+      } catch (err) {
+        if (msg) {
+          msg.hidden = false;
+          msg.textContent = err.message || window.KrgPublic.i18n.error;
+          msg.classList.add("m-form-error");
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
+  });
 })();

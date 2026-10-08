@@ -261,6 +261,7 @@
         ${cfg.canManage ? `<a class="${active==="onboard"?"is-active":""}" href="${cfg.admin}?page=krg&view=onboard">Asistente de identidad</a>` : ""}
         <a class="${active==="pages"?"is-active":""}" href="${cfg.admin}?page=krg-pages">Páginas</a>` : ""}
         <a class="${active==="blog"?"is-active":""}" href="${cfg.admin}?page=krg-blog">Blog</a>
+        <a class="${active==="reservas"?"is-active":""}" href="${cfg.admin}?page=krg-reservas">Reservas</a>
         ${cfg.canEditPages !== false ? `
         <a class="${active==="templates"?"is-active":""}" href="${cfg.admin}?page=krg-pages&view=templates">Plantillas</a>
         <a class="${active==="globals"?"is-active":""}" href="${cfg.admin}?page=krg-pages&view=globals">Componentes globales</a>
@@ -2344,6 +2345,152 @@
     ["paginas", "Las páginas", "Cada página entera, con sus secciones y su SEO."],
   ];
 
+  /* ------------------------------------------------------------------ */
+  /* Reservas de mesa.                                                    */
+  /*                                                                      */
+  /* Lo que ha dejado la gente en el bloque «Reserva de mesa»: quién,     */
+  /* cuándo, cuántos y cómo localizarle. Se puede confirmar, cancelar o   */
+  /* borrar, y contestar por teléfono o por WhatsApp de un clic.          */
+  /* ------------------------------------------------------------------ */
+  const RES_PESTANAS = [
+    ["proximas", "Próximas"],
+    ["pasadas", "Pasadas"],
+    ["canceladas", "Canceladas"],
+    ["todas", "Todas"],
+  ];
+  const RES_ESTADOS = {
+    nueva: "Sin confirmar",
+    confirmada: "Confirmada",
+    cancelada: "Cancelada",
+  };
+
+  /** «jueves 16 de octubre», sin inventarse la zona horaria. */
+  const resFecha = (f) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(f || "")) return f || "";
+    const d = new Date(`${f}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return f;
+    return d.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" });
+  };
+  /** El teléfono tal cual lo escribió el cliente, listo para wa.me. */
+  const resWa = (tel) => String(tel || "").replace(/\D+/g, "").replace(/^0+/, "");
+
+  async function reservas() {
+    let cuales = new URLSearchParams(location.search).get("ver") || "proximas";
+    if (!RES_PESTANAS.some(([id]) => id === cuales)) cuales = "proximas";
+
+    shell("reservas", `
+      <div class="m-top"><h1>Reservas</h1></div>
+      <p class="m-muted">Las peticiones de mesa que llegan por el bloque «Reserva de mesa». Quedan apuntadas
+      aunque el aviso se mandara por correo o por WhatsApp, así que aquí está siempre la lista completa.</p>
+      <div class="m-res-tabs">
+        ${RES_PESTANAS.map(([id, nombre]) =>
+          `<button class="m-btn ghost ${id === cuales ? "is-active" : ""}" data-res-tab="${id}">${nombre}</button>`).join("")}
+      </div>
+      <div id="res-lista"><p class="m-muted">Cargando…</p></div>`);
+
+    const caja = el.querySelector("#res-lista");
+
+    const ficha = (r) => {
+      const wa = resWa(r.telefono);
+      return `
+        <div class="m-res" data-res="${r.id}">
+          <div class="m-res-cuando">
+            <strong>${esc(r.hora)}</strong>
+            <small class="m-muted">${esc(plural(r.comensales, "persona", "personas"))}</small>
+          </div>
+          <div class="m-res-quien">
+            <strong>${esc(r.nombre)}</strong>
+            <div class="m-res-datos">
+              ${r.telefono ? `<a href="tel:${esc(r.telefono.replace(/\s+/g, ""))}">${esc(r.telefono)}</a>` : ""}
+              ${r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : ""}
+              ${wa ? `<a href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
+            </div>
+            ${r.mensaje ? `<p class="m-res-nota">${esc(r.mensaje)}</p>` : ""}
+          </div>
+          <div class="m-res-acciones">
+            <span class="m-res-estado is-${esc(r.estado)}">${esc(RES_ESTADOS[r.estado] || r.estado)}</span>
+            ${r.estado !== "confirmada" ? `<button class="m-btn ghost" data-res-estado="confirmada" data-id="${r.id}">Confirmar</button>` : ""}
+            ${r.estado !== "cancelada" ? `<button class="m-btn ghost" data-res-estado="cancelada" data-id="${r.id}">Cancelar</button>` : ""}
+            <button class="m-btn ghost" data-res-borrar="${r.id}">Borrar</button>
+          </div>
+        </div>`;
+    };
+
+    const pintar = (datos) => {
+      const lista = datos.reservas || [];
+      if (!lista.length) {
+        caja.innerHTML = `<div class="m-panel" style="padding:16px 20px;margin-top:16px">
+          <p class="m-muted">No hay reservas aquí. Cuando alguien pida mesa en la web, aparece en esta lista.</p>
+        </div>`;
+        return;
+      }
+      const dias = [];
+      lista.forEach((r) => {
+        const ultimo = dias[dias.length - 1];
+        if (ultimo && ultimo.fecha === r.fecha) ultimo.items.push(r);
+        else dias.push({ fecha: r.fecha, items: [r] });
+      });
+      caja.innerHTML = `
+        <p class="m-muted">${esc(plural(lista.length, "reserva", "reservas"))}${
+          datos.resumen && datos.resumen.nueva ? ` · ${esc(plural(datos.resumen.nueva, "sin confirmar", "sin confirmar"))}` : ""}</p>
+        ${dias.map((d) => `
+          <div class="m-res-dia">
+            <h3>${esc(resFecha(d.fecha))}${d.fecha === datos.hoy ? " · hoy" : ""}</h3>
+            <div class="m-panel m-res-grupo">${d.items.map(ficha).join("")}</div>
+          </div>`).join("")}`;
+    };
+
+    const cargar = async () => {
+      try {
+        pintar(await api.get(`/bookings?cuales=${encodeURIComponent(cuales)}`));
+      } catch (err) {
+        caja.innerHTML = `<p class="m-form-error">${esc(err.message || "No se pudieron cargar las reservas")}</p>`;
+      }
+    };
+
+    el.querySelectorAll("[data-res-tab]").forEach((b) => {
+      b.onclick = () => {
+        cuales = b.getAttribute("data-res-tab");
+        el.querySelectorAll("[data-res-tab]").forEach((o) => o.classList.toggle("is-active", o === b));
+        caja.innerHTML = `<p class="m-muted">Cargando…</p>`;
+        cargar();
+      };
+    });
+
+    caja.addEventListener("click", async (e) => {
+      const cambia = e.target.closest("[data-res-estado]");
+      const borra = e.target.closest("[data-res-borrar]");
+      if (cambia) {
+        const id = Number(cambia.getAttribute("data-id"));
+        cambia.disabled = true;
+        try {
+          await api.post(`/bookings/${id}`, { estado: cambia.getAttribute("data-res-estado") });
+          toast("Reserva actualizada");
+          await cargar();
+        } catch (err) {
+          toast(err.message || "No se pudo cambiar");
+          cambia.disabled = false;
+        }
+        return;
+      }
+      if (borra) {
+        const id = Number(borra.getAttribute("data-res-borrar"));
+        if (!window.confirm("¿Borrar esta reserva? No se puede deshacer.")) return;
+        borra.disabled = true;
+        try {
+          await api.del(`/bookings/${id}`);
+          toast("Reserva borrada");
+          await cargar();
+        } catch (err) {
+          toast(err.message || "No se pudo borrar");
+          borra.disabled = false;
+        }
+      }
+    });
+
+    await cargar();
+  }
+
   async function buscar() {
     shell("buscar", `
       <div class="m-top"><h1>Buscar y reemplazar</h1></div>
@@ -2929,6 +3076,7 @@
     "krg-seo": seo,
     "krg-users": users,
     "krg-settings": settings,
+    "krg-reservas": reservas,
     "krg-buscar": buscar,
     "krg-kit": kit,
   };

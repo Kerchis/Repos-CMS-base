@@ -1014,6 +1014,32 @@ class Controller {
 		}
 	}
 
+	/** Las reservas pedidas desde la web. */
+	public static function bookings_list( WP_REST_Request $req ) {
+		$cuales = sanitize_key( (string) $req->get_param( 'cuales' ) );
+		return rest_ensure_response(
+			\Meridian\Forms\BookingStore::lista( [ 'cuales' => $cuales ?: 'proximas' ] )
+		);
+	}
+
+	/** Confirmar o cancelar una reserva. */
+	public static function bookings_update( WP_REST_Request $req ) {
+		$body   = $req->get_json_params() ?: [];
+		$estado = sanitize_key( (string) ( $body['estado'] ?? '' ) );
+		$ficha  = \Meridian\Forms\BookingStore::set_estado( (int) $req['id'], $estado );
+		if ( null === $ficha ) {
+			return self::err( 'meridian_booking', __( 'No se pudo cambiar esa reserva.', 'meridian' ), 404 );
+		}
+		return rest_ensure_response( $ficha );
+	}
+
+	public static function bookings_delete( WP_REST_Request $req ) {
+		if ( ! \Meridian\Forms\BookingStore::borrar( (int) $req['id'] ) ) {
+			return self::err( 'meridian_booking', __( 'No se pudo borrar esa reserva.', 'meridian' ), 404 );
+		}
+		return rest_ensure_response( [ 'deleted' => true ] );
+	}
+
 	/** Cuántas fotos están preparadas y cuántas no. */
 	public static function media_formats( WP_REST_Request $req ) {
 		$estado = \Meridian\Media\Formats::estado();
