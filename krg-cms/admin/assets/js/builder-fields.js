@@ -3830,7 +3830,14 @@
       : "");
     const v2 = botones(nuevas.filter((x) => x.grupo !== "pieza"));
     const piezas = botones(nuevas.filter((x) => x.grupo === "pieza"));
-    return grupoPaleta("v2", "Secciones V.2", v2, "Las mismas secciones, pero por piezas: cada texto, foto o sello es un bloque hijo que se edita aparte.")
+    const busca = `
+      <div class="b-pal-busca">
+        <input type="search" id="b-pal-q" placeholder="Buscar un bloque…" autocomplete="off"
+          value="${esc(state.palFiltro || "")}" aria-label="Buscar un bloque en la paleta">
+        <span class="b-pal-cuenta" id="b-pal-cuenta"></span>
+      </div>`;
+    return busca
+      + grupoPaleta("v2", "Secciones V.2", v2, "Las mismas secciones, pero por piezas: cada texto, foto o sello es un bloque hijo que se edita aparte.")
       + grupoPaleta("piezas", "Piezas V.2", piezas, "Un solo bloque, ya metido en su sección: para empezar una parte de la página desde cero sin montar antes la sección, la fila y la columna.")
       + grupoPaleta("v1", "Bloques sueltos", v1, "Las piezas de toda la vida: títulos, textos, fotos, botones, mapas, formularios y el andamiaje. Son las mismas que usan por dentro las secciones V.2.")
       + grupoPaleta("viejas", "Secciones de la versión anterior", antiguas, "Cada una de estas es una sección entera metida en un solo bloque. Se quedan para que las páginas que ya las usan sigan funcionando igual; para una página nueva es mejor su ficha V.2, que se edita pieza a pieza. Pasa el ratón por encima para ver cuál es.");
@@ -4228,6 +4235,61 @@
      * seleccionar, mover, duplicar, ocultar, borrar y arrastrar
      * funcionan igual en una página que en el pie.
      */
+    /* ------------------------------------------------------------------
+       El buscador de la paleta.
+
+       Son más de cien botones repartidos en cuatro grupos, y tres de
+       ellos nacen cerrados: encontrar «Reseñas» a ojo costaba abrir y
+       leer. Al escribir se esconden los botones que no casan, los
+       grupos sin ningún acierto desaparecen y los que tienen alguno se
+       abren solos; al borrar, cada grupo vuelve a como estaba. Casa por
+       el nombre y también por la pista del botón, sin tildes.
+       ------------------------------------------------------------------ */
+    const sinTildes = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    function filtrarPaleta(q) {
+      state.palFiltro = q || "";
+      const texto = sinTildes(q).trim();
+      const izq = root.querySelector(".b-left");
+      const cuenta = root.querySelector("#b-pal-cuenta");
+      if (!izq) return;
+      const grupos = [...izq.querySelectorAll(".b-pal-group")];
+      if (!grupos.length) return;
+      if (!texto) {
+        grupos.forEach((g) => {
+          g.hidden = false;
+          g.querySelectorAll("[data-add], [data-add-v2]").forEach((b) => { b.hidden = false; });
+          const abierto = CORE.isOpen(g.dataset.acc, g.dataset.acc === "pal.v2");
+          g.classList.toggle("is-open", abierto);
+          const cuerpo = g.querySelector(".acc-b");
+          if (cuerpo) cuerpo.hidden = !abierto;
+          const cab = g.querySelector(".acc-h");
+          if (cab) cab.setAttribute("aria-expanded", abierto ? "true" : "false");
+        });
+        if (cuenta) cuenta.textContent = "";
+        return;
+      }
+      let total = 0;
+      grupos.forEach((g) => {
+        let aciertos = 0;
+        g.querySelectorAll("[data-add], [data-add-v2]").forEach((b) => {
+          const casa = sinTildes(`${b.textContent} ${b.getAttribute("title") || ""}`).includes(texto);
+          b.hidden = !casa;
+          if (casa) aciertos += 1;
+        });
+        total += aciertos;
+        g.hidden = aciertos === 0;
+        // Mientras se busca, lo que tiene aciertos se enseña abierto sin
+        // tocar el recuerdo de si el grupo estaba plegado.
+        g.classList.toggle("is-open", aciertos > 0);
+        const cuerpo = g.querySelector(".acc-b");
+        if (cuerpo) cuerpo.hidden = aciertos === 0;
+        const cab = g.querySelector(".acc-h");
+        if (cab) cab.setAttribute("aria-expanded", aciertos > 0 ? "true" : "false");
+      });
+      if (cuenta) cuenta.textContent = total ? `${total} bloque${total === 1 ? "" : "s"}` : "Ninguno se llama así";
+    }
+
     function bindLeft() {
       root.querySelectorAll("[data-add]").forEach((b) => { b.onclick = () => addComponent(b.dataset.add); });
       root.querySelectorAll("[data-add-v2]").forEach((b) => { b.onclick = () => addV2(b.dataset.addV2); });
@@ -4254,6 +4316,14 @@
       root.querySelectorAll("[data-del]").forEach((b) => { b.onclick = () => deleteNode(b.dataset.del); });
       root.querySelectorAll("[data-tpl]").forEach((b) => { b.onclick = () => saveTemplate(b.dataset.tpl); });
       root.querySelectorAll("[data-glb]").forEach((b) => { b.onclick = () => saveGlobal(b.dataset.glb); });
+      const cajaPal = root.querySelector("#b-pal-q");
+      if (cajaPal) {
+        cajaPal.oninput = () => filtrarPaleta(cajaPal.value);
+        cajaPal.onkeydown = (e) => {
+          if (e.key === "Escape") { cajaPal.value = ""; filtrarPaleta(""); }
+        };
+        if (state.palFiltro) filtrarPaleta(state.palFiltro);
+      }
       bindPorta(root.querySelector(".b-left"));
       bindTree();
     }

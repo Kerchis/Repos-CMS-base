@@ -23,7 +23,9 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 .b-top {
   display: flex;
   align-items: center;
-  gap: 12px;
+  /* 8 px, no 12: con 12 la barra no cabía en una fila a 1600 px por
+     cuatro píxeles. */
+  gap: 8px;
   padding: 0 12px;
   background: var(--m-brown);
   color: var(--m-surface-soft);
@@ -36,6 +38,70 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   min-height: 56px;
 }
 .b-top > * { flex: 0 0 auto; }
+
+/* ------------------------------------------------------------------ */
+/* La barra, por grupos.                                               */
+/*                                                                     */
+/* Antes eran once botones del mismo peso en dos filas, y «Publicar»   */
+/* —la acción más importante— se veía igual que «Rehacer». Ahora hay   */
+/* tres zonas: quién soy y qué estoy viendo (izquierda), herramientas  */
+/* en grupos pegados (centro-derecha) y las acciones que publican      */
+/* (extremo derecho, separadas por una línea).                         */
+/* ------------------------------------------------------------------ */
+.b-top-ident { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.b-volver {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--m-r-sm, 8px);
+  opacity: 0.85;
+}
+.b-volver:hover { background: rgba(255, 255, 255, 0.12); opacity: 1; }
+.b-pagetitle {
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+.b-svg { display: block; flex: 0 0 auto; }
+
+/* Grupo de iconos pegados: se leen como una sola herramienta. */
+.b-grupo {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--m-r-sm, 8px);
+  overflow: hidden;
+}
+/* Scoped a `.b-top` a propósito: más abajo hay otro `.b-ico`, el de los
+   botoncitos del árbol, que es anterior y gana por orden. */
+.b-top .b-ico {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.88;
+  transition: background var(--m-fast, 120ms ease), opacity var(--m-fast, 120ms ease);
+}
+.b-top .b-ico + .b-ico { box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.12); }
+.b-top .b-ico:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); opacity: 1; }
+.b-top .b-ico:disabled { opacity: 0.35; cursor: default; }
+
+/* Guardar y publicar, apartados del resto por una línea vertical. */
+.b-acciones {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  margin-left: 2px;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+}
 .b-top a, .b-top button, .b-top select {
   color: inherit;
   font: inherit;
@@ -52,15 +118,38 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
   background: rgba(255, 255, 255, 0.12);
 }
 .b-top .grow { flex: 1; }
-.b-bp { display: flex; background: rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden; }
+.b-bp { display: flex; background: rgba(255,255,255,0.08); border-radius: var(--m-r-sm, 8px); overflow: hidden; }
 .b-bp button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: transparent;
   border: 0;
-  padding: 8px 12px;
+  padding: 7px 11px;
+  font-size: 13px;
   cursor: pointer;
+  opacity: 0.85;
+  transition: background var(--m-fast, 120ms ease), opacity var(--m-fast, 120ms ease);
 }
-.b-bp button.is-on { background: var(--m-orange); }
-.b-bp-label { font-size: 11px; opacity: 0.7; min-width: 72px; }
+.b-bp button:hover { background: rgba(255, 255, 255, 0.1); opacity: 1; }
+/* El tamaño elegido se marca con una superficie clara, no con el color
+   de acción: ese se reserva para «Publicar», que es lo que de verdad
+   hace algo irreversible. */
+.b-bp button.is-on {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--m-ink);
+  opacity: 1;
+  font-weight: 600;
+}
+/* En pantallas estrechas el rótulo sobra: el icono ya lo dice. */
+@media (max-width: 1480px) {
+  .b-bp button > span { display: none; }
+  .b-bp button { padding: 7px 10px; }
+}
+/* La medida de verdad del lienzo (con «Ajustar» puesto no es la que
+   dicen las casillas). Sin ancho mínimo: cada píxel cuenta para que la
+   barra quepa en una fila. */
+.b-bp-label { font-size: 11px; opacity: 0.7; white-space: nowrap; }
 .b-device {
   display: flex;
   align-items: center;
@@ -1097,3 +1186,26 @@ html, body, #wpwrap, #wpcontent, #wpbody, #wpbody-content, #krg-builder {
 }
 .b-palette button.is-vieja { opacity: .82; }
 .b-palette button.is-vieja:hover { opacity: 1; }
+
+/* --------------------------------------------------------------------
+   El buscador de la paleta
+   --------------------------------------------------------------------
+   Mismo aspecto que el buscador del árbol, para que se lean como la
+   misma herramienta: uno busca entre los bloques que puedes poner y el
+   otro entre los que ya has puesto.
+   -------------------------------------------------------------------- */
+.b-pal-busca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0 12px;
+}
+.b-pal-busca input {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 6px 9px;
+}
+.b-pal-cuenta { font-size: 11px; opacity: .65; white-space: nowrap; }
+.b-palette button[hidden] { display: none; }

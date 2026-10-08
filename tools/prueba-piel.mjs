@@ -294,6 +294,89 @@ ok(barra === 'rgb(35, 26, 20)', `la barra del constructor va con el tema de fáb
 const sinGrisFijo = readFileSync(`${ROOT}/krg-cms/admin/assets/css/builder.css`, 'utf8');
 ok(!/#eee\b|#fcfcfc|#fafafa/.test(sinGrisFijo), 'y en builder.css no quedan grises escritos a mano que ignoren el tema');
 
+console.log('\nPRUEBA 9 — la barra de arriba, en una sola fila y por grupos');
+
+const fila = await cons.evaluate(() => {
+  const top = document.querySelector('.b-top');
+  const hijos = [...top.children].filter((e) => e.offsetParent !== null && e.getBoundingClientRect().width > 0);
+  const filas = new Set(hijos.map((e) => {
+    const r = e.getBoundingClientRect();
+    return Math.round((r.top + r.bottom) / 2 / 20);
+  }));
+  const solidos = [...top.querySelectorAll('.m-btn:not(.ghost)')].map((b) => b.id || b.textContent.trim());
+  const iconos = [...top.querySelectorAll('.b-ico')];
+  return {
+    alto: Math.round(top.getBoundingClientRect().height),
+    filas: filas.size,
+    solidos,
+    iconos: iconos.length,
+    sinRotulo: iconos.filter((b) => !b.getAttribute('aria-label')).length,
+    grupos: top.querySelectorAll('.b-grupo').length,
+    acciones: [...top.querySelectorAll('.b-acciones .m-btn')].map((b) => b.id),
+    pulsado: [...top.querySelectorAll('.b-bp [data-bp]')].filter((b) => b.getAttribute('aria-pressed') === 'true').map((b) => b.dataset.bp),
+  };
+});
+if (process.env.KRG_DEBUG) {
+  console.log(await cons.evaluate(() => [...document.querySelector('.b-top').children]
+    .map((e) => `${e.className || e.tagName} ${Math.round(e.getBoundingClientRect().width)}`).join(' | ')));
+}
+ok(fila.filas === 1, `todo cabe en una fila a 1600 px (${fila.filas} fila${fila.filas === 1 ? '' : 's'})`);
+ok(fila.alto <= 60, `y la barra mide lo de una fila: ${fila.alto} px`);
+ok(fila.solidos.length === 1 && fila.solidos[0] === 'publish',
+  `sólo «Publicar» va relleno, el resto es secundario (${fila.solidos.join(', ') || 'ninguno'})`);
+ok(fila.acciones.join(',') === 'save,publish', `guardar y publicar van juntos y apartados (${fila.acciones.join(', ')})`);
+ok(fila.grupos === 2 && fila.iconos === 5, `las herramientas van en ${fila.grupos} grupos de iconos (${fila.iconos} iconos)`);
+ok(fila.sinRotulo === 0, 'y cada icono dice su nombre para quien no ve el dibujo');
+ok(fila.pulsado.join(',') === 'desktop', `el tamaño elegido se anuncia pulsado (${fila.pulsado.join(', ') || 'ninguno'})`);
+
+const mismos = await cons.evaluate(() => {
+  const ids = [...document.querySelectorAll('.b-top [id]')].map((e) => e.id);
+  return ['undo', 'redo', 'review', 'history', 'refresh', 'save', 'preview', 'publish'].filter((x) => !ids.includes(x));
+});
+ok(mismos.length === 0, `no se ha perdido ningún mando por el camino (faltan: ${mismos.join(', ') || 'ninguno'})`);
+
+console.log('\nPRUEBA 10 — el buscador de la paleta');
+
+const hayCaja = await cons.$('#b-pal-q');
+ok(!!hayCaja, 'la paleta tiene su propio buscador');
+const todos = await cons.$$eval('.b-pal-group [data-add], .b-pal-group [data-add-v2]', (b) => b.length);
+ok(todos > 50, `con más de cincuenta bloques que buscar (${todos})`);
+
+await cons.fill('#b-pal-q', 'resen');
+await cons.waitForTimeout(150);
+const busca = await cons.evaluate(() => {
+  const sin = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const vistos = [...document.querySelectorAll('.b-pal-group [data-add], .b-pal-group [data-add-v2]')]
+    .filter((b) => !b.hidden && b.offsetParent !== null);
+  return {
+    cuantos: vistos.length,
+    todosCasan: vistos.every((b) => sin(`${b.textContent} ${b.title || ''}`).includes('resen')),
+    gruposVistos: [...document.querySelectorAll('.b-pal-group')].filter((g) => !g.hidden).length,
+    cuenta: (document.querySelector('#b-pal-cuenta') || {}).textContent || '',
+  };
+});
+ok(busca.cuantos > 0 && busca.todosCasan,
+  `al escribir «resen» sólo quedan los que casan (${busca.cuantos})`);
+ok(busca.gruposVistos >= 1 && busca.gruposVistos < 4, `y los grupos sin aciertos se van (quedan ${busca.gruposVistos})`);
+ok(/\d+ bloque/.test(busca.cuenta), `con la cuenta a la vista: «${busca.cuenta}»`);
+
+await cons.fill('#b-pal-q', 'zzzzz');
+await cons.waitForTimeout(150);
+const vacio = await cons.evaluate(() => ({
+  vistos: [...document.querySelectorAll('.b-pal-group [data-add], .b-pal-group [data-add-v2]')].filter((b) => !b.hidden && b.offsetParent !== null).length,
+  cuenta: (document.querySelector('#b-pal-cuenta') || {}).textContent || '',
+}));
+ok(vacio.vistos === 0 && /ninguno/i.test(vacio.cuenta), `si no hay nada, lo dice: «${vacio.cuenta}»`);
+
+await cons.fill('#b-pal-q', '');
+await cons.waitForTimeout(150);
+const vuelto = await cons.evaluate(() => ({
+  vistos: [...document.querySelectorAll('.b-pal-group [data-add], .b-pal-group [data-add-v2]')].filter((b) => !b.hidden).length,
+  abiertos: [...document.querySelectorAll('.b-pal-group')].filter((g) => g.classList.contains('is-open')).map((g) => g.dataset.acc),
+}));
+ok(vuelto.vistos === todos, `al borrar vuelven todos (${vuelto.vistos})`);
+ok(!vuelto.abiertos.includes('pal.viejas'), `y los grupos que nacen cerrados siguen cerrados (${vuelto.abiertos.join(', ')})`);
+
 ok(sucio.length === 0, `sin errores de JavaScript${sucio.length ? ` — ${sucio[0]}` : ''}`);
 
 if (process.env.KRG_SHOT) {
@@ -307,5 +390,5 @@ if (process.env.KRG_SHOT) {
 
 await browser.close();
 console.log(`\n${hechas - fallos}/${hechas} comprobaciones correctas`);
-console.log(fallos ? 'HAY FALLOS' : 'LA PIEL DEL CMS VA EN EL PANEL');
+console.log(fallos ? 'HAY FALLOS' : 'EL PANEL REDISEÑADO VA');
 process.exit(fallos ? 1 : 0);

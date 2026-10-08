@@ -1197,34 +1197,41 @@
     root.innerHTML = `
       <div class="b-root">
         <div class="b-top">
-          <a href="${cfg.admin}?page=krg" title="Volver a KRG CMS">←</a>
-          <a href="${cfg.admin}?page=krg-pages">Páginas</a>
-          <strong class="b-pagetitle">${esc(state.doc.title)}</strong>
-          <div class="b-bp">
-            <button type="button" data-bp="desktop" class="${state.bp === "desktop" ? "is-on" : ""}">Desktop</button>
-            <button type="button" data-bp="tablet" class="${state.bp === "tablet" ? "is-on" : ""}">Tablet</button>
-            <button type="button" data-bp="mobile" class="${state.bp === "mobile" ? "is-on" : ""}">Mobile</button>
+          <div class="b-top-ident">
+            <a class="b-volver" href="${cfg.admin}?page=krg-pages" title="Volver a Páginas" aria-label="Volver a Páginas">${KrgIco.atras}</a>
+            <strong class="b-pagetitle" title="${esc(state.doc.title)}">${esc(state.doc.title)}</strong>
+          </div>
+          <div class="b-bp" role="group" aria-label="Tamaño de pantalla">
+            <button type="button" data-bp="desktop" class="${state.bp === "desktop" ? "is-on" : ""}" aria-pressed="${state.bp === "desktop"}">${KrgIco.escritorio}<span>Escritorio</span></button>
+            <button type="button" data-bp="tablet" class="${state.bp === "tablet" ? "is-on" : ""}" aria-pressed="${state.bp === "tablet"}">${KrgIco.tableta}<span>Tableta</span></button>
+            <button type="button" data-bp="mobile" class="${state.bp === "mobile" ? "is-on" : ""}" aria-pressed="${state.bp === "mobile"}">${KrgIco.movil}<span>Móvil</span></button>
           </div>
           <div class="b-device">
-            <input type="number" data-view-w min="320" max="2560" value="${state.viewW}" title="Ancho">
+            <input type="number" data-view-w min="320" max="2560" value="${state.viewW}" title="Ancho" aria-label="Ancho del lienzo">
             <span>×</span>
-            <input type="number" data-view-h min="400" max="2400" value="${state.viewH}" title="Alto">
-            <label class="b-fit"><input type="checkbox" data-fit> Ajustar</label>
+            <input type="number" data-view-h min="400" max="2400" value="${state.viewH}" title="Alto" aria-label="Alto del lienzo">
+            <label class="b-fit" title="Encajar el lienzo en la pantalla"><input type="checkbox" data-fit> Ajustar</label>
           </div>
           <span class="b-bp-label"></span>
           <span class="grow"></span>
-          <button class="m-btn ghost" id="undo" title="Ctrl+Z">Deshacer</button>
-          <button class="m-btn ghost" id="redo" title="Ctrl+Y">Rehacer</button>
-          <button class="m-btn ghost" data-panel="left" title="Esconder o enseñar la estructura">Estructura</button>
-          <button class="m-btn ghost" data-panel="right" title="Esconder o enseñar los ajustes">Ajustes</button>
-          <button class="m-btn ghost" id="review" title="Repasa la página antes de publicarla">Revisar</button>
-          <button class="m-btn ghost" id="history">Historial</button>
           <span class="b-status">${esc(state.save)}</span>
           <span class="b-warn" hidden></span>
-          <button class="m-btn ghost" id="refresh" title="Vuelve a cargar la vista del lienzo">Actualizar vista</button>
-          <button class="m-btn ghost" id="save" title="Ctrl+S">Guardar</button>
-          <button class="m-btn ghost" id="preview">Preview</button>
-          <button class="m-btn" id="publish">Publicar</button>
+          <div class="b-grupo" role="group" aria-label="Deshacer y rehacer">
+            <button class="b-ico" id="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">${KrgIco.deshacer}</button>
+            <button class="b-ico" id="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">${KrgIco.rehacer}</button>
+          </div>
+          <div class="b-grupo" role="group" aria-label="Paneles">
+            <button class="b-ico" data-panel="left" title="Esconder o enseñar la estructura" aria-label="Estructura">${KrgIco.estructura}</button>
+            <button class="b-ico" data-panel="right" title="Esconder o enseñar los ajustes" aria-label="Ajustes">${KrgIco.ajustes}</button>
+            <button class="b-ico" id="refresh" title="Vuelve a cargar la vista del lienzo" aria-label="Actualizar vista">${KrgIco.refrescar}</button>
+          </div>
+          <button class="m-btn ghost" id="review" title="Repasa la página antes de publicarla">Revisar</button>
+          <button class="m-btn ghost" id="history">Historial</button>
+          <button class="m-btn ghost" id="preview" title="Abrir la página en otra pestaña">Vista previa</button>
+          <div class="b-acciones">
+            <button class="m-btn ghost" id="save" title="Ctrl+S">Guardar</button>
+            <button class="m-btn" id="publish">Publicar</button>
+          </div>
         </div>
         <div class="b-layout">
           <aside class="b-left"></aside>

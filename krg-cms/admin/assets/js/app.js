@@ -37,6 +37,33 @@
   };
   window.MApi = api;
 
+  /**
+   * Los iconos del panel.
+   *
+   * Dibujados a mano, de trazo, sobre una rejilla de 16 y heredando el
+   * color del texto: así siguen al tema sin que nadie los repinte. Van
+   * aquí porque los usan `builder.js` y `chrome.js`, que cuelgan de este
+   * archivo. Cada icono es decorativo: quien lo pone al lado de un botón
+   * sin texto tiene que escribir el `aria-label`.
+   */
+  const svg = (d, extra = "") =>
+    `<svg class="b-svg" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${d}${extra}</svg>`;
+  window.KrgIco = {
+    atras: svg('<path d="M10 3 5 8l5 5"/>'),
+    escritorio: svg('<rect x="1.5" y="2.5" width="13" height="9" rx="1.2"/><path d="M5.5 14h5"/>'),
+    tableta: svg('<rect x="3.5" y="1.5" width="9" height="13" rx="1.2"/><path d="M7.5 12.5h1"/>'),
+    movil: svg('<rect x="5" y="1.5" width="6" height="13" rx="1.2"/><path d="M7.5 12.8h1"/>'),
+    deshacer: svg('<path d="M6 4.5 3 7.5l3 3"/><path d="M3 7.5h6.2A3.3 3.3 0 0 1 12.5 11v.5"/>'),
+    rehacer: svg('<path d="M10 4.5l3 3-3 3"/><path d="M13 7.5H6.8A3.3 3.3 0 0 0 3.5 11v.5"/>'),
+    /* El árbol de la página (lista con sangría) y los ajustes (mandos
+       deslizantes): dos dibujos que no se confunden de lejos. Con dos
+       rectángulos cada uno, a 16 px parecían el mismo icono. */
+    estructura: svg('<path d="M2 3.5h12"/><path d="M5 7.5h9"/><path d="M5 11.5h9"/><path d="M2.5 7.5v4"/>'),
+    ajustes: svg('<path d="M2 5h8"/><path d="M12.5 5h1.5"/><circle cx="11.2" cy="5" r="1.5"/><path d="M2 11h2"/><path d="M6.5 11h7.5"/><circle cx="5.2" cy="11" r="1.5"/>'),
+    refrescar: svg('<path d="M13 8a5 5 0 1 1-1.6-3.7"/><path d="M13.2 2.5v3h-3"/>'),
+    buscar: svg('<circle cx="7" cy="7" r="4.2"/><path d="m10.2 10.2 3.3 3.3"/>'),
+  };
+
   const uiEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   window.KrgUi = {
     tokens: { color: {}, font: {}, typography: {} },

@@ -447,12 +447,14 @@ ok(editor.oculto, 'el recuadro de HTML queda detrás de la pestaña «HTML»');
 
 console.log('\nPRUEBA 13 — la barra de arriba y los paneles, como en páginas');
 const barra = await page.evaluate(() => ({
-  botones: [...document.querySelectorAll('.b-top button, .b-top a')].map((b) => b.textContent.trim()),
+  // Los mandos de icono dicen su nombre en `aria-label`, no en el texto.
+  botones: [...document.querySelectorAll('.b-top button, .b-top a')]
+    .map((b) => (b.textContent.trim() || b.getAttribute('aria-label') || '').trim()),
   etiqueta: document.querySelector('.b-bp-label')?.textContent.trim(),
   tiradores: document.querySelectorAll('.b-layout .b-split').length,
   railes: document.querySelectorAll('.b-layout .b-show').length,
 }));
-const faltanBotones = ['Deshacer', 'Rehacer', 'Estructura', 'Ajustes', 'Historial', 'Actualizar vista', 'Preview', 'Guardar']
+const faltanBotones = ['Deshacer', 'Rehacer', 'Estructura', 'Ajustes', 'Historial', 'Actualizar vista', 'Vista previa', 'Guardar']
   .filter((t) => !barra.botones.includes(t));
 ok(faltanBotones.length === 0, `están los mismos botones (faltan: ${faltanBotones.join(', ') || 'ninguno'})`);
 ok(/\d+ × \d+/.test(barra.etiqueta || ''), `y la medida del lienzo a la vista: ${barra.etiqueta}`);
