@@ -257,6 +257,19 @@ comprueba( 'Tu logo aquí' === ( Menus::header()['logoText'] ?? '' ),
 	'una cabecera guardada antes de que esto existiera también lo recibe' );
 update_option( MERIDIAN_OPTION_HEADER, Menus::default_header(), false );
 
+/* Nada de fábrica publica un nombre que no sea del dueño del sitio: ni
+ * el del WordPress, ni el de este CMS, ni uno inventado en una demo.
+ * El pie los imprimía los tres. */
+$pie_guardado = Menus::save_footer( $pie_def );
+foreach ( [ 'logoText', 'text', 'copyright' ] as $campo ) {
+	$valor = (string) ( $pie_guardado[ $campo ] ?? '' );
+	comprueba(
+		! preg_match( '/KRG|Novamix|Sitio de prueba/i', $valor ),
+		"el pie no publica ningún nombre ajeno en «{$campo}» («{$valor}»)"
+	);
+}
+comprueba( str_contains( (string) $pie_guardado['copyright'], gmdate( 'Y' ) ), 'el copyright sí lleva el año' );
+
 $clasico = Menus::classic_section( array_merge( $pie_def, [ 'logoText' => 'Casa Mar' ] ) );
 $json_clasico = wp_json_encode( $clasico );
 comprueba( str_contains( (string) $json_clasico, 'Casa Mar' ), 'el pie clásico monta el rótulo de la marca' );

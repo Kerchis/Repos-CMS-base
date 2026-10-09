@@ -549,8 +549,18 @@ class Menus {
 		return [
 			'logoId'     => 0,
 			'logoText'   => __( 'Tu logo aquí', 'meridian' ),
-			'text'       => __( 'Plataforma CMS y constructor visual.', 'meridian' ),
-			'copyright'  => '© ' . gmdate( 'Y' ) . ' KRG CMS',
+			/*
+			 * Lo de fábrica son marcadores, no contenido.
+			 *
+			 * Aquí había una frase que describía este CMS y un copyright a
+			 * nombre de este CMS, y los dos se imprimían en el pie de la web
+			 * del cliente: el visitante leía el nombre de la herramienta con
+			 * la que está hecho el sitio en vez del nombre del negocio. Un
+			 * marcador dice lo que hay que escribir ahí y no se publica a
+			 * nombre de nadie.
+			 */
+			'text'       => __( 'Una línea sobre tu negocio.', 'meridian' ),
+			'copyright'  => '© ' . gmdate( 'Y' ) . ' ' . __( 'Tu marca', 'meridian' ),
 			'copyrightUrl'    => '',
 			'copyrightNewTab' => false,
 			'copyrightFont'   => '',

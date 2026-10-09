@@ -14,7 +14,7 @@ Eres un agente que **implementa un tema WordPress completo** llamado **KRG CMS**
 
 Versión del producto a alcanzar: **1.13.16**. PHP 8.1+, WordPress 6.4+. Entrega: carpeta de tema `krg-cms/` lista para `wp-content/themes/krg-cms/`.
 
-Si un archivo de referencia del usuario tiene un componente/bloque **igual** a uno del catálogo de abajo, **no dupliques el slug**. Mapea al componente CMS. Si hace falta variante de marca: slug `{marca}-{rol}` y etiqueta «Hero Novamix», nunca el mismo nombre en la paleta.
+Si un archivo de referencia del usuario tiene un componente/bloque **igual** a uno del catálogo de abajo, **no dupliques el slug**. Mapea al componente CMS. Si hace falta variante de marca: slug `{marca}-{rol}` y etiqueta «Hero de la marca», nunca el mismo nombre en la paleta.
 
 ## Prohibido
 

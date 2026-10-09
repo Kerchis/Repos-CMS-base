@@ -2074,8 +2074,10 @@
         setPresetUI(slug);
         markPresetDirty(true);
         pintarPrevia();
-        const label = slug === "marca" ? "Marca Novamix" : (preset.name || "Preset");
-        toast(label + " aplicada. Pulsa «Guardar cambios» para publicarla.");
+        // El nombre lo pone la propia paleta, no una excepción escrita
+        // aquí: cualquier paleta nueva se anuncia sola y ningún nombre
+        // inventado se cuela en el panel.
+        toast((preset.name || slug || "La paleta") + " aplicada. Pulsa «Guardar cambios» para publicarla.");
       });
     });
     const picker = (btnId, inputName, title) => {
