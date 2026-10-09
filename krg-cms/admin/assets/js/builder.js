@@ -597,32 +597,32 @@
     const pages = state.pages.filter((p) => p.id !== id);
     return `
       <label>Nombre <input data-page="title" value="${esc(state.doc.title || "")}"></label>
-      <label>Slug <input data-page="slug" value="${esc(state.doc.slug || "")}"></label>
-      <label>Página padre <select data-page-num="parentId">
+      <label>Dirección en la web (slug) <input data-page="slug" value="${esc(state.doc.slug || "")}"></label>
+      <label>Cuelga de esta página <select data-page-num="parentId">
         <option value="0">— Ninguna —</option>
         ${pages.map((p) => `<option value="${p.id}" ${Number(state.doc.parentId) === p.id ? "selected" : ""}>${esc(p.title)}</option>`).join("")}
       </select></label>
-      <label>Mostrar header <input type="checkbox" data-set="showHeader" ${state.doc.settings?.showHeader !== false ? "checked" : ""}></label>
-      <label>Menú del header
+      <label>Enseñar la cabecera <input type="checkbox" data-set="showHeader" ${state.doc.settings?.showHeader !== false ? "checked" : ""}></label>
+      <label>Menú de la cabecera
         <select data-set-str="headerMenu">
           <option value="">El menú por defecto (constructor visual)</option>
           ${(state.menus || []).map((m) => `<option value="${esc(m.slug)}" ${(state.doc.settings?.headerMenu || "") === m.slug ? "selected" : ""}>${esc(m.name || m.slug)}</option>`).join("")}
         </select>
       </label>
-      <label>Mostrar footer <input type="checkbox" data-set="showFooter" ${state.doc.settings?.showFooter !== false ? "checked" : ""}></label>
-      <label>Título SEO <input data-seo="title" value="${esc(state.doc.seo?.title || "")}"></label>
-      <label>Meta description <textarea data-seo="description">${esc(state.doc.seo?.description || "")}</textarea></label>
-      <label>Canonical <input data-seo="canonical" value="${esc(state.doc.seo?.canonical || "")}"></label>
-      <label>Título Open Graph <input data-seo="ogTitle" value="${esc(state.doc.seo?.ogTitle || "")}"></label>
-      <label>Descripción Open Graph <textarea data-seo="ogDescription">${esc(state.doc.seo?.ogDescription || "")}</textarea></label>
-      <label>Robots
+      <label>Enseñar el pie <input type="checkbox" data-set="showFooter" ${state.doc.settings?.showFooter !== false ? "checked" : ""}></label>
+      <label>Título en Google <input data-seo="title" value="${esc(state.doc.seo?.title || "")}"></label>
+      <label>Descripción en Google <textarea data-seo="description">${esc(state.doc.seo?.description || "")}</textarea></label>
+      <label>Dirección canónica <input data-seo="canonical" value="${esc(state.doc.seo?.canonical || "")}"></label>
+      <label>Título al compartir en redes <input data-seo="ogTitle" value="${esc(state.doc.seo?.ogTitle || "")}"></label>
+      <label>Descripción al compartir en redes <textarea data-seo="ogDescription">${esc(state.doc.seo?.ogDescription || "")}</textarea></label>
+      <label>Qué pueden hacer los buscadores
         <select data-seo="robots">
           ${["index,follow","noindex,follow","index,nofollow","noindex,nofollow"].map((o) =>
             `<option value="${o}" ${(state.doc.seo?.robots || "index,follow") === o ? "selected" : ""}>${o}</option>`
           ).join("")}
         </select>
       </label>
-      <label>Imagen Open Graph (ID) <input data-seo="ogImageId" type="number" value="${state.doc.seo?.ogImageId || 0}">
+      <label>Imagen al compartir en redes (ID) <input data-seo="ogImageId" type="number" value="${state.doc.seo?.ogImageId || 0}">
         <button type="button" class="m-btn ghost" data-seo-media="ogImageId">Elegir imagen OG</button></label>
     `;
   }

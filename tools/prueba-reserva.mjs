@@ -201,8 +201,12 @@ ok(await page.isVisible('[data-bk-resumen]'), 'y se ve');
 console.log('\nPRUEBA 4 — cambiar de día no deja una hora colgada');
 // Un día con cena (jueves, viernes o sábado) y otro en el que sólo hay
 // comida: la hora de la cena no puede sobrevivir al salto.
-const diaCena = dias.find((f) => [4, 5, 6].includes(new Date(`${f}T12:00:00`).getDay()));
-const diaComida = dias.find((f) => [2, 3, 0].includes(new Date(`${f}T12:00:00`).getDay()));
+// Hoy no juega: a partir de las diez de la noche su turno de cena ya ha
+// pasado y «22:00» deja de ofrecerse, así que el banco fallaba según la
+// hora a la que se lanzara. Se busca desde mañana.
+const otrosDias = dias.slice(1);
+const diaCena = otrosDias.find((f) => [4, 5, 6].includes(new Date(`${f}T12:00:00`).getDay()));
+const diaComida = otrosDias.find((f) => [2, 3, 0].includes(new Date(`${f}T12:00:00`).getDay()));
 await page.click(`.m-bk-dia[data-f="${diaCena}"]`);
 await page.click('.m-bk-hora[data-h="22:00"]');
 ok(await page.$eval('input[name=hora]', (i) => i.value) === '22:00', 'se pide una mesa para la cena');

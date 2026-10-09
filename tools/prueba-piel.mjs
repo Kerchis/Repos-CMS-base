@@ -184,6 +184,51 @@ ok(nombres.cuantas > 10, `hay filas de tokens que nombrar (${nombres.cuantas})`)
 ok(nombres.conNombre === nombres.cuantas, `todas dicen su nombre en palabras (${nombres.conNombre}/${nombres.cuantas})`);
 ok(/page-max-width/.test(nombres.ejemplo), `y debajo el técnico: «${nombres.ejemplo}»`);
 
+console.log('\nPRUEBA 1 ter — el pulido: iconos, avisos, vacíos y un solo compás');
+
+const barraLateral = await page.evaluate(() => {
+  const enlaces = [...document.querySelectorAll('.m-aside nav a')];
+  return {
+    cuantos: enlaces.length,
+    sinIcono: enlaces.filter((a) => !a.querySelector('.m-nav-i svg')).map((a) => a.textContent.trim()),
+    conRotulo: enlaces.every((a) => a.textContent.trim().length > 2),
+    ingles: enlaces.map((a) => a.textContent.trim()).filter((t) => /header|footer|preset|token|layout|breakpoint|slug/i.test(t)),
+  };
+});
+ok(barraLateral.cuantos >= 10, `la barra lateral tiene sus entradas (${barraLateral.cuantos})`);
+ok(barraLateral.sinIcono.length === 0, `todas con icono (sin él: ${barraLateral.sinIcono.join(', ') || 'ninguna'})`);
+ok(barraLateral.conRotulo, 'y ninguna se queda sólo con el dibujo');
+ok(barraLateral.ingles.length === 0, `sin inglés por el camino (${barraLateral.ingles.join(', ') || 'ninguno'})`);
+
+const compas = await page.evaluate(() => {
+  const raiz = getComputedStyle(document.documentElement);
+  const btn = getComputedStyle(document.querySelector('.m-btn'));
+  return {
+    token: raiz.getPropertyValue('--m-fast').trim(),
+    boton: btn.transitionDuration,
+  };
+});
+ok(/^150ms/.test(compas.token), `el compás del panel es de 150 ms (${compas.token})`);
+ok(compas.boton.split(',').every((d) => d.trim() === '0.15s'), `y los botones lo respetan (${compas.boton})`);
+
+const avisos = await page.evaluate(async () => {
+  const hechos = [];
+  document.querySelectorAll('.m-toast').forEach((t) => t.remove());
+  window.__toast = null;
+  // Se dispara un aviso de fallo de verdad: guardar una paleta sin nombre.
+  const b = document.querySelector('#new-preset');
+  if (b) b.click();
+  await new Promise((r) => setTimeout(r, 200));
+  document.querySelectorAll('.m-toast').forEach((t) => hechos.push({
+    clase: t.className, papel: t.getAttribute('role'), icono: !!t.querySelector('.m-toast-i'), texto: t.textContent.trim(),
+  }));
+  return hechos;
+});
+ok(avisos.length > 0, `los avisos salen (${avisos.length})`);
+ok(avisos.every((a) => a.icono), 'con su marca delante');
+ok(avisos.some((a) => /is-(mal|bien|info)/.test(a.clase)), `y con sabor: ${avisos.map((a) => a.clase.replace('m-toast ', '')).join(', ')}`);
+ok(avisos.every((a) => a.papel === 'alert' || a.papel === 'status'), 'anunciados para quien escucha la pantalla');
+
 console.log('\nPRUEBA 2 — quien no administra no lo ve');
 
 const page2 = await browser.newPage({ viewport: { width: 1440, height: 900 } });

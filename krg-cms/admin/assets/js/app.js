@@ -81,6 +81,18 @@
     ojo: svg('<path d="M1.6 8S3.9 3.8 8 3.8 14.4 8 14.4 8 12.1 12.2 8 12.2 1.6 8 1.6 8z"/><circle cx="8" cy="8" r="1.9"/>'),
     forma: svg('<rect x="2.2" y="2.6" width="11.6" height="10.8" rx="1.4"/><path d="M4.8 6.2h6.4"/><path d="M4.8 9h3.6"/>'),
     pagina: svg('<path d="M3.4 1.8h5.4l3.8 3.8v8.6H3.4z"/><path d="M8.8 1.8v3.8h3.8"/>'),
+    /* Los de la barra lateral. */
+    casa: svg('<path d="m2.2 7.4 5.8-4.8 5.8 4.8"/><path d="M4 8.6v5h8v-5"/>'),
+    blog: svg('<path d="M2.4 3.2h11.2v7.4H8.6L5.4 13v-2.4H2.4z"/>'),
+    reserva: svg('<rect x="2.2" y="3" width="11.6" height="10.6" rx="1.3"/><path d="M2.2 6.3h11.6"/><path d="M5.4 1.8v2.4"/><path d="M10.6 1.8v2.4"/>'),
+    plantilla: svg('<rect x="4.2" y="1.8" width="9.6" height="9.6" rx="1.3"/><path d="M11 14.2H3.5a1.3 1.3 0 0 1-1.3-1.3V5.2"/>'),
+    global: svg('<circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4"/><path d="M8 1.8a9.6 9.6 0 0 1 0 12.4A9.6 9.6 0 0 1 8 1.8z"/>'),
+    mapa: svg('<path d="M2.2 4.2 6 2.8l4 1.4 3.8-1.4v9l-3.8 1.4-4-1.4-3.8 1.4z"/><path d="M6 2.8v9.4"/><path d="M10 4.2v9.4"/>'),
+    cabecera: svg('<rect x="1.8" y="2.6" width="12.4" height="10.8" rx="1.3"/><path d="M1.8 6h12.4"/>'),
+    grafico: svg('<path d="M2.4 13.2h11.2"/><path d="M4.6 13.2V8"/><path d="M8 13.2V3.4"/><path d="M11.4 13.2V6.4"/>'),
+    persona: svg('<circle cx="8" cy="5.6" r="2.8"/><path d="M2.8 13.6a5.2 5.2 0 0 1 10.4 0"/>'),
+    caja: svg('<path d="M2.2 5.2 8 2.4l5.8 2.8v5.6L8 13.6l-5.8-2.8z"/><path d="M2.2 5.2 8 8l5.8-2.8"/><path d="M8 8v5.6"/>'),
+    salir: svg('<path d="M9.4 2.6h3.4a1 1 0 0 1 1 1v8.8a1 1 0 0 1-1 1H9.4"/><path d="M6.6 10.6 9.6 8 6.6 5.4"/><path d="M9.6 8H2.4"/>'),
   };
 
   const uiEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -279,13 +291,46 @@
   const el = document.getElementById("krg-admin");
   if (!el) return;
 
-  const toast = (t) => {
+  /**
+   * El aviso de abajo a la derecha.
+   *
+   * Tres sabores: bien, mal y a secas. El de «mal» se queda más tiempo
+   * —cuatro segundos y medio— porque suele traer una instrucción, y se
+   * anuncia como alerta para que un lector de pantalla lo lea en el
+   * momento; los otros, como estado, sin interrumpir.
+   *
+   * Cuando no se dice el sabor se adivina por el texto: casi todas las
+   * llamadas que ya había avisan de un fallo con las mismas palabras.
+   */
+  const toast = (t, tipo) => {
+    const texto = String(t ?? "");
+    const clase = tipo || (/\b(no se pudo|no se ha podido|error|falló|fallo|no hay|inválid)/i.test(texto) ? "mal" : "info");
     const n = document.createElement("div");
-    n.className = "m-toast";
-    n.textContent = t;
+    n.className = "m-toast is-" + clase;
+    n.setAttribute("role", clase === "mal" ? "alert" : "status");
+    n.innerHTML = `<span class="m-toast-i" aria-hidden="true">${
+      clase === "bien" ? "✓" : clase === "mal" ? "!" : "·"
+    }</span><span class="m-toast-t"></span>`;
+    n.querySelector(".m-toast-t").textContent = texto;
     document.body.appendChild(n);
-    setTimeout(() => n.remove(), 2400);
+    setTimeout(() => n.remove(), clase === "mal" ? 4500 : 2600);
   };
+
+  /**
+   * Una lista vacía.
+   *
+   * Una tabla sin filas —o peor, una celda que pone «No hay nada»— deja
+   * al usuario sin saber si la pantalla se ha roto, si está cargando o
+   * si es que de verdad no hay nada. Esto dice las tres cosas: qué
+   * falta, por qué puede faltar y dónde se empieza.
+   */
+  const vacio = (icono, titulo, texto, accion) => `
+    <div class="m-vacio">
+      <span class="m-vacio-i" aria-hidden="true">${(window.KrgIco || {})[icono] || ""}</span>
+      <strong>${titulo}</strong>
+      <p class="m-muted">${texto}</p>
+      ${accion || ""}
+    </div>`;
 
   const h = (strings, ...vals) => {
     // not tagged; we use html() below
@@ -294,35 +339,48 @@
   // «1 página» / «3 páginas», sin el «(s)» de los formularios feos.
   const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 
+  /**
+   * Una entrada de la barra lateral.
+   *
+   * El icono es decorativo —el rótulo siempre está— pero hace que la
+   * lista se recorra con la vista en vez de leyéndola entera, que con
+   * dieciséis entradas es lo que pasaba.
+   */
+  const navItem = (icono, rotulo, href, activo, extra) =>
+    `<a class="${activo ? "is-active" : ""}" href="${href}"${extra || ""}>
+      <span class="m-nav-i" aria-hidden="true">${(window.KrgIco || {})[icono] || ""}</span>
+      <span>${rotulo}</span>
+    </a>`;
+
   const nav = (active) => `
     <aside class="m-aside">
       <div class="m-aside-head">
-        <a class="m-back-wp" href="${cfg.wpAdmin || "/wp-admin/"}" title="Volver a WordPress">←</a>
+        <a class="m-back-wp" href="${cfg.wpAdmin || "/wp-admin/"}" title="Volver a WordPress" aria-label="Volver a WordPress">←</a>
         <a class="m-brand" href="${cfg.admin}?page=krg">KRG <small>CMS</small></a>
       </div>
       <nav>
         <div class="grp">Contenido</div>
         ${cfg.canEditPages !== false ? `
-        <a class="${active==="home"?"is-active":""}" href="${cfg.admin}?page=krg">Inicio</a>
-        ${cfg.canManage ? `<a class="${active==="onboard"?"is-active":""}" href="${cfg.admin}?page=krg&view=onboard">Asistente de identidad</a>` : ""}
-        <a class="${active==="pages"?"is-active":""}" href="${cfg.admin}?page=krg-pages">Páginas</a>` : ""}
-        <a class="${active==="blog"?"is-active":""}" href="${cfg.admin}?page=krg-blog">Blog</a>
-        <a class="${active==="reservas"?"is-active":""}" href="${cfg.admin}?page=krg-reservas">Reservas</a>
+        ${navItem("casa", "Inicio", `${cfg.admin}?page=krg`, active === "home")}
+        ${cfg.canManage ? navItem("gota", "Asistente de identidad", `${cfg.admin}?page=krg&view=onboard`, active === "onboard") : ""}
+        ${navItem("pagina", "Páginas", `${cfg.admin}?page=krg-pages`, active === "pages")}` : ""}
+        ${navItem("blog", "Blog", `${cfg.admin}?page=krg-blog`, active === "blog")}
+        ${navItem("reserva", "Reservas", `${cfg.admin}?page=krg-reservas`, active === "reservas")}
         ${cfg.canEditPages !== false ? `
-        <a class="${active==="templates"?"is-active":""}" href="${cfg.admin}?page=krg-pages&view=templates">Plantillas</a>
-        <a class="${active==="globals"?"is-active":""}" href="${cfg.admin}?page=krg-pages&view=globals">Componentes globales</a>
-        <a class="${active==="buscar"?"is-active":""}" href="${cfg.admin}?page=krg-buscar">Buscar y reemplazar</a>` : ""}
+        ${navItem("plantilla", "Plantillas", `${cfg.admin}?page=krg-pages&view=templates`, active === "templates")}
+        ${navItem("global", "Componentes globales", `${cfg.admin}?page=krg-pages&view=globals`, active === "globals")}
+        ${navItem("buscar", "Buscar y reemplazar", `${cfg.admin}?page=krg-buscar`, active === "buscar")}` : ""}
         ${cfg.canManage ? `
         <div class="grp">Apariencia</div>
-        <a class="${active==="design"?"is-active":""}" href="${cfg.admin}?page=krg-design">Identidad y tokens</a>
-        <a class="${active==="nav"?"is-active":""}" href="${cfg.admin}?page=krg-nav">Navegación</a>
-        <a href="${cfg.admin}?page=krg-builder&chrome=header">Header / Footer visual</a>
+        ${navItem("tipo", "Identidad y diseño", `${cfg.admin}?page=krg-design`, active === "design")}
+        ${navItem("mapa", "Navegación", `${cfg.admin}?page=krg-nav`, active === "nav")}
+        ${navItem("cabecera", "Cabecera y pie", `${cfg.admin}?page=krg-builder&chrome=header`, false)}
         <div class="grp">Sistema</div>
-        <a class="${active==="seo"?"is-active":""}" href="${cfg.admin}?page=krg-seo">SEO</a>
-        <a class="${active==="users"?"is-active":""}" href="${cfg.admin}?page=krg-users">Usuarios</a>
-        <a class="${active==="kit"?"is-active":""}" href="${cfg.admin}?page=krg-kit">Exportar e importar</a>
-        <a class="${active==="settings"?"is-active":""}" href="${cfg.admin}?page=krg-settings">Configuración</a>` : ""}
-        <a href="${cfg.home}" target="_blank" rel="noopener">Ver sitio</a>
+        ${navItem("grafico", "SEO", `${cfg.admin}?page=krg-seo`, active === "seo")}
+        ${navItem("persona", "Usuarios", `${cfg.admin}?page=krg-users`, active === "users")}
+        ${navItem("caja", "Exportar e importar", `${cfg.admin}?page=krg-kit`, active === "kit")}
+        ${navItem("ajustes", "Configuración", `${cfg.admin}?page=krg-settings`, active === "settings")}` : ""}
+        ${navItem("salir", "Ver sitio", cfg.home, false, ' target="_blank" rel="noopener"')}
       </nav>
     </aside>`;
 
@@ -429,7 +487,7 @@
       <div class="m-cards">
         <a class="m-kpi" href="${cfg.admin}?page=krg&view=onboard" style="text-decoration:none;color:inherit"><span>Marca</span><b style="font-size:18px">Asistente</b></a>
         <a class="m-kpi" href="${cfg.admin}?page=krg-builder&chrome=header" style="text-decoration:none;color:inherit"><span>Chrome</span><b style="font-size:18px">Header / Footer</b></a>
-        <a class="m-kpi" href="${cfg.admin}?page=krg-design" style="text-decoration:none;color:inherit"><span>Tokens</span><b style="font-size:18px">Apariencia</b></a>
+        <a class="m-kpi" href="${cfg.admin}?page=krg-design" style="text-decoration:none;color:inherit"><span>Diseño</span><b style="font-size:18px">Apariencia</b></a>
       </div>
       <div class="m-panel" style="padding:16px 20px">
         <h3>Páginas recientes</h3>
@@ -642,8 +700,11 @@
         </div>
         <p class="m-muted">${front ? `Ahora mismo la portada es «${esc(front.title)}».` : "Ahora mismo no hay una página de inicio: se muestran las entradas."}</p>
       </div>
-      <div class="m-table"><table>
-        <thead><tr><th>Título</th><th>Slug</th><th>Estado</th><th>Visibilidad</th><th>Portada</th><th></th></tr></thead>
+      ${list.length ? "" : vacio("pagina", "Todavía no hay ninguna página",
+        "Una página es cada dirección de tu web: la portada, «Nosotros», «Contacto»… Se montan con bloques y se pueden empezar desde una plantilla ya hecha.",
+        `<a class="m-btn" href="${cfg.admin}?page=krg-pages&view=new">Crear la primera página</a>`)}
+      <div class="m-table"${list.length ? "" : " hidden"}><table>
+        <thead><tr><th>Título</th><th>Dirección</th><th>Estado</th><th>Quién la ve</th><th>Portada</th><th></th></tr></thead>
         <tbody>
           ${list.map((p) => `<tr data-row="${p.id}">
             <td><a href="${cfg.admin}?page=krg-builder&id=${p.id}">${esc(p.title)}</a>
@@ -745,7 +806,7 @@
       <div class="m-top"><h1>Nueva página</h1></div>
       <form class="m-form-grid" id="np">
         <label class="m-field">Nombre <input name="title" required placeholder="Página Servicios"></label>
-        <label class="m-field">Slug <input name="slug" placeholder="servicios"></label>
+        <label class="m-field">Dirección en la web (slug) <input name="slug" placeholder="servicios"></label>
         <label class="m-field">Página padre
           <select name="parentId">
             <option value="0">— Ninguna (raíz) —</option>
@@ -796,8 +857,11 @@
           <td>${(t.sections || []).length
             ? `Página entera · ${(t.sections || []).length} secciones`
             : "Una sección"}</td>
-          <td><button class="m-btn ghost" data-del="${t.id}">Eliminar</button></td></tr>`).join("") : "<tr><td>No hay plantillas todavía.</td></tr>"}
-      </tbody></table></div>`);
+          <td><button class="m-btn ghost" data-del="${t.id}">Eliminar</button></td></tr>`).join("") : ""}
+      </tbody></table></div>
+      ${list.length ? "" : vacio("plantilla", "Todavía no has guardado ninguna plantilla",
+        "Una plantilla es un trozo de página que ya tienes montado y quieres volver a usar: una sección suelta o la página entera. Se guardan desde el constructor.",
+        `<a class="m-btn" href="${cfg.admin}?page=krg-pages">Ir a las páginas</a>`)}`);
     el.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
       await api.del(`/templates/${b.dataset.del}`);
       templates();
@@ -810,8 +874,11 @@
       <div class="m-top"><h1>Componentes globales</h1></div>
       <p class="m-muted">Un global se reutiliza en varias páginas. Editarlo afecta a todas las instancias.</p>
       <div class="m-table"><table><tbody>
-        ${list.length ? list.map((t) => `<tr><td>${esc(t.name)}</td><td><button class="m-btn ghost" data-del="${t.id}">Eliminar</button></td></tr>`).join("") : "<tr><td>Ninguno todavía.</td></tr>"}
-      </tbody></table></div>`);
+        ${list.length ? list.map((t) => `<tr><td>${esc(t.name)}</td><td><button class="m-btn ghost" data-del="${t.id}">Eliminar</button></td></tr>`).join("") : ""}
+      </tbody></table></div>
+      ${list.length ? "" : vacio("global", "Todavía no hay ningún componente global",
+        "Un global es un bloque que vive en un sitio y aparece en muchas páginas: una llamada a la acción, un aviso, un pie de sección. Se crea desde el árbol del constructor, con el botón de global.",
+        `<a class="m-btn" href="${cfg.admin}?page=krg-pages">Ir a las páginas</a>`)}`);
     el.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
       await api.del(`/globals/${b.dataset.del}`);
       globals();
@@ -1098,7 +1165,7 @@
     const activeLabel = (pack.presets || []).find((p) => p.slug === activePreset)?.name || activePreset;
     const presetStatus = activePreset
       ? ("Activo: <strong>" + esc(activeLabel) + "</strong>")
-      : "Ningún preset activo (valores personalizados).";
+      : "Ninguna paleta puesta: los valores son tuyos.";
     const presetCards = (pack.presets || []).map((p) => {
       const on = activePreset === p.slug;
       const chips = (p.swatches || []).map((c) => `<i style="background:${esc(c)}"></i>`).join("");
@@ -1206,28 +1273,28 @@
         <div class="m-row">
           <span class="m-dirty" id="design-dirty" hidden>Hay cambios sin guardar</span>
           <button class="m-btn" id="save-tokens">Guardar cambios</button>
-          <button class="m-btn ghost" id="exp-tokens">Exportar tokens</button>
-          <label class="m-btn ghost">Importar tokens <input type="file" id="imp-tokens" accept="application/json" hidden></label>
+          <button class="m-btn ghost" id="exp-tokens">Exportar el diseño</button>
+          <label class="m-btn ghost">Importar un diseño <input type="file" id="imp-tokens" accept="application/json" hidden></label>
         </div>
       </div>
       <p class="m-zona">Tu web <span class="m-muted">— lo que ve quien visita el sitio que estás construyendo.</span></p>
       <div class="m-design-cols">
       <div class="m-design-main">
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
-        <h3>Presets</h3>
+        <h3>Paletas guardadas</h3>
         <p class="m-muted">El interruptor aplica la paleta al instante en esta pantalla y en la vista previa. Para publicarla en el sitio, «Guardar cambios». Solo un interruptor queda encendido.</p>
         <div class="m-presets">${presetCards}</div>
         <p class="m-preset-status">${presetStatus}</p>
         <div class="m-palette-bar">${paletteBar}</div>
         <p class="m-muted" id="preset-dirty" hidden>Has cambiado de paleta: pulsa «Guardar cambios» arriba para publicarla.</p>
         <div class="m-preset-new">
-          <h4>Crear un preset</h4>
-          <p class="m-muted">Guarda los colores y tipografías que tienes ahora mismo como un preset nuevo, para poder volver a ellos cuando quieras. Los presets que vienen con el tema no se tocan.</p>
+          <h4>Crear una paleta con lo de ahora</h4>
+          <p class="m-muted">Guarda los colores y las letras que tienes ahora mismo con un nombre, para poder volver a ellos cuando quieras. Las paletas que vienen con el tema no se tocan.</p>
           <div class="m-row">
-            <label class="m-field m-field-grow">Nombre del preset
+            <label class="m-field m-field-grow">Nombre de la paleta
               <input id="new-preset-name" placeholder="Por ejemplo: Verano 2026" maxlength="60">
             </label>
-            <button class="m-btn ghost" type="button" id="new-preset">Crear el preset</button>
+            <button class="m-btn ghost" type="button" id="new-preset">Crear la paleta</button>
           </div>
         </div>
       </div>
@@ -1256,7 +1323,7 @@
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Colores</h3>
-        <p class="m-muted">Alimentan var(--color-*). Ningún componente usa hex de marca.</p>
+        <p class="m-muted">Cada color se guarda con su nombre y lo usan todos los bloques. Ninguno lleva un color escrito a mano, así que cambiarlo aquí lo cambia en toda la web.</p>
         <div id="colors">${colorRows}</div>
         <div class="m-add-color">
           <label class="m-field m-field-grow">Añadir un color
@@ -1264,32 +1331,32 @@
           </label>
           <button type="button" class="m-btn ghost" id="add-color">Añadir</button>
         </div>
-        <p class="m-muted">Cada color queda disponible como <code>var(--color-nombre)</code> y aparece en los selectores de color de los bloques. Los del núcleo no se pueden quitar porque los usan los componentes.</p>
+        <p class="m-muted">Cada color aparece luego en los selectores de los bloques, con su nombre. Los que vienen de serie no se pueden quitar: hay bloques que cuentan con ellos.</p>
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
-        <h3>Familias tipográficas</h3>
-        <p class="m-muted">Elige la familia y su variante (Regular, Bold, Italic…). En fuentes de WordPress aparecen las caras instaladas. Luego pulsa Guardar familias.</p>
+        <h3>Tipografías</h3>
+        <p class="m-muted">Elige la letra y su variante (Regular, Negrita, Cursiva…). De las que trae WordPress aparecen las caras instaladas. Se guarda con «Guardar cambios», arriba.</p>
         ${familiasConUi(tokens.font).map(([k, v]) => fontFamilyRow(k, v, fontCatalog)).join("")}
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
-        <h3>Roles tipográficos</h3>
-        <p class="m-muted">Tamaño, peso, familia, interlineado y tracking de cada rol (títulos, párrafo, botón…).</p>
+        <h3>Para qué se usa cada letra</h3>
+        <p class="m-muted">El tamaño, el grosor, la letra, el interlineado y la separación entre letras de cada sitio donde se escribe: titulares, párrafo, botón…</p>
         ${typeRows(tokens.typography, tokens.font)}
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Espaciado</h3>${tokenMap(tokens.spacing, "spacing")}
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
-        <h3>Radios</h3>${tokenMap(tokens.radius, "radius")}
+        <h3>Esquinas redondeadas</h3>${tokenMap(tokens.radius, "radius")}
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
         <h3>Sombras</h3>${tokenMap(tokens.shadow, "shadow")}
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
-        <h3>Layout</h3>${tokenMap(tokens.layout, "layout")}
+        <h3>Medidas de la página</h3>${tokenMap(tokens.layout, "layout")}
       </div>
       <div class="m-panel" style="padding:20px;margin-bottom:16px">
-        <h3>Breakpoints</h3>${tokenMap(tokens.breakpoint, "breakpoint")}
+        <h3>Saltos de pantalla</h3>${tokenMap(tokens.breakpoint, "breakpoint")}
       </div>
       </div>
       <aside class="m-design-side">
@@ -1444,7 +1511,7 @@
       if (st) {
         st.innerHTML = slug
           ? ("Activo: <strong>" + esc(name) + "</strong>")
-          : "Ningún preset activo (valores personalizados).";
+          : "Ninguna paleta puesta: los valores son tuyos.";
       }
     };
 
@@ -1891,7 +1958,7 @@
         const preset = (pack.presets || []).find((p) => p.slug === slug);
         if (!preset || !preset.tokens || !Object.keys(preset.tokens).length) {
           inp.checked = false;
-          toast("Este preset no tiene paleta cargada.");
+          toast("Esta paleta no trae colores cargados.");
           return;
         }
         data.tokens = structuredClone(preset.tokens);
@@ -2223,7 +2290,7 @@
       const items = lista();
       campo.placeholder = esCat() ? "Nombre de la categoría" : "Nombre de la etiqueta";
       tabla.innerHTML = `<table>
-        <thead><tr><th>Nombre</th><th>Slug</th><th>Entradas</th><th></th></tr></thead>
+        <thead><tr><th>Nombre</th><th>Dirección</th><th>Entradas</th><th></th></tr></thead>
         <tbody>${items.length ? items.map((t) => `<tr>
           <td>${esc(t.name)}${t.isDefault ? ' <span class="m-pill">por defecto</span>' : ""}</td>
           <td class="m-muted">${esc(t.slug)}</td>
@@ -2340,7 +2407,7 @@
       <form class="m-form-grid" id="be">
         <label class="m-field">Título <input name="title" value="${esc(p.title)}"></label>
         <label class="m-field">Subtítulo <input name="subtitle" value="${esc(p.subtitle)}"></label>
-        <label class="m-field">Slug <input name="slug" value="${esc(p.slug)}"></label>
+        <label class="m-field">Dirección en la web (slug) <input name="slug" value="${esc(p.slug)}"></label>
         <label class="m-field">Extracto <textarea name="excerpt">${esc(p.excerpt)}</textarea></label>
         <div class="m-field">
           <span>Contenido</span>
@@ -3118,7 +3185,7 @@
       caja.innerHTML = `
         <h4>Lo que se propone</h4>
         <p class="m-muted">De <code>${esc(p.de || "")}</code>. El texto queda a ${esc(String(p.contraste || "?"))}:1
-        sobre el fondo${p.contraste >= 4.5 ? ", que se lee bien" : ", que es poco: cámbialo luego en Identidad y tokens"}.</p>
+        sobre el fondo${p.contraste >= 4.5 ? ", que se lee bien" : ", que es poco: cámbialo luego en Identidad y diseño"}.</p>
         <div class="m-kit-swatches">${muestras}</div>
         ${p.tipografias ? `<p>Títulos: <strong>${esc(p.tipografias.heading)}</strong> ·
           Texto: <strong>${esc(p.tipografias.body)}</strong></p>` : ""}
@@ -3241,8 +3308,8 @@
     </tr>`).join("");
     shell("settings", `
       <div class="m-top"><h1>Configuración</h1></div>
-      <label class="m-field">Modo debug <input type="checkbox" id="dbg" ${s.debug?"checked":""}></label>
-      <p class="m-muted">El debug escribe logs técnicos. Nunca se muestran al visitante.</p>
+      <label class="m-field">Modo de diagnóstico <input type="checkbox" id="dbg" ${s.debug?"checked":""}></label>
+      <p class="m-muted">Guarda un registro técnico de lo que pasa por dentro. No se enseña nunca a quien visita la web.</p>
       <div class="m-row">
         <button class="m-btn" id="sv">Guardar</button>
         <a class="m-btn ghost" href="${cfg.admin}?page=krg-kit">Exportar e importar</a>
@@ -3267,8 +3334,8 @@
       </div>
       <div class="m-panel" style="padding:16px 20px;margin-top:20px">
         <h3>Permisos</h3>
-        <p class="m-muted">Las rutas REST comprueban caps, no “está logueado”. El autor no puede cambiar tokens.</p>
-        <table class="m-table"><thead><tr><th>Rol</th><th>Tokens / chrome</th><th>Páginas</th><th>Publicar</th><th>Blog</th></tr></thead>
+        <p class="m-muted">Cada petición comprueba el permiso concreto, no sólo que haya alguien dentro. Quien escribe entradas no puede cambiar el diseño.</p>
+        <table class="m-table"><thead><tr><th>Rol</th><th>Diseño y plantilla</th><th>Páginas</th><th>Publicar</th><th>Blog</th></tr></thead>
         <tbody>${rows}</tbody></table>
         <p class="m-muted">Usuario de prueba autor: <code>autor</code> / <code>autor123</code></p>
       </div>`);
@@ -3367,8 +3434,36 @@
     "krg-buscar": buscar,
     "krg-kit": kit,
   };
+  /* ------------------------------------------------------------------
+     El esqueleto de carga.
+
+     Cada pantalla pide sus datos antes de pintar nada, así que entre el
+     clic y la pantalla había un hueco en blanco de medio segundo largo
+     —más en una instalación con muchas páginas— en el que no se sabía
+     si el panel estaba cargando o roto. Esto pinta ya la barra lateral
+     (que no depende de ningún dato) y cuatro bloques grises donde va a
+     ir el contenido. Lo sustituye el primer `shell()` de verdad.
+     ------------------------------------------------------------------ */
+  const ACTIVO_DE = {
+    krg: view === "onboard" ? "onboard" : "home",
+    "krg-pages": view === "templates" ? "templates" : view === "globals" ? "globals" : "pages",
+    "krg-blog": "blog", "krg-design": "design", "krg-nav": "nav", "krg-seo": "seo",
+    "krg-users": "users", "krg-settings": "settings", "krg-reservas": "reservas",
+    "krg-buscar": "buscar", "krg-kit": "kit",
+  };
+  const esqueleto = () => shell(ACTIVO_DE[pageKey] || "home", `
+    <div class="m-skel" aria-hidden="true">
+      <div class="m-skel-l is-tit"></div>
+      <div class="m-skel-l is-caja"></div>
+      <div class="m-skel-l"></div>
+      <div class="m-skel-l is-corta"></div>
+      <div class="m-skel-l is-caja"></div>
+    </div>
+    <p class="m-sr-only" role="status">Cargando…</p>`);
+
   const run = routes[pageKey];
   if (run) {
+    esqueleto();
     run().catch((e) => {
       shell("home", `<p class="m-form-error">${esc(e.message)}</p>`);
     });
