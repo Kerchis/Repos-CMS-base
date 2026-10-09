@@ -1085,6 +1085,7 @@ class Catalog {
 						],
 					],
 					'slot'        => 30,
+					'clock'       => 'auto',
 					'lead'        => 120,
 					'days'        => 30,
 					'closed'      => '',
@@ -1169,6 +1170,29 @@ class Catalog {
 									'label' => __( 'Cada hora', 'meridian' ),
 								],
 							],
+						]
+					),
+					self::f(
+						'clock',
+						'select',
+						'content',
+						__( 'Cómo se lee la hora', 'meridian' ),
+						[
+							'options' => [
+								[
+									'value' => 'auto',
+									'label' => __( 'Como el resto del sitio', 'meridian' ),
+								],
+								[
+									'value' => '12',
+									'label' => __( '8:30 p. m.', 'meridian' ),
+								],
+								[
+									'value' => '24',
+									'label' => __( '20:30', 'meridian' ),
+								],
+							],
+							'help'    => __( 'Sólo cambia cómo se escribe la hora al leerla. «Como el resto del sitio» usa el formato de Ajustes → General de WordPress, que en Colombia y casi toda Latinoamérica es a. m./p. m. y en España, 24 horas.', 'meridian' ),
 						]
 					),
 					self::f( 'lead', 'number', 'content', __( 'Antelación mínima (minutos)', 'meridian' ), [ 'min' => 0, 'max' => 20160 ] ),

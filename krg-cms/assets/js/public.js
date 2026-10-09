@@ -493,6 +493,19 @@
     if (!Array.isArray(cfg.turnos) || !cfg.turnos.length) return;
 
     const cerrados = Array.isArray(cfg.cerrados) ? cfg.cerrados : [];
+    // Cómo se lee la hora. El valor que viaja es siempre «HH:MM» de 24
+    // horas —es lo que compara el servidor—; esto es sólo la etiqueta.
+    // Quién decide, lo decide el servidor: aquí llega ya resuelto, con
+    // las dos palabras traducidas, porque «a. m.» no se dice igual en
+    // todos los idiomas.
+    const reloj12 = cfg.reloj === "12";
+    const etiquetaHora = (h) => {
+      if (!reloj12) return h;
+      const p = String(h).split(":");
+      const n = Number(p[0]) || 0;
+      const doce = n % 12 || 12;
+      return `${doce}:${p[1]} ${n < 12 ? (cfg.am || "a. m.") : (cfg.pm || "p. m.")}`;
+    };
     const salto = Number(cfg.slot) || 30;
     const antelacion = Number(cfg.lead) || 0;
     const vista = Math.max(1, Number(cfg.days) || 30);
@@ -559,7 +572,7 @@
         return;
       }
       resumen.hidden = false;
-      resumen.textContent = `${largo(fechaSel)} · ${horaSel} · ${gente} ${gente === 1 ? "persona" : "personas"}`;
+      resumen.textContent = `${largo(fechaSel)} · ${etiquetaHora(horaSel)} · ${gente} ${gente === 1 ? "persona" : "personas"}`;
     };
 
     const pintarHoras = () => {
@@ -569,7 +582,7 @@
       tiraHoras.innerHTML = libres.map((h, i) => `
         <button type="button" class="m-bk-hora${h === horaSel ? " is-sel" : ""}" role="radio"
           aria-checked="${h === horaSel ? "true" : "false"}"
-          tabindex="${h === horaSel || (!horaSel && i === 0) ? "0" : "-1"}" data-h="${h}">${h}</button>`).join("");
+          tabindex="${h === horaSel || (!horaSel && i === 0) ? "0" : "-1"}" data-h="${h}">${etiquetaHora(h)}</button>`).join("");
       pintarResumen();
     };
 

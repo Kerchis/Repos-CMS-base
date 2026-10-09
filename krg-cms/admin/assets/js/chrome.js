@@ -206,7 +206,7 @@
       </ul>
       <button class="m-btn ghost" id="close">Cerrar</button>
     </div>`;
-    document.body.appendChild(wrap);
+    window.KrgModal.abrir(wrap);
     wrap.querySelector("#close").onclick = () => wrap.remove();
     wrap.querySelectorAll("[data-hi]").forEach((b) => {
       b.onclick = () => {
@@ -502,7 +502,9 @@
 
   function hBodyContent() {
     const h = state.header || {};
-    return `${field("Texto CTA", `<input data-h="ctaText" value="${esc(h.ctaText || "")}">`)}
+    return `${field("Texto del logo", `<input data-h="logoText" value="${esc(h.logoText || "")}" placeholder="Tu logo aquí">`)}
+      <p class="m-muted">El rótulo de la marca. Sólo se ve cuando no hay imagen de logo; en cuanto subas una, manda la imagen. Déjalo vacío si no quieres ningún texto.</p>
+      ${field("Texto CTA", `<input data-h="ctaText" value="${esc(h.ctaText || "")}">`)}
       ${field("URL CTA", `<input data-h="ctaUrl" value="${esc(h.ctaUrl || "")}">`)}
       ${field("Menú", `<select data-h="menuSlug">${(state.menus || []).map((m) => `<option value="${esc(m.slug)}" ${h.menuSlug === m.slug ? "selected" : ""}>${esc(m.name || m.slug)}</option>`).join("")}</select>`)}
       ${field("Logo escritorio", `${h.logoSrc ? `<img src="${esc(h.logoSrc)}" alt="" style="max-height:36px;width:auto;display:block;margin-bottom:6px">` : ""}<button type="button" class="m-btn ghost" data-hmedia="logoId">Elegir logo</button>`)}
@@ -680,7 +682,8 @@
   function fBodyContent() {
     const f = state.footer || {};
     const social = (f.social || []).map((s) => `${s.label || ""}|${s.url || ""}`).join("\\n");
-    return `${field("Texto", `<textarea data-f="text">${esc(f.text || "")}</textarea>`)}
+    return `${field("Texto del logo", `<input data-f="logoText" value="${esc(f.logoText || "")}" placeholder="Tu logo aquí">`)}
+      ${field("Texto", `<textarea data-f="text">${esc(f.text || "")}</textarea>`)}
       ${field("Columna extra (título)", `<input data-f="extraTitle" value="${esc(f.extraTitle || "")}">`)}
       ${field("Columna extra (texto)", `<textarea data-f="extraText">${esc(f.extraText || "")}</textarea>`)}
       ${field("Redes (Nombre|URL)", `<textarea data-f="social">${esc(social)}</textarea>`)}

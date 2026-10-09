@@ -587,6 +587,60 @@ ok( 'whatsapp' === $guardadas['destino'], 'y el destino elegido, también' );
 ok( 'correo' === Sanitizer::props( [ 'destino' => 'por paloma' ], $ficha_reg )['destino'],
 	'un destino inventado cae en el primero de la lista' );
 
+/* ====================================================================
+ * Cómo se lee la hora: 24 h o a. m./p. m.
+ *
+ * El valor que viaja y se compara es siempre «HH:MM» de 24 horas. Lo
+ * que cambia es la etiqueta, y de serie la decide el propio WordPress
+ * (Ajustes → General), que a su vez la hereda del idioma: es-CO trae
+ * «g:i a» y es-ES, «H:i». Así no hay que configurar lo mismo dos veces.
+ * ==================================================================== */
+echo "\nCómo se lee la hora\n";
+
+$GLOBALS['krg_opt']['time_format'] = 'H:i';
+ok( '24' === Booking::reloj(), 'un sitio con «H:i» se lee en 24 horas' );
+ok( '20:30' === Booking::hora_texto( '20:30' ), 'y la cena es «20:30»' );
+
+$GLOBALS['krg_opt']['time_format'] = 'g:i a';
+ok( '12' === Booking::reloj(), 'un sitio con «g:i a» —es-CO de fábrica— se lee en a. m./p. m.' );
+ok( '8:30 p. m.' === Booking::hora_texto( '20:30' ), 'la misma cena es «8:30 p. m.»' );
+ok( '1:00 p. m.' === Booking::hora_texto( '13:00' ), 'la una de la tarde, «1:00 p. m.»' );
+ok( '12:00 p. m.' === Booking::hora_texto( '12:00' ), 'el mediodía es p. m., no 0' );
+ok( '12:15 a. m.' === Booking::hora_texto( '00:15' ), 'y pasada la medianoche, «12:15 a. m.»' );
+ok( '9:05 a. m.' === Booking::hora_texto( '09:05' ), 'los minutos llevan su cero: «9:05 a. m.»' );
+
+ok( '20:30' === Booking::hora_texto( '20:30', '24' ), 'el bloque puede forzar 24 horas' );
+$GLOBALS['krg_opt']['time_format'] = 'H:i';
+ok( '8:30 p. m.' === Booking::hora_texto( '20:30', '12' ), 'y puede forzar a. m./p. m.' );
+ok( 'ni hora' === Booking::hora_texto( 'ni hora', '12' ), 'lo que no es una hora se devuelve tal cual' );
+
+$cfg_reloj = Booking::config( [ 'clock' => '12' ] );
+ok( '12' === ( $cfg_reloj['reloj'] ?? '' ), 'la configuración recoge el reloj del bloque' );
+ok( 'auto' === Booking::config( [ 'clock' => 'reloj de sol' ] )['reloj'], 'y un valor inventado cae en «auto»' );
+
+$js = Booking::para_js( $cfg_reloj );
+ok( '12' === ( $js['reloj'] ?? '' ), 'el guion lo recibe ya resuelto, sin tener que mirar nada' );
+ok( ! empty( $js['am'] ) && ! empty( $js['pm'] ), 'con las dos palabras puestas por el idioma, no escritas en el guion' );
+$huecos_reloj = Booking::huecos( Booking::config( [] ), '2026-10-16', strtotime( '2026-10-15 10:00:00 UTC' ) );
+ok( in_array( '20:30', $huecos_reloj, true ), 'y los huecos siguen siendo «HH:MM»: lo que cambia es la etiqueta, no el dato' );
+
+$texto_12 = Booking::texto(
+	[
+		'nombre'     => 'Ana',
+		'telefono'   => '+57 300 111 2233',
+		'email'      => '',
+		'fecha'      => '2026-10-16',
+		'hora'       => '20:30',
+		'comensales' => 2,
+		'mensaje'    => '',
+	],
+	'12'
+);
+ok( str_contains( $texto_12, '8:30 p. m.' ), 'el mensaje que le llega al restaurante también se lee en claro' );
+
+ok( in_array( 'clock', array_column( $ficha_reg['fields'] ?? [], 'key' ), true ),
+	'y se elige desde el panel, como todo lo demás' );
+
 echo "\n$hechas comprobaciones, $fallos " . ( 1 === $fallos ? 'fallo' : 'fallos' ) . "\n";
 echo $fallos ? "HAY FALLOS\n" : "LA RESERVA VA ($hechas comprobaciones)\n";
 exit( $fallos ? 1 : 0 );

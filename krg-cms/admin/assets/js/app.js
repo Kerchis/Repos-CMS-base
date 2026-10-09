@@ -93,6 +93,111 @@
     persona: svg('<circle cx="8" cy="5.6" r="2.8"/><path d="M2.8 13.6a5.2 5.2 0 0 1 10.4 0"/>'),
     caja: svg('<path d="M2.2 5.2 8 2.4l5.8 2.8v5.6L8 13.6l-5.8-2.8z"/><path d="M2.2 5.2 8 8l5.8-2.8"/><path d="M8 8v5.6"/>'),
     salir: svg('<path d="M9.4 2.6h3.4a1 1 0 0 1 1 1v8.8a1 1 0 0 1-1 1H9.4"/><path d="M6.6 10.6 9.6 8 6.6 5.4"/><path d="M9.6 8H2.4"/>'),
+    cerrar: svg('<path d="M4.2 4.2l7.6 7.6"/><path d="M11.8 4.2l-7.6 7.6"/>'),
+  };
+
+  /**
+   * Las salidas de un aviso.
+   *
+   * Todos los avisos del panel son el mismo armazón: un `<div class="confirm">`
+   * con una `.box` dentro, que hasta ahora sólo se cerraba con el botón que
+   * cada uno trajera al final. Esta función los convierte en un diálogo de
+   * verdad: aspa arriba a la derecha, tecla Escape, clic en el fondo, foco
+   * atrapado dentro mientras está abierto y devuelto a donde estaba al salir.
+   *
+   * No quita nada: los «Cerrar», «Cancelar» o «Ahora no, lo arreglo» que ya
+   * tiene cada caja siguen en su sitio. Esto suma caminos de salida.
+   *
+   * Quien lo llama sigue escribiendo `wrap.remove()` como antes: la función
+   * envuelve ese método para que, se cierre por donde se cierre, se suelten
+   * los oyentes y vuelva el foco.
+   *
+   * @param {HTMLElement} wrap  El `.confirm` ya montado, todavía fuera del DOM.
+   * @param {{fondo?: boolean, titulo?: string}} opciones
+   * @returns {() => void} La función de cerrar, por si hace falta de fuera.
+   */
+  let modalN = 0;
+  window.KrgModal = {
+    abrir(wrap, opciones = {}) {
+      const box = wrap.querySelector(".box");
+      if (!box) {
+        document.body.appendChild(wrap);
+        return () => wrap.remove();
+      }
+      const previo = document.activeElement;
+      box.setAttribute("role", "dialog");
+      box.setAttribute("aria-modal", "true");
+      box.tabIndex = -1;
+      const titulo = box.querySelector("h3");
+      if (titulo) {
+        if (!titulo.id) titulo.id = "krg-modal-t" + ++modalN;
+        box.setAttribute("aria-labelledby", titulo.id);
+      } else if (opciones.titulo) {
+        box.setAttribute("aria-label", opciones.titulo);
+      }
+
+      // El aspa va la primera del marcado para que el tabulador y el lector
+      // de pantalla la encuentren sin recorrer antes toda la caja.
+      const x = document.createElement("button");
+      x.type = "button";
+      x.className = "b-modal-x";
+      x.setAttribute("aria-label", "Cerrar");
+      x.innerHTML = window.KrgIco.cerrar;
+      box.insertBefore(x, box.firstChild);
+      box.classList.add("has-x");
+
+      const FOCO = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+      const focoables = () => [...box.querySelectorAll(FOCO)].filter((el) => el.offsetParent !== null);
+
+      let vivo = true;
+      const quitar = wrap.remove.bind(wrap);
+      const cerrar = () => {
+        if (!vivo) return;
+        vivo = false;
+        document.removeEventListener("keydown", teclas, true);
+        wrap.removeEventListener("mousedown", fondo);
+        quitar();
+        if (previo && typeof previo.focus === "function" && document.contains(previo)) {
+          previo.focus();
+        }
+      };
+
+      function teclas(e) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          cerrar();
+          return;
+        }
+        if (e.key !== "Tab") return;
+        const lista = focoables();
+        if (!lista.length) return;
+        const primero = lista[0];
+        const ultimo = lista[lista.length - 1];
+        if (e.shiftKey && (document.activeElement === primero || document.activeElement === box)) {
+          e.preventDefault();
+          ultimo.focus();
+        } else if (!e.shiftKey && document.activeElement === ultimo) {
+          e.preventDefault();
+          primero.focus();
+        }
+      }
+      // Sólo el fondo, no la caja: un clic que empieza dentro y acaba fuera
+      // (al arrastrar para seleccionar texto) no cierra nada.
+      function fondo(e) {
+        if (e.target === wrap) cerrar();
+      }
+
+      wrap.remove = cerrar;
+      x.onclick = cerrar;
+      document.addEventListener("keydown", teclas, true);
+      if (opciones.fondo !== false) wrap.addEventListener("mousedown", fondo);
+      document.body.appendChild(wrap);
+      // El foco entra en la caja, no en el primer botón: así nadie pulsa sin
+      // querer un «Eliminar» con la barra espaciadora nada más abrirse.
+      box.focus();
+      return cerrar;
+    },
   };
 
   const uiEsc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -2749,7 +2854,7 @@
       return `
         <div class="m-res" data-res="${r.id}">
           <div class="m-res-cuando">
-            <strong>${esc(r.hora)}</strong>
+            <strong>${esc(r.horaTexto || r.hora)}</strong>
             <small class="m-muted">${esc(plural(r.comensales, "persona", "personas"))}</small>
           </div>
           <div class="m-res-quien">

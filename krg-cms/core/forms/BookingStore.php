@@ -55,6 +55,10 @@ class BookingStore {
 			'telefono'   => (string) ( $r['telefono'] ?? '' ),
 			'fecha'      => (string) ( $r['fecha'] ?? '' ),
 			'hora'       => (string) ( $r['hora'] ?? '' ),
+			// El valor de arriba es el bueno, el de 24 horas, el que se
+			// compara y se ordena. Éste es sólo para leerlo, escrito como
+			// escribe la hora este sitio.
+			'horaTexto'  => Booking::hora_texto( (string) ( $r['hora'] ?? '' ) ),
 			'comensales' => (int) ( $r['comensales'] ?? 0 ),
 			'mensaje'    => (string) ( $r['mensaje'] ?? '' ),
 			'estado'     => in_array( $es, self::ESTADOS, true ) ? $es : 'nueva',

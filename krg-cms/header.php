@@ -60,6 +60,12 @@ if ( $show_header ) {
 		$hstyle .= ';animation-delay:' . absint( $h['animDelay'] ) . 'ms';
 	}
 	$name     = $identity['siteName'] ?: get_bloginfo( 'name' );
+	// El rótulo de la marca es un campo de la cabecera, no el título del
+	// WordPress: ese nombre lo pone quien instala y casi nunca es la marca.
+	// Si está vacío, no se imprime nada y la cabecera se queda sólo con el
+	// logo (o sin marca, si tampoco hay logo).
+	$marca     = trim( (string) ( $h['logoText'] ?? '' ) );
+	$logo_alt  = '' !== $marca ? $marca : $name;
 	$logo_href = \Meridian\Navigation\Menus::logo_href( $h );
 	$chrome = \Meridian\Render\Preview::is_canvas() ? ' data-krg-chrome="header"' : '';
 	$dist   = ( $h['distribute'] ?? '' ) === 'x' ? ' is-dist-x' : ( ( $h['distribute'] ?? '' ) === 'y' ? ' is-dist-y' : '' );
@@ -84,7 +90,7 @@ if ( $show_header ) {
 						$logo_id,
 						'medium_large',
 						[
-							'alt'   => $name,
+							'alt'   => $logo_alt,
 							'papel' => $width,
 							'eager' => true,
 						]
@@ -95,14 +101,14 @@ if ( $show_header ) {
 						$logo_m,
 						'medium',
 						[
-							'alt'   => $name,
+							'alt'   => $logo_alt,
 							'papel' => $wm,
 							'eager' => true,
 						]
 					);
 					echo '</span>';
-				} else {
-					echo '<span class="m-logo-text">' . esc_html( $name ) . '</span>';
+				} elseif ( '' !== $marca ) {
+					echo '<span class="m-logo-text">' . esc_html( $marca ) . '</span>';
 				}
 				?>
 			</a>

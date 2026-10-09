@@ -492,6 +492,43 @@ ok(propsGuardadas && propsGuardadas[1] === '+34 910 000 000', `y el número nuev
 ok(/"destino":"whatsapp"/.test(JSON.stringify(ultimo)), 'con el destino elegido');
 ok(await cons.$eval('[data-prop="whatsapp"]', (i) => i.value) === '+34 910 000 000',
   'y el inspector se queda con lo escrito, sin repintarse encima');
+/* ==================================================================
+ * Cómo se lee la hora.
+ *
+ * El mismo formulario, con el reloj puesto en a. m./p. m.: lo que
+ * cambia es la etiqueta que se lee, nunca el valor que viaja. Si el
+ * `data-h` cambiara, el servidor dejaría de reconocer la hora.
+ * ================================================================== */
+console.log('\nPRUEBA 10 — a. m./p. m. es sólo la etiqueta');
+const doc12 = JSON.parse(JSON.stringify(doc));
+doc12.sections[0].children[0].children[0].children[0].props.clock = '12';
+const doc12File = join(dir, 'doc12.json');
+writeFileSync(doc12File, JSON.stringify(doc12));
+const archivo12 = join(dir, 'reserva12.html');
+writeFileSync(archivo12, execFileSync(PHP, [`${ROOT}/tools/render-doc.php`, doc12File], { encoding: 'utf8' }));
+const p12 = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+await p12.addInitScript(({ ajax }) => {
+  window.KrgPublic = { ajax, nonce: 'n', i18n: { sending: 'Enviando…', sent: 'Enviado', error: 'No se pudo enviar' } };
+}, { ajax: AJAX });
+await p12.goto(`file://${archivo12}`);
+await p12.waitForSelector('.m-bk-hora', { timeout: 15000 });
+const doce = await p12.$$eval('.m-bk-hora', (els) => els.map((e) => ({ v: e.getAttribute('data-h'), t: e.textContent.trim() })));
+ok(doce.every((h) => /^\d{2}:\d{2}$/.test(h.v)), 'el valor que viaja sigue siendo «HH:MM» de 24 horas');
+ok(doce.some((h) => /p\. m\./.test(h.t)), `pero se lee «${doce[doce.length - 1].t}»`);
+ok(doce.every((h) => !/^\d{2}:\d{2}$/.test(h.t)), 'ninguna ficha se queda sin traducir');
+const cuentas = doce.every((h) => {
+  const n = Number(h.v.slice(0, 2));
+  const doceh = n % 12 || 12;
+  return h.t === `${doceh}:${h.v.slice(3)} ${n < 12 ? 'a. m.' : 'p. m.'}`;
+});
+ok(cuentas, 'y la cuenta sale en todas: 13:00 es 1:00 p. m., 00:30 es 12:30 a. m.');
+await p12.click('.m-bk-hora[data-h="20:00"]').catch(() => p12.click('.m-bk-hora'));
+const resumen12 = (await p12.textContent('[data-bk-resumen]')) || '';
+ok(/m\./.test(resumen12), `y el resumen lo dice igual: «${resumen12.trim()}»`);
+ok(await p12.$eval('input[name=hora]', (i) => /^\d{2}:\d{2}$/.test(i.value)),
+  'mientras el campo que se envía guarda la hora de 24 horas');
+await p12.close();
+
 ok(feos.length === 0, `sin errores de JavaScript${feos.length ? ` — ${feos[0]}` : ''}`);
 
 if (process.env.KRG_SHOT) {

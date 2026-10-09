@@ -13,6 +13,9 @@ if ( $show_footer ) {
 	$f        = \Meridian\Navigation\Menus::footer();
 	$identity = \Meridian\Navigation\Menus::identity();
 	$name     = $identity['siteName'] ?: get_bloginfo( 'name' );
+	// Igual que en la cabecera: la marca del pie es su propio campo.
+	$marca    = trim( (string) ( $f['logoText'] ?? '' ) );
+	$logo_alt = '' !== $marca ? $marca : $name;
 	$chrome = \Meridian\Render\Preview::is_canvas() ? ' data-krg-chrome="footer"' : '';
 	// Revelado del pie. 'curtain' lo descubre el contenido al deslizarse por encima.
 	$f_reveal  = sanitize_key( (string) ( $f['reveal'] ?? 'stagger' ) );
@@ -41,12 +44,12 @@ if ( $show_footer ) {
 						(int) $f['logoId'],
 						'medium',
 						[
-							'alt'   => $name,
+							'alt'   => $logo_alt,
 							'papel' => 200,
 						]
 					);
-				} else {
-					echo '<strong class="m-logo-text">' . esc_html( $name ) . '</strong>';
+				} elseif ( '' !== $marca ) {
+					echo '<strong class="m-logo-text">' . esc_html( $marca ) . '</strong>';
 				}
 				?>
 				<p><?php echo esc_html( $f['text'] ?? '' ); ?></p>

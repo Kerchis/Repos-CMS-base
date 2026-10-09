@@ -1089,7 +1089,7 @@
       e.preventDefault();
       wrap.remove();
     };
-    document.body.appendChild(wrap);
+    window.KrgModal.abrir(wrap);
   }
 
   const SHADOWS = [
@@ -3767,7 +3767,7 @@
           <button class="m-btn ghost" id="no">Cancelar</button>
         </div>
       </div>`;
-      document.body.appendChild(wrap);
+      window.KrgModal.abrir(wrap);
       wrap.querySelector("#no").onclick = () => wrap.remove();
       wrap.querySelector("#yes").onclick = () => { wrap.remove(); deleteNode(nid, true); };
       return;

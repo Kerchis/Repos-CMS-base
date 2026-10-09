@@ -453,7 +453,7 @@
         <button class="m-btn ghost" id="des">Descartarla</button>
       </div>
     </div>`;
-    document.body.appendChild(wrap);
+    window.KrgModal.abrir(wrap);
     wrap.querySelector("#des").onclick = () => { copiaBorrar(); wrap.remove(); };
     wrap.querySelector("#rec").onclick = () => {
       snapshot();
@@ -867,7 +867,7 @@
       </ul>
       <button class="m-btn ghost" id="close">Cerrar</button>
     </div>`;
-    document.body.appendChild(wrap);
+    window.KrgModal.abrir(wrap);
     wrap.querySelector("#close").onclick = () => wrap.remove();
 
     const cache = {};
@@ -969,7 +969,7 @@
         <button class="m-btn ghost" id="close">${antesDePublicar ? "Ahora no, lo arreglo" : "Cerrar"}</button>
       </div>
     </div>`;
-    document.body.appendChild(wrap);
+    window.KrgModal.abrir(wrap);
     wrap.querySelector("#close").onclick = () => wrap.remove();
     const botonPub = wrap.querySelector("#rev-pub");
     if (botonPub) {
@@ -1081,7 +1081,7 @@
         <button class="m-btn ghost" id="close">Cerrar</button>
       </div>
     </div>`;
-    document.body.appendChild(wrap);
+    window.KrgModal.abrir(wrap);
     wrap.querySelector("#close").onclick = () => wrap.remove();
     wrap.querySelector("#ptpl-save").onclick = async () => {
       const ok = await guardarPaginaComoPlantilla();
@@ -1142,7 +1142,7 @@
         <button class="m-btn ghost" id="no">Cancelar</button>
       </div>
     </div>`;
-    document.body.appendChild(wrap);
+    window.KrgModal.abrir(wrap);
     wrap.querySelector("#no").onclick = () => wrap.remove();
     wrap.querySelector("#si").onclick = () => { wrap.remove(); alDecirSi(); };
   }
@@ -1165,7 +1165,7 @@
       </ul>
       <button class="m-btn ghost" id="close">Cerrar</button>
     </div>`;
-    document.body.appendChild(wrap);
+    window.KrgModal.abrir(wrap);
     wrap.querySelector("#close").onclick = () => wrap.remove();
     wrap.querySelectorAll("[data-tpl]").forEach((b) => {
       b.onclick = () => {

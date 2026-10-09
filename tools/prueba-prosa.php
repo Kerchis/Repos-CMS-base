@@ -221,6 +221,50 @@ comprueba( str_contains( $css, '.m-site-header .m-nav-list a' ), 'sobre los enla
 $h2 = Menus::save_header( array_merge( Menus::default_header(), [ 'navFont' => '<script>x</script>Archivo' ] ) );
 comprueba( ! str_contains( (string) $h2['navFont'], '<' ), 'y lo que se escribe en la familia se desinfecta' );
 
+/* ====================================================================
+ * El rótulo de la marca.
+ *
+ * Hasta ahora, un sitio sin logo imprimía en la cabecera el título del
+ * WordPress. Ese título lo pone quien instala —y acaba siendo el nombre
+ * de la carpeta, el del hosting o el de la plantilla con la que se hizo
+ * la demo—, así que aparecía publicada en la web una palabra que nadie
+ * había escrito ahí. Ahora es un campo de la cabecera y del pie, con un
+ * marcador de fábrica que dice lo que hay que hacer.
+ * ==================================================================== */
+echo "\nPRUEBA 8 bis — el rótulo de la marca no lo pone WordPress\n";
+
+$cab_def = Menus::default_header();
+$pie_def = Menus::default_footer();
+comprueba( 'Tu logo aquí' === ( $cab_def['logoText'] ?? '' ), 'de fábrica, la cabecera dice «Tu logo aquí»' );
+comprueba( 'Tu logo aquí' === ( $pie_def['logoText'] ?? '' ), 'y el pie, lo mismo' );
+comprueba( 'Sitio de prueba' !== ( $cab_def['logoText'] ?? '' ), 'nunca el título del WordPress («Sitio de prueba»)' );
+
+$cab_mia = Menus::save_header( array_merge( $cab_def, [ 'logoText' => 'Casa Mar' ] ) );
+comprueba( 'Casa Mar' === $cab_mia['logoText'], 'lo que escribe el dueño se guarda tal cual' );
+comprueba( 'Casa Mar' === Menus::marca( $cab_mia ), 'y es lo que se lee' );
+$cab_sucia = Menus::save_header( array_merge( $cab_def, [ 'logoText' => '<script>x</script>Casa' ] ) );
+comprueba( ! str_contains( (string) $cab_sucia['logoText'], '<' ), 'y se desinfecta como todo lo demás' );
+
+$cab_vacia = Menus::save_header( array_merge( $cab_def, [ 'logoText' => '' ] ) );
+comprueba( '' === $cab_vacia['logoText'], 'se puede dejar vacío a propósito: sólo el logo' );
+comprueba( 'Sitio de prueba' === Menus::marca( $cab_vacia ),
+	'y entonces el nombre del sitio sólo sirve de «alt» para quien no ve la imagen' );
+
+$vieja = Menus::save_header( $cab_def );
+unset( $vieja['logoText'] );
+update_option( MERIDIAN_OPTION_HEADER, $vieja, false );
+comprueba( 'Tu logo aquí' === ( Menus::header()['logoText'] ?? '' ),
+	'una cabecera guardada antes de que esto existiera también lo recibe' );
+update_option( MERIDIAN_OPTION_HEADER, Menus::default_header(), false );
+
+$clasico = Menus::classic_section( array_merge( $pie_def, [ 'logoText' => 'Casa Mar' ] ) );
+$json_clasico = wp_json_encode( $clasico );
+comprueba( str_contains( (string) $json_clasico, 'Casa Mar' ), 'el pie clásico monta el rótulo de la marca' );
+comprueba( ! str_contains( (string) $json_clasico, 'Sitio de prueba' ), 'y no el título del WordPress' );
+$clasico_vacio = wp_json_encode( Menus::classic_section( array_merge( $pie_def, [ 'logoText' => '' ] ) ) );
+comprueba( ! str_contains( (string) $clasico_vacio, 'Sitio de prueba' ),
+	'sin rótulo no se inventa ninguno' );
+
 echo "\nPRUEBA 9 — la cuarta familia tipográfica\n";
 
 update_option(

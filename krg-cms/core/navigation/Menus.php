@@ -187,6 +187,20 @@ class Menus {
 		return $h;
 	}
 
+	/**
+	 * El rótulo de la marca de una cabecera o de un pie.
+	 *
+	 * Sale del campo `logoText`, que se edita en el panel. Si está vacío
+	 * —porque alguien lo borró a propósito para dejar sólo el logo— se
+	 * devuelve cadena vacía y quien pinta decide: el texto no se imprime
+	 * y el `alt` de la imagen cae en el nombre del sitio, que ahí sí es
+	 * lo correcto para quien no ve el logo.
+	 */
+	public static function marca( array $ajustes ): string {
+		$marca = trim( (string) ( $ajustes['logoText'] ?? '' ) );
+		return '' !== $marca ? $marca : (string) get_bloginfo( 'name' );
+	}
+
 	private static function fnode( string $type, array $props = [], array $children = [], string $name = '' ): array {
 		return [
 			'id'         => 'n_' . wp_generate_uuid4(),
@@ -213,7 +227,7 @@ class Menus {
 					'imageId'   => $logo_id,
 					'fillMode'  => 'natural',
 					'objectFit' => 'contain',
-					'alt'       => get_bloginfo( 'name' ),
+					'alt'       => self::marca( $f ),
 				],
 				[],
 				__( 'Logo', 'meridian' )
@@ -221,7 +235,10 @@ class Menus {
 			$col1[0]['styles']['desktop']['max-width'] = '180px';
 			$col1[0]['styles']['desktop']['width']     = '180px';
 		} else {
-			$col1[] = self::fnode( 'heading', [ 'text' => get_bloginfo( 'name' ), 'tag' => 'h2' ], [], __( 'Logo', 'meridian' ) );
+			$marca = trim( (string) ( $f['logoText'] ?? '' ) );
+			if ( '' !== $marca ) {
+				$col1[] = self::fnode( 'heading', [ 'text' => $marca, 'tag' => 'h2' ], [], __( 'Logo', 'meridian' ) );
+			}
 		}
 		if ( ! empty( $f['text'] ) ) {
 			$col1[] = self::fnode( 'paragraph', [ 'text' => (string) $f['text'] ], [], __( 'Texto', 'meridian' ) );
@@ -286,6 +303,7 @@ class Menus {
 					? sanitize_key( (string) ( $data['adaptive'] ?? 'off' ) )
 					: 'off',
 				'sticky'      => ! empty( $data['sticky'] ),
+				'logoText'    => sanitize_text_field( $data['logoText'] ?? '' ),
 				'ctaText'     => sanitize_text_field( $data['ctaText'] ?? '' ),
 				'ctaUrl'      => \Meridian\Security\UrlValidator::sanitize( $data['ctaUrl'] ?? '' ),
 				'menuSlug'    => sanitize_key( $data['menuSlug'] ?? 'header' ),
@@ -367,6 +385,7 @@ class Menus {
 			self::default_footer(),
 			[
 				'logoId'        => absint( $data['logoId'] ?? 0 ),
+				'logoText'      => sanitize_text_field( $data['logoText'] ?? '' ),
 				'reveal'        => in_array( sanitize_key( (string) ( $data['reveal'] ?? 'stagger' ) ), [ 'none', 'rise', 'stagger', 'curtain' ], true )
 					? sanitize_key( (string) ( $data['reveal'] ?? 'stagger' ) )
 					: 'stagger',
@@ -476,6 +495,18 @@ class Menus {
 			'logoWidthTablet'   => 140,
 			'logoWidthMobile'   => 120,
 			'sticky'      => true,
+			/*
+			 * El rótulo de la marca cuando todavía no hay logo.
+			 *
+			 * Antes se imprimía aquí el título del WordPress, que casi nunca
+			 * es la marca: es el nombre que puso el instalador —el de la
+			 * carpeta, el del hosting o el de la plantilla de pruebas— y
+			 * acababa publicado en la cabecera de un sitio de verdad sin que
+			 * nadie lo hubiera escrito. Ahora es un campo propio de la
+			 * cabecera, editable desde el panel, y de fábrica dice lo que hay
+			 * que hacer. Dejarlo vacío deja la marca en blanco a propósito.
+			 */
+			'logoText'    => __( 'Tu logo aquí', 'meridian' ),
 			'ctaText'     => __( 'Contacto', 'meridian' ),
 			'ctaUrl'      => '/contacto/',
 			'menuSlug'    => 'header',
@@ -517,6 +548,7 @@ class Menus {
 	public static function default_footer(): array {
 		return [
 			'logoId'     => 0,
+			'logoText'   => __( 'Tu logo aquí', 'meridian' ),
 			'text'       => __( 'Plataforma CMS y constructor visual.', 'meridian' ),
 			'copyright'  => '© ' . gmdate( 'Y' ) . ' KRG CMS',
 			'copyrightUrl'    => '',

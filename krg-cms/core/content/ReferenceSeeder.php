@@ -266,7 +266,10 @@ class ReferenceSeeder {
 				self::node(
 					'wordmark',
 					[
-						'text'        => (string) get_bloginfo( 'name' ),
+						// El rótulo de la marca que haya puesto la cabecera, no el
+						// título del WordPress: aquí se imprime a tamaño gigante y
+						// un «mi-sitio-pruebas» de fábrica canta muchísimo.
+						'text'        => \Meridian\Navigation\Menus::marca( \Meridian\Navigation\Menus::header() ),
 						'tag'         => 'p',
 						'url'         => '/',
 						'fit'         => 'fill',

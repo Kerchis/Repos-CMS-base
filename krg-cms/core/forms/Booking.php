@@ -44,6 +44,9 @@ class Booking {
 		$slot = absint( $props['slot'] ?? 30 );
 		$slot = in_array( $slot, [ 15, 30, 45, 60 ], true ) ? $slot : 30;
 
+		$reloj = (string) ( $props['clock'] ?? 'auto' );
+		$reloj = in_array( $reloj, self::RELOJES, true ) ? $reloj : 'auto';
+
 		$turnos = [];
 		foreach ( (array) ( $props['turnos'] ?? [] ) as $t ) {
 			if ( ! is_array( $t ) ) {
@@ -108,6 +111,7 @@ class Booking {
 			'success'   => sanitize_text_field( (string) ( $props['success'] ?? __( 'Hemos recibido tu petición. Te confirmamos enseguida.', 'meridian' ) ) ),
 			'waBoton'   => sanitize_text_field( (string) ( $props['waBoton'] ?? __( 'Enviar por WhatsApp', 'meridian' ) ) ),
 			'slot'      => $slot,
+			'reloj'     => $reloj,
 			'lead'      => max( 0, min( 20160, absint( $props['lead'] ?? 120 ) ) ),
 			'days'      => max( 1, min( 365, absint( $props['days'] ?? 30 ) ?: 30 ) ),
 			'maxGuests' => $max,
@@ -131,7 +135,58 @@ class Booking {
 			'guests'    => $cfg['guests'],
 			'turnos'    => $cfg['turnos'],
 			'cerrados'  => $cfg['cerrados'],
+			'reloj'     => self::reloj( $cfg['reloj'] ?? 'auto' ),
+			'am'        => __( 'a. m.', 'meridian' ),
+			'pm'        => __( 'p. m.', 'meridian' ),
 		];
+	}
+
+	/**
+	 * Cómo se escribe la hora al leerla.
+	 *
+	 * `auto` es lo que ya dice el propio WordPress en Ajustes → General,
+	 * que a su vez viene del idioma del sitio: un sitio en es-CO trae
+	 * «g:i a» (8:30 p. m.) y uno en es-ES trae «H:i» (20:30). Así la hora
+	 * de la reserva se lee igual que las fechas del resto de la casa sin
+	 * que nadie tenga que configurar nada dos veces, y quien quiera lo
+	 * contrario lo fuerza desde el bloque.
+	 *
+	 * El valor que viaja y se guarda es siempre «HH:MM» de 24 horas:
+	 * esto es sólo la etiqueta que se lee.
+	 */
+	private const RELOJES = [ 'auto', '24', '12' ];
+
+	/** De 'auto' a '12' o '24', mirando lo que dice el sitio. */
+	public static function reloj( string $modo = 'auto' ): string {
+		if ( '12' === $modo || '24' === $modo ) {
+			return $modo;
+		}
+		$fmt = function_exists( 'get_option' ) ? (string) get_option( 'time_format', '' ) : '';
+		// 'g' y 'h' son las letras de las doce horas en el formato de
+		// fecha de PHP; precedidas de barra son texto literal.
+		return preg_match( '/(?<!\\\\)[gh]/', $fmt ) ? '12' : '24';
+	}
+
+	/** «20:30» → «8:30 p. m.» o «20:30», según el reloj del sitio. */
+	public static function hora_texto( string $hhmm, string $modo = 'auto' ): string {
+		$hora = self::hora( $hhmm );
+		if ( '' === $hora ) {
+			return $hhmm;
+		}
+		if ( '12' !== self::reloj( $modo ) ) {
+			return $hora;
+		}
+		$partes = explode( ':', $hora );
+		$h      = (int) $partes[0];
+		$m      = (int) $partes[1];
+		$h12    = $h % 12;
+		$h12    = 0 === $h12 ? 12 : $h12;
+		return sprintf(
+			'%d:%02d %s',
+			$h12,
+			$m,
+			$h < 12 ? __( 'a. m.', 'meridian' ) : __( 'p. m.', 'meridian' )
+		);
 	}
 
 	/** «9:5» no es una hora; «09:05» sí. Devuelve '' si no lo es. */
@@ -296,14 +351,14 @@ class Booking {
 	}
 
 	/** El mensaje que se va a mandar, en texto corrido. */
-	public static function texto( array $r ): string {
+	public static function texto( array $r, string $reloj = 'auto' ): string {
 		$lineas = [
 			sprintf(
 				/* translators: %s: número de comensales. */
 				_n( 'Reserva para %s persona', 'Reserva para %s personas', $r['comensales'], 'meridian' ),
 				number_format_i18n( $r['comensales'] )
 			),
-			self::fecha_larga( $r['fecha'] ) . ' · ' . $r['hora'],
+			self::fecha_larga( $r['fecha'] ) . ' · ' . self::hora_texto( (string) $r['hora'], $reloj ),
 			'',
 			/* translators: %s: nombre de quien reserva. */
 			sprintf( __( 'Nombre: %s', 'meridian' ), $r['nombre'] ),
@@ -520,7 +575,7 @@ class Booking {
 		];
 		if ( 'correo' !== $cfg['destino'] && $cfg['whatsapp'] ) {
 			$respuesta['wa'] = [
-				'url'   => self::enlace_whatsapp( $cfg['whatsapp'], self::texto( $datos ) ),
+				'url'   => self::enlace_whatsapp( $cfg['whatsapp'], self::texto( $datos, $cfg['reloj'] ?? 'auto' ) ),
 				'label' => $cfg['waBoton'],
 			];
 		}
@@ -538,7 +593,7 @@ class Booking {
 		}
 		/* translators: %s: resumen de la reserva. */
 		$asunto  = sprintf( __( 'Reserva: %s', 'meridian' ), self::titulo( $r ) );
-		$cuerpo  = self::texto( $r );
+		$cuerpo  = self::texto( $r, $cfg['reloj'] ?? 'auto' );
 		$cabecera = [];
 		if ( $r['email'] ) {
 			$cabecera[] = 'Reply-To: ' . $r['nombre'] . ' <' . $r['email'] . '>';
