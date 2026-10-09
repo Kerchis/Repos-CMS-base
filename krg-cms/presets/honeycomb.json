@@ -45,7 +45,7 @@
         "label": "Texto secundario"
       },
       "muted": {
-        "value": "#78736A",
+        "value": "#6E6960",
         "type": "color",
         "label": "Texto atenuado"
       },

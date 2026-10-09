@@ -23,7 +23,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT, chromiumLib } from './harness.mjs';
@@ -35,6 +35,19 @@ const REST = 'https://krg.test/wp-json/krg/v1';
 
 const piel = JSON.parse(execFileSync(`${ROOT}/.tools/php/php`, [`${ROOT}/tools/dump-piel.php`], { encoding: 'utf8' }));
 const preset = JSON.parse(readFileSync(`${ROOT}/krg-cms/presets/honeycomb.json`, 'utf8'));
+/* Las paletas de la web, leídas del disco igual que las lee el servidor:
+   así el banco no repite a mano unos colores que podrían quedarse
+   viejos, y una paleta nueva aparece aquí sola. */
+const PALETAS = readdirSync(`${ROOT}/krg-cms/presets`)
+  .filter((f) => f.endsWith('.json'))
+  .map((f) => JSON.parse(readFileSync(`${ROOT}/krg-cms/presets/${f}`, 'utf8')))
+  .map((p) => ({
+    slug: p.slug,
+    name: p.name,
+    tokens: p.tokens,
+    swatches: ['primary', 'secondary', 'tertiary', 'background', 'text']
+      .map((k) => p.tokens.color?.[k]?.value).filter(Boolean),
+  }));
 const registry = JSON.parse(execFileSync(`${ROOT}/.tools/php/php`, [`${ROOT}/tools/dump-registry.php`], { encoding: 'utf8' }));
 
 let fallos = 0;
@@ -80,7 +93,7 @@ async function pantalla(page, { key = 'krg-design', canManage = true, extra = {}
       return json({ data: piel.themes[slug].colores, defaults: piel.themes[slug].colores, theme: slug, themes: piel.themes });
     }
     if (url === '/admin-skin') return json(piel);
-    if (url === '/tokens') return json({ data: { tokens: preset.tokens, activePreset: 'honeycomb' }, presets: [{ slug: 'honeycomb', name: 'Honeycomb', swatches: ['#3F5E58'] }], fonts: [] });
+    if (url === '/tokens') return json({ data: { tokens: preset.tokens, activePreset: 'honeycomb' }, presets: PALETAS, fonts: [] });
     if (url === '/identity') return json({ siteName: 'Casa Mar', tagline: '', logoId: 0, logoUrl: '' });
     if (url === '/pages') return json(paginas);
     if (url === '/registry') return json(registry);
@@ -229,6 +242,43 @@ ok(avisos.every((a) => a.icono), 'con su marca delante');
 ok(avisos.some((a) => /is-(mal|bien|info)/.test(a.clase)), `y con sabor: ${avisos.map((a) => a.clase.replace('m-toast ', '')).join(', ')}`);
 ok(avisos.every((a) => a.papel === 'alert' || a.papel === 'status'), 'anunciados para quien escucha la pantalla');
 
+console.log('\nPRUEBA 1 quater — las paletas de la web están, se ven y se aplican');
+
+const lista = await page.evaluate(() => [...document.querySelectorAll('[data-preset]')].map((i) => ({
+  slug: i.dataset.preset,
+  nombre: i.closest('.m-preset')?.querySelector('strong')?.textContent.trim() || '',
+  muestras: i.closest('.m-preset')?.querySelectorAll('.m-preset-swatches i').length || 0,
+})));
+const NUEVAS = ['amatista', 'cacao', 'malva', 'caramelo', 'pinar', 'noche'];
+ok(lista.length >= 9, `el panel ofrece las paletas del tema (${lista.length})`);
+ok(NUEVAS.every((n) => lista.some((p) => p.slug === n)),
+  `están las seis nuevas (faltan: ${NUEVAS.filter((n) => !lista.some((p) => p.slug === n)).join(', ') || 'ninguna'})`);
+ok(lista.every((p) => p.nombre && p.muestras === 5),
+  `cada una con su nombre y sus cinco muestras (${lista.map((p) => p.muestras).join('')})`);
+
+// Ponerla cambia la pantalla y la vista previa, pero no el sitio: eso
+// sólo pasa al guardar.
+const aplicar = await page.evaluate(async () => {
+  const antes = getComputedStyle(document.querySelector('.m-pv-btn')).backgroundColor;
+  document.querySelector('[data-preset="amatista"]').click();
+  await new Promise((r) => setTimeout(r, 400));
+  return {
+    antes,
+    botonPrevia: getComputedStyle(document.querySelector('.m-pv-btn')).backgroundColor,
+    campoPrimario: document.querySelector('[data-color="primary"]').value,
+    activa: document.querySelector('.m-preset-status').textContent.trim(),
+    sucio: !document.querySelector('#design-dirty').hidden,
+    sitio: getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim(),
+  };
+});
+ok(aplicar.campoPrimario.toLowerCase() === '#6e3482',
+  `al poner Amatista, el color primario pasa a ser el suyo (${aplicar.campoPrimario})`);
+ok(aplicar.botonPrevia === 'rgb(110, 52, 130)',
+  `y la vista previa se pinta de morado (${aplicar.antes} → ${aplicar.botonPrevia})`);
+ok(/Amatista/.test(aplicar.activa), `la pantalla dice cuál está puesta: «${aplicar.activa}»`);
+ok(aplicar.sucio, 'y avisa de que falta guardar');
+ok(aplicar.sitio === '', 'sin tocar el sitio hasta que se guarde');
+
 console.log('\nPRUEBA 2 — quien no administra no lo ve');
 
 const page2 = await browser.newPage({ viewport: { width: 1440, height: 900 } });
@@ -243,7 +293,18 @@ console.log('\nPRUEBA 3 — elegir tema pinta el panel al instante');
 await page.click('#skin-zona > summary');
 await page.waitForTimeout(150);
 const cartas = await page.$$eval('.m-tema', (els) => els.map((e) => e.dataset.tema));
-ok(cartas.length === 3, `hay tres temas para elegir (${cartas.join(', ')})`);
+const ESPERADOS = ['bronce', 'oceano', 'bosque', 'amatista', 'cacao', 'malva', 'caramelo', 'pinar', 'noche'];
+ok(cartas.length === ESPERADOS.length, `hay nueve temas para elegir (${cartas.length}: ${cartas.join(', ')})`);
+ok(ESPERADOS.every((t) => cartas.includes(t)),
+  `están los tres de siempre y las seis paletas nuevas (faltan: ${ESPERADOS.filter((t) => !cartas.includes(t)).join(', ') || 'ninguna'})`);
+const muestras = await page.$$eval('.m-tema', (els) => els.map((e) => ({
+  tema: e.dataset.tema,
+  chips: e.querySelectorAll('.m-tema-chips i').length,
+  nombre: (e.querySelector('strong') || {}).textContent || '',
+  nota: (e.querySelector('.m-muted') || {}).textContent || '',
+})));
+ok(muestras.every((m) => m.chips === 5), `cada carta enseña sus cinco tonos (${muestras.map((m) => m.chips).join('')})`);
+ok(muestras.every((m) => m.nombre.trim() && m.nota.trim()), 'con nombre y con una línea que lo explica');
 const activo = await page.$$eval('.m-tema', (els) => els.filter((e) => e.getAttribute('aria-pressed') === 'true').map((e) => e.dataset.tema));
 ok(activo.length === 1 && activo[0] === 'bronce', 'y el de fábrica viene marcado: bronce');
 
