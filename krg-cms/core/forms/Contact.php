@@ -16,10 +16,13 @@ class Contact {
 		if ( ! wp_verify_nonce( $nonce, 'krg_contact' ) && ! wp_verify_nonce( $nonce, 'meridian_contact' ) ) {
 			wp_send_json_error( [ 'message' => __( 'La sesión no es válida. Recarga la página.', 'meridian' ) ], 403 );
 		}
-		if ( ! empty( $_POST['website'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			wp_send_json_success( [ 'message' => __( 'Mensaje enviado. Gracias.', 'meridian' ) ] );
-		}
-		$name    = sanitize_text_field( wp_unslash( $_POST['name'] ?? '' ) );
+			if ( ! empty( $_POST['website'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+				wp_send_json_success( [ 'message' => __( 'Mensaje enviado. Gracias.', 'meridian' ) ] );
+			}
+			if ( ! FormGuard::permite( 'contacto' ) ) {
+				wp_send_json_error( [ 'message' => __( 'Has enviado varios mensajes seguidos. Espera un momento, por favor.', 'meridian' ) ], 429 );
+			}
+			$name    = sanitize_text_field( wp_unslash( $_POST['name'] ?? '' ) );
 		$email   = sanitize_email( wp_unslash( $_POST['email'] ?? '' ) );
 		$phone   = sanitize_text_field( wp_unslash( $_POST['phone'] ?? '' ) );
 		$subject = sanitize_text_field( wp_unslash( $_POST['subject'] ?? '' ) );
@@ -46,8 +49,12 @@ class Contact {
 		if ( $optins ) {
 			$body .= "\n\n" . __( 'Suscripciones:', 'meridian' ) . ' ' . implode( ', ', $optins );
 		}
-		$headers = [ 'Reply-To: ' . $name . ' <' . $email . '>' ];
-		$sent    = wp_mail( $to, $subj, $body, $headers );
+			$headers = [];
+			$reply   = FormGuard::reply_to( $name, $email );
+			if ( '' !== $reply ) {
+				$headers[] = $reply;
+			}
+			$sent = wp_mail( $to, $subj, $body, $headers );
 		if ( ! $sent ) {
 			\Meridian\Log\Logger::error( 'contact_mail_failed', [ 'email' => $email ] );
 			wp_send_json_error( [ 'message' => __( 'No se pudo enviar el mensaje.', 'meridian' ) ], 500 );

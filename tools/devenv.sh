@@ -25,6 +25,10 @@ TOOLS="$ROOT/.tools"
 PHP_DIR="$TOOLS/php"
 CHR_DIR="$TOOLS/chromium"
 PHP_VERSION="${PHP_VERSION:-8.3}"
+# Versiones clavadas a propósito. Subirlas es una decisión, no un efecto
+# secundario de instalar: se cambia aquí, a mano, mirando qué trae la nueva.
+CHROMIUM_PKG_VER="${CHROMIUM_PKG_VER:-153.0.0}"
+PLAYWRIGHT_VER="${PLAYWRIGHT_VER:-1.64.1}"
 
 mkdir -p "$TOOLS"
 
@@ -66,8 +70,13 @@ install_chromium() {
   mkdir -p "$CHR_DIR" "$TOOLS/npm"
   ( cd "$TOOLS/npm" \
     && [ -f package.json ] || echo '{"name":"krg-devenv","private":true}' > package.json )
-  ( cd "$TOOLS/npm" && npm install --silent --no-audit --no-fund \
-      @sparticuz/chromium playwright-core ) || return 1
+  # Versiones clavadas y sin ejecutar scripts de instalación. El gusano
+  # Shai-Hulud (npm, sep y nov de 2025, mayo de 2026) entra justo por ahí:
+  # un `postinstall` de una version nueva que nadie ha mirado, que rapiña
+  # los tokens del entorno y se republica solo. Aquí no hace falta ningun
+  # script: del paquete de chromium sacamos el binario a mano, debajo.
+  ( cd "$TOOLS/npm" && npm install --silent --no-audit --no-fund --ignore-scripts \
+      "@sparticuz/chromium@${CHROMIUM_PKG_VER}" "playwright-core@${PLAYWRIGHT_VER}" ) || return 1
 
   # El binario y sus librerias viajan comprimidos en brotli dentro del paquete.
   node -e '

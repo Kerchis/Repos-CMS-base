@@ -30,9 +30,8 @@ class Booking {
 		7 => 'dom',
 	];
 
-	/** Cuántas peticiones se admiten desde la misma conexión y en cuánto rato. */
-	private const TOPE      = 6;
-	private const VENTANA   = 600;
+	// Cuántas peticiones se admiten y en cuánto rato lo decide
+	// `FormGuard`: una sola autoridad para los dos formularios.
 
 	/**
 	 * La configuración del bloque, ya puesta en limpio.
@@ -595,8 +594,9 @@ class Booking {
 		$asunto  = sprintf( __( 'Reserva: %s', 'meridian' ), self::titulo( $r ) );
 		$cuerpo  = self::texto( $r, $cfg['reloj'] ?? 'auto' );
 		$cabecera = [];
-		if ( $r['email'] ) {
-			$cabecera[] = 'Reply-To: ' . $r['nombre'] . ' <' . $r['email'] . '>';
+		$reply    = FormGuard::reply_to( (string) ( $r['nombre'] ?? '' ), (string) ( $r['email'] ?? '' ) );
+		if ( '' !== $reply ) {
+			$cabecera[] = $reply;
 		}
 		$enviado = wp_mail( $to, $asunto, $cuerpo, $cabecera );
 		if ( ! $enviado ) {
@@ -605,18 +605,12 @@ class Booking {
 		return (bool) $enviado;
 	}
 
-	/** Freno sencillo por conexión: ni una por segundo ni cien por minuto. */
+	/**
+	 * Freno de envíos. La cuenta la lleva `FormGuard`, que es el mismo
+	 * guardia que usa el formulario de contacto, con cubo propio para
+	 * que una cosa no gaste el cupo de la otra.
+	 */
 	private static function pasa_el_freno(): bool {
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-		if ( '' === $ip ) {
-			return true;
-		}
-		$clave = 'krg_bk_' . md5( $ip );
-		$n     = (int) get_transient( $clave );
-		if ( $n >= self::TOPE ) {
-			return false;
-		}
-		set_transient( $clave, $n + 1, self::VENTANA );
-		return true;
+		return FormGuard::permite( 'reserva' );
 	}
 }
